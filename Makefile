@@ -125,6 +125,7 @@ SOURCES_CXX := $(CORE_DIR)/Src/CPU/PowerPC/PPCDisasm.cpp \
                $(CORE_DIR)/Src/Model3/TileGen.cpp \
                $(CORE_DIR)/Src/Model3/Model3.cpp \
                $(CORE_DIR)/Src/CPU/PowerPC/ppc.cpp \
+               $(if $(filter android aarch64 rpi64,$(platform)),$(CORE_DIR)/Src/CPU/PowerPC/Jit/JitArm64.cpp,) \
                $(CORE_DIR)/Src/Model3/SoundBoard.cpp \
                $(CORE_DIR)/Src/Sound/SCSP.cpp \
                $(CORE_DIR)/Src/Sound/SCSPDSP.cpp \

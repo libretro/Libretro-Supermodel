@@ -231,7 +231,7 @@ static void ppc603_check_interrupts(void)
 void ppc_reset(void)
 {
 	ppc.fatalError = false;	// reset the fatal error flag
-	
+
 	ppc.pc = ppc.npc = 0xfff00100;
 
 	ppc_set_msr(0x40);
@@ -247,6 +247,24 @@ void ppc_reset(void)
 	ppc.total_cycles = 0;
 	ppc.cur_cycles = 0;
 	ppc.icount = 0;
+
+#ifdef __aarch64__
+	JitArm64::get().flush();
+#endif
+}
+
+// Called by JIT for instructions it doesn't handle inline.
+// Caller sets ppc.pc and ppc.npc before calling.
+extern "C" void ppc_dispatch_opcode(UINT32 opcode)
+{
+	switch(opcode >> 26)
+	{
+		case 19:	optable19[(opcode >> 1) & 0x3ff](opcode); break;
+		case 31:	optable31[(opcode >> 1) & 0x3ff](opcode); break;
+		case 59:	optable59[(opcode >> 1) & 0x3ff](opcode); break;
+		case 63:	optable63[(opcode >> 1) & 0x3ff](opcode); break;
+		default:	optable[opcode >> 26](opcode); break;
+	}
 }
 
 int ppc_execute(int cycles)
@@ -281,6 +299,50 @@ int ppc_execute(int cycles)
 	if (PPCDebug != NULL)
 		PPCDebug->CPUActive();
 #endif // SUPERMODEL_DEBUGGER
+
+#ifdef __aarch64__
+	// JIT dispatch loop: look up or compile a block and execute it.
+	// Falls back to the interpreter loop below if JIT is unavailable.
+	{
+#ifdef SUPERMODEL_DEBUGGER
+		bool jit_ok = (PPCDebug == NULL);	// bypass JIT when debugger is attached
+#else
+		bool jit_ok = true;
+#endif
+		JitArm64 &jit = JitArm64::get();
+		if (!jit_ok) goto jit_done;
+		if (!jit.is_available())
+			jit.init();
+
+		if (jit.is_available())
+		{
+			while (ppc.icount > 0 && !ppc.fatalError)
+			{
+				JitBlock *blk = jit.get_or_compile(ppc.npc);
+				if (!blk)
+					break;	// compile failed; fall through to interpreter
+
+				blk->fn();	// runs the block; updates ppc.pc, ppc.npc, ppc.icount
+
+				// Keep fetch region in sync for next block compilation
+				ppc_change_pc(ppc.npc);
+
+				// Decrementer check (per-block granularity is acceptable)
+				if (ppc.icount <= ppc.dec_trigger_cycle)
+				{
+					ppc.interrupt_pending |= 0x2;
+					ppc603_check_interrupts();
+				}
+				else
+				{
+					ppc603_check_interrupts();
+				}
+			}
+			goto jit_done;
+		}
+	}
+#endif // __aarch64__
+// Suppress unused-label warning when debugger is disabled
 
 	while( ppc.icount > 0 && !ppc.fatalError)
 	{
@@ -325,6 +387,10 @@ int ppc_execute(int cycles)
 
 		//ppc603_check_interrupts();
 	}
+
+#ifdef __aarch64__
+jit_done:
+#endif
 
 #ifdef SUPERMODEL_DEBUGGER
 	if (PPCDebug != NULL)

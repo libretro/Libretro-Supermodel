@@ -29,6 +29,7 @@
 /* IBM/Motorola PowerPC 4xx/6xx Emulator */
 
 #include "ppc.h"
+#include "ppc_regs.h"
 
 #include <cstring>	// memset()
 #include "Supermodel.h"
@@ -157,122 +158,7 @@ static UINT32		ppc_field_xlat[256];
 #define BYTE_REVERSE16(x)	((((x) >> 8) | ((x) << 8)) & 0xFFFF)
 #define BYTE_REVERSE32(x)	(((x) >> 24) | (((x) << 8) & 0x00FF0000) | (((x) >> 8) & 0x0000FF00) | ((x) << 24))
 
-typedef union {
-	UINT64	id;
-	double	fd;
-} FPR;
-
-typedef union {
-	UINT32 i;
-	float f;
-} FPR32;
-
-typedef struct {
-	UINT32 u;
-	UINT32 l;
-} BATENT;
-
-
-typedef struct {
-	bool	fatalError;	// if true, halt PowerPC until hard reset
-	
-	UINT32 r[32];
-	UINT32 pc;
-	UINT32 npc;
-
-	UINT32 *op;
-
-	UINT32 lr;
-	UINT32 ctr;
-	UINT32 xer;
-	UINT32 msr;
-	UINT8 cr[8];
-	UINT32 pvr;
-	UINT32 srr0;
-	UINT32 srr1;
-	UINT32 srr2;
-	UINT32 srr3;
-	UINT32 hid0;
-	UINT32 hid1;
-	UINT32 hid2;
-	UINT32 sdr1;
-	UINT32 sprg[4];
-
-	UINT32 dsisr;
-	UINT32 dar;
-	UINT32 ear;
-	UINT32 dmiss;
-	UINT32 dcmp;
-	UINT32 hash1;
-	UINT32 hash2;
-	UINT32 imiss;
-	UINT32 icmp;
-	UINT32 rpa;
-
-
-	BATENT ibat[4];
-	BATENT dbat[4];
-
-	UINT32 evpr;
-	UINT32 exier;
-	UINT32 exisr;
-	UINT32 bear;
-	UINT32 besr;
-	UINT32 iocr;
-	UINT32 br[8];
-	UINT32 iabr;
-	UINT32 esr;
-	UINT32 iccr;
-	UINT32 dccr;
-	UINT32 pit;
-	UINT32 pit_counter;
- 	UINT32 pit_int_enable;
-	UINT32 tsr;
-	UINT32 dbsr;
-	UINT32 sgr;
-	UINT32 pid;
-
-	int reserved;
-	UINT32 reserved_address;
-
-	int interrupt_pending;
-	int external_int;
-
-	UINT64 tb;		/* 56-bit timebase register */
-
-	int (*irq_callback)(int irqline);
-
-	PPC_FETCH_REGION	cur_fetch;
-	PPC_FETCH_REGION	* fetch;
-
-	// STUFF added for the 6xx series
-	UINT32 dec;
-	UINT32 fpscr;
-
-	FPR	fpr[32];
-	UINT32 sr[16];
-
-	// Timing related
-	int timer_ratio;
-	UINT32 timer_frac;
-	int tb_base_icount;
-	int dec_base_icount;
-	int dec_trigger_cycle;
-	
-	// Cycle related
-	UINT64 total_cycles;
-	int icount;
-	int cur_cycles;
-	int bus_freq_multiplier;
-	int cycles_per_second;
-
-#if HAS_PPC603
-	int is603;
-#endif
-#if HAS_PPC602
-	int is602;
-#endif
-} PPC_REGS;
+// PPC_REGS, FPR, FPR32, BATENT, PPC_FETCH_REGION are now in ppc_regs.h
 
 
 
@@ -664,6 +550,10 @@ static void (* optable31[1024])(UINT32);
 static void (* optable59[1024])(UINT32);
 static void (* optable63[1024])(UINT32);
 static void (* optable[64])(UINT32);
+
+#ifdef __aarch64__
+#include "Jit/JitArm64.h"
+#endif
 
 #include "ppc603.c"
 
@@ -1173,3 +1063,52 @@ UINT32 ppc_read_msr()
 {
 	return ppc_get_msr();
 }
+
+// ---------------------------------------------------------------------------
+// JIT support functions (aarch64 only) — extern "C" so JitArm64.o can link
+// ---------------------------------------------------------------------------
+
+extern "C" {
+
+PPC_REGS *ppc_get_state(void)
+{
+	return &ppc;
+}
+
+UINT32 ppc_read_opcode_at(UINT32 pc)
+{
+	UINT32 offset = pc - ppc.cur_fetch.start;
+	UINT32 range  = ppc.cur_fetch.end - ppc.cur_fetch.start;
+	if (offset <= range)
+		return ppc.cur_fetch.ptr[offset / 4];
+	for (int i = 0; ppc.fetch[i].ptr != NULL; i++) {
+		offset = pc - ppc.fetch[i].start;
+		range  = ppc.fetch[i].end - ppc.fetch[i].start;
+		if (offset <= range)
+			return ppc.fetch[i].ptr[offset / 4];
+	}
+	return 0;
+}
+
+void ppc_check_interrupts_jit(void)
+{
+	ppc603_check_interrupts();
+}
+
+// Memory bridge functions: called directly by JIT-compiled blocks
+UINT32 jit_read8(UINT32 addr)             { return (UINT32)Bus->Read8(addr); }
+UINT32 jit_read16(UINT32 addr)            { return (UINT32)Bus->Read16(addr); }
+UINT32 jit_read32(UINT32 addr)            { return Bus->Read32(addr); }
+UINT64 jit_read64(UINT32 addr)            { return Bus->Read64(addr); }
+UINT32 jit_read_tbl(void)                 { return (UINT32)ppc_read_timebase(); }
+UINT32 jit_read_tbu(void)                 { return (UINT32)(ppc_read_timebase() >> 32); }
+void   jit_write8(UINT32 addr, UINT32 d)  { Bus->Write8(addr, (UINT8)d); }
+void   jit_write16(UINT32 addr, UINT32 d) { Bus->Write16(addr, (UINT16)d); }
+void   jit_write32(UINT32 addr, UINT32 d) { Bus->Write32(addr, d); }
+void   jit_write64(UINT32 addr, UINT64 d) { Bus->Write64(addr, d); }
+
+// FP estimate helpers: called with argument in D0, return result in D0 (AAPCS64 FP ABI)
+double jit_fres(double x)    { return (double)(1.0f / (float)x); }
+double jit_frsqrte(double x) { return 1.0 / sqrt(x); }
+
+} // extern "C"
