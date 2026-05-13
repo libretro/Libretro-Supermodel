@@ -135,10 +135,11 @@ void retro_get_system_info(struct retro_system_info *info)
 
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
+   float multiplier = (g_options.resolution_multiplier > 0) ? g_options.resolution_multiplier : 1.0f;
    info->geometry.base_width   = 496;
    info->geometry.base_height  = 384;
-   info->geometry.max_width    = 496 * 4;
-   info->geometry.max_height   = 384 * 4;
+   info->geometry.max_width    = (unsigned)(496 * multiplier);
+   info->geometry.max_height   = (unsigned)(384 * multiplier);
    info->geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
 
    info->timing.fps         = 57.53;
@@ -274,6 +275,16 @@ void retro_run(void)
       {
          last_width  = 0;
          last_height = 0;
+
+         struct retro_system_av_info av_info;
+         av_info.geometry.base_width   = 496;
+         av_info.geometry.base_height  = 384;
+         av_info.geometry.max_width    = (unsigned)(496 * g_options.resolution_multiplier);
+         av_info.geometry.max_height   = (unsigned)(384 * g_options.resolution_multiplier);
+         av_info.geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
+         av_info.timing.fps            = 57.53;
+         av_info.timing.sample_rate    = 44100.0;
+         environ_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av_info);
       }
 
       if (g_options.service_on_sticks != old_service_on_sticks)
@@ -354,10 +365,10 @@ void retro_run(void)
       struct retro_game_geometry geometry;
       geometry.base_width   = target_w;
       geometry.base_height  = target_h;
-      geometry.max_width    = 496 * 4;
-      geometry.max_height   = 384 * 4;
-      geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f); // ← fix
-      
+      geometry.max_width    = target_w;
+      geometry.max_height   = target_h;
+      geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
+
       environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
       
       last_width  = target_w;
