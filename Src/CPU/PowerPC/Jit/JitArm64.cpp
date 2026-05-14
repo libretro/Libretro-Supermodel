@@ -1765,51 +1765,79 @@ static bool translate_bc(Arm64Emitter &e, uint32_t op, uint32_t pc, int inst_cou
     bool ctr_relevant  = !(bo & 0x04);
     bool cond_relevant = !(bo & 0x10);
     bool ctr_zero      = !(bo & 0x02);   // true → branch if CTR==0 after decrement
-    bool cond_on_clear = !(bo & 0x08);   // true → branch if CR bit CLEAR (bo1=0); false → SET
+    bool cond_on_clear = !(bo & 0x08);   // true → branch if CR bit CLEAR; false → SET
 
-    // W0 = running "taken" flag (1=taken, 0=not taken)
-    e.MOV_W32(W0, 1);
-
-    if (ctr_relevant) {
-        e.LDR_W(W1, PPC_PTR, OFF_CTR);
-        e.SUBS_W_IMM(W1, W1, 1);                           // decrement + set flags
-        e.STR_W(W1, PPC_PTR, OFF_CTR);
-        e.CSET_W(W2, ctr_zero ? A64_EQ : A64_NE);
-        e.AND_W(W0, W0, W2);
+    if (!ctr_relevant && !cond_relevant) {
+        // Unconditional bc (bo=0b10100): always taken, no branch needed
+        if (lk) { e.MOV_W32(W0, pc + 4); e.STR_W(W0, PPC_PTR, OFF_LR); }
+        if (taken_fn)
+            emit_epilogue_chained(e, inst_count + 1, pc, taken_target, taken_fn);
+        else
+            emit_epilogue(e, inst_count + 1, pc, taken_target);
+        return true;
     }
 
-    if (cond_relevant) {
+    // Helper lambda to emit taken and not-taken epilogues after the branch instruction
+    // not_taken_patch always points to a B.cond instruction for the two fast-path cases,
+    // or a CBZ for the combined case — handled by separate code paths below.
+
+    if (ctr_relevant && !cond_relevant) {
+        // CTR-only (bdnz / bdz): branch directly from SUBS flags — saves 3 instructions
+        e.LDR_W(W1, PPC_PTR, OFF_CTR);
+        e.SUBS_W_IMM(W1, W1, 1);                           // decrement; Z=1 if now 0
+        e.STR_W(W1, PPC_PTR, OFF_CTR);
+        if (lk) { e.MOV_W32(W0, pc + 4); e.STR_W(W0, PPC_PTR, OFF_LR); }
+        // bdz→taken when EQ; bdnz→taken when NE; not_taken → opposite
+        uint32_t *nt = e.emit_B_COND_placeholder(ctr_zero ? A64_NE : A64_EQ);
+        if (taken_fn)  emit_epilogue_chained(e, inst_count + 1, pc, taken_target, taken_fn);
+        else           emit_epilogue(e, inst_count + 1, pc, taken_target);
+        e.patch_B_COND(nt, e.ptr());
+        if (not_taken_fn) emit_epilogue_chained(e, inst_count + 1, pc, pc + 4, not_taken_fn);
+        else              emit_epilogue(e, inst_count + 1, pc, pc + 4);
+        return true;
+    }
+
+    if (!ctr_relevant && cond_relevant) {
+        // Cond-only (beq/bne/blt/etc.): branch directly from extracted CR bit — saves 3 instr
         int crfD  = bi / 4;
         int crbit = bi % 4;                                 // 0=LT,1=GT,2=EQ,3=SO
         e.LDRB(W1, PPC_PTR, OFF_CR + crfD);
         e.UBFM_W(W1, W1, 3 - crbit, 3 - crbit);           // extract bit → W1[0]
         e.CMP_W_IMM(W1, 0);
-        // cond_on_clear=true → branch when bit=0 → W2=1 when EQ; false → branch when bit=1 → NE
-        e.CSET_W(W2, cond_on_clear ? A64_EQ : A64_NE);
-        e.AND_W(W0, W0, W2);
+        if (lk) { e.MOV_W32(W0, pc + 4); e.STR_W(W0, PPC_PTR, OFF_LR); }
+        // cond_on_clear: taken when bit==0 (EQ), not_taken when bit!=0 (NE) → B.NE not_taken
+        uint32_t *nt = e.emit_B_COND_placeholder(cond_on_clear ? A64_NE : A64_EQ);
+        if (taken_fn)  emit_epilogue_chained(e, inst_count + 1, pc, taken_target, taken_fn);
+        else           emit_epilogue(e, inst_count + 1, pc, taken_target);
+        e.patch_B_COND(nt, e.ptr());
+        if (not_taken_fn) emit_epilogue_chained(e, inst_count + 1, pc, pc + 4, not_taken_fn);
+        else              emit_epilogue(e, inst_count + 1, pc, pc + 4);
+        return true;
     }
 
-    if (lk) {
-        e.MOV_W32(W1, pc + 4);
-        e.STR_W(W1, PPC_PTR, OFF_LR);
+    // Both CTR and COND must be satisfied: build W0 flag then CBZ
+    e.MOV_W32(W0, 1);
+    e.LDR_W(W1, PPC_PTR, OFF_CTR);
+    e.SUBS_W_IMM(W1, W1, 1);
+    e.STR_W(W1, PPC_PTR, OFF_CTR);
+    e.CSEL_W(W0, W0, A64_WZR, ctr_zero ? A64_EQ : A64_NE);
+
+    {
+        int crfD  = bi / 4;
+        int crbit = bi % 4;
+        e.LDRB(W1, PPC_PTR, OFF_CR + crfD);
+        e.UBFM_W(W1, W1, 3 - crbit, 3 - crbit);
+        e.CMP_W_IMM(W1, 0);
+        e.CSEL_W(W0, W0, A64_WZR, cond_on_clear ? A64_EQ : A64_NE);
     }
 
-    // CBZ W0 → not-taken path
-    uint32_t *not_taken_patch = e.emit_CBZ_W_placeholder(W0);
-
-    // Taken path
-    if (taken_fn)
-        emit_epilogue_chained(e, inst_count + 1, pc, taken_target, taken_fn);
-    else
-        emit_epilogue(e, inst_count + 1, pc, taken_target);
-
-    // Not-taken path (patch CBZ here)
-    e.patch_CBZ(not_taken_patch, e.ptr());
-    if (not_taken_fn)
-        emit_epilogue_chained(e, inst_count + 1, pc, pc + 4, not_taken_fn);
-    else
-        emit_epilogue(e, inst_count + 1, pc, pc + 4);
-
+    if (lk) { e.MOV_W32(W1, pc + 4); e.STR_W(W1, PPC_PTR, OFF_LR); }
+    uint32_t *nt = e.emit_CBZ_W_placeholder(W0);
+    if (taken_fn)  emit_epilogue_chained(e, inst_count + 1, pc, taken_target, taken_fn);
+    else           emit_epilogue(e, inst_count + 1, pc, taken_target);
+    e.patch_CBZ(nt, e.ptr());
+    if (not_taken_fn) emit_epilogue_chained(e, inst_count + 1, pc, pc + 4, not_taken_fn);
+    else              emit_epilogue(e, inst_count + 1, pc, pc + 4);
     return true;
 }
 
