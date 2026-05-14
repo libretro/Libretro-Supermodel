@@ -675,8 +675,13 @@ static bool translate_ori(Arm64Emitter &e, uint32_t op)
         return true;
     }
     emit_load_gpr(e, W0, rS);
-    e.MOV_W32(W1, uimm);
-    e.ORR_W(W0, W0, W1);
+    int immr, imms;
+    if (bitmask_imm32(uimm, &immr, &imms)) {
+        e.ORR_W_BITMASK(W0, W0, immr, imms);
+    } else {
+        e.MOV_W32(W1, uimm);
+        e.ORR_W(W0, W0, W1);
+    }
     emit_store_gpr(e, W0, rA);
     return true;
 }
@@ -693,8 +698,13 @@ static bool translate_oris(Arm64Emitter &e, uint32_t op)
         return true;
     }
     emit_load_gpr(e, W0, rS);
-    e.MOV_W32(W1, uimm);
-    e.ORR_W(W0, W0, W1);
+    int immr, imms;
+    if (bitmask_imm32(uimm, &immr, &imms)) {
+        e.ORR_W_BITMASK(W0, W0, immr, imms);
+    } else {
+        e.MOV_W32(W1, uimm);
+        e.ORR_W(W0, W0, W1);
+    }
     emit_store_gpr(e, W0, rA);
     return true;
 }
@@ -711,8 +721,13 @@ static bool translate_xori(Arm64Emitter &e, uint32_t op)
         return true;
     }
     emit_load_gpr(e, W0, rS);
-    e.MOV_W32(W1, uimm);
-    e.EOR_W(W0, W0, W1);
+    int immr, imms;
+    if (bitmask_imm32(uimm, &immr, &imms)) {
+        e.EOR_W_BITMASK(W0, W0, immr, imms);
+    } else {
+        e.MOV_W32(W1, uimm);
+        e.EOR_W(W0, W0, W1);
+    }
     emit_store_gpr(e, W0, rA);
     return true;
 }
@@ -729,8 +744,13 @@ static bool translate_xoris(Arm64Emitter &e, uint32_t op)
         return true;
     }
     emit_load_gpr(e, W0, rS);
-    e.MOV_W32(W1, uimm);
-    e.EOR_W(W0, W0, W1);
+    int immr, imms;
+    if (bitmask_imm32(uimm, &immr, &imms)) {
+        e.EOR_W_BITMASK(W0, W0, immr, imms);
+    } else {
+        e.MOV_W32(W1, uimm);
+        e.EOR_W(W0, W0, W1);
+    }
     emit_store_gpr(e, W0, rA);
     return true;
 }
@@ -1380,21 +1400,14 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
             e.STR_W(W1, PPC_PTR, OFF_XER);
         } else {
             // XER.CA = (rS < 0) && ((rS & ((1<<sh)-1)) != 0)
-            // Extract the bits that would be shifted out
-            e.AND_W(W1, W0, (1u << sh) - 1u); // W1 = lost bits
-            e.ASR_W_IMM(W0, W0, sh);           // W0 = result
-            // CA = (original_rS < 0) && (lost != 0)
-            // Use the original sign: bit 31 before shift is now bit (31-sh) in W0
-            // Recover: original bit 31 = W0[31] (sign of result same as original)
-            e.TST_W(W0, W0);                   // set N from result (sign preserved)
-            e.CSET_W(W2, A64_MI);              // W2 = 1 if negative
-            e.TST_W(W1, W1);
-            e.CSET_W(W3, A64_NE);              // W3 = 1 if lost bits != 0
-            e.AND_W(W3, W3, W2);               // W3 = CA (0 or 1)
+            e.ANDS_W_BITMASK(W1, W0, 0, sh - 1); // W1 = lost bits; Z=1 if none lost
+            e.ASR_W_IMM(W0, W0, sh);              // W0 = result (no flags change)
+            e.ASR_W_IMM(W2, W0, 31);              // W2 = sign mask (0 or 0xFFFFFFFF)
+            e.CSET_W(W3, A64_NE);                 // W3 = 1 if lost != 0 (Z from ANDS still valid)
+            e.AND_W(W3, W3, W2);                  // W3 = CA
             emit_store_gpr(e, W0, rA);
-            // Update XER.CA
             e.LDR_W(W1, PPC_PTR, OFF_XER);
-            e.BFI_W(W1, W3, 29, 1);            // insert CA into XER bit 29
+            e.BFI_W(W1, W3, 29, 1);
             e.STR_W(W1, PPC_PTR, OFF_XER);
         }
         if (rc) emit_set_cr0_from_W0(e);

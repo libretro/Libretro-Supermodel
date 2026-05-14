@@ -192,6 +192,14 @@ public:
         emit(0x72000000 | ((immr & 0x3F) << 16) | ((imms & 0x3F) << 10) | (Wn << 5) | Wd);
     }
     void TST_W_BITMASK(int Wn, int immr, int imms) { ANDS_W_BITMASK(A64_WZR, Wn, immr, imms); }
+    void ORR_W_BITMASK(int Wd, int Wn, int immr, int imms)
+    {
+        emit(0x32000000 | ((immr & 0x3F) << 16) | ((imms & 0x3F) << 10) | (Wn << 5) | Wd);
+    }
+    void EOR_W_BITMASK(int Wd, int Wn, int immr, int imms)
+    {
+        emit(0x52000000 | ((immr & 0x3F) << 16) | ((imms & 0x3F) << 10) | (Wn << 5) | Wd);
+    }
     void ORR_W(int Wd, int Wn, int Wm)   { emit(0x2A000000 | (Wm << 16) | (Wn << 5) | Wd); }
     void ORN_W(int Wd, int Wn, int Wm)   { emit(0x2A200000 | (Wm << 16) | (Wn << 5) | Wd); }
     void EOR_W(int Wd, int Wn, int Wm)   { emit(0x4A000000 | (Wm << 16) | (Wn << 5) | Wd); }
