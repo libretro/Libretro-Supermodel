@@ -275,6 +275,8 @@ public:
     }
     // BFI Wd, Wn, #lsb, #width — insert Wn[0..width-1] into Wd[lsb..lsb+width-1]
     void BFI_W(int Wd, int Wn, int lsb, int width) { BFM_W(Wd, Wn, (32 - lsb) & 31, width - 1); }
+    // AND Wd, Wn, #~3 — clear low 2 bits (4-byte align): AND Wd, Wn, #0xFFFFFFFC
+    void AND_W_ALIGN4(int Wd, int Wn) { emit(0x121E7400 | (Wn << 5) | Wd); }
 
     // --- 64-bit ops ---
     void SUB_X_IMM(int Xd, int Xn, uint32_t imm12)

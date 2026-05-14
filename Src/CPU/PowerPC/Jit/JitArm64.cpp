@@ -2546,52 +2546,69 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
                 int bi = (op >> 16) & 0x1F;
                 int lk = op & 1;
                 bool is_ctr       = (subop == 528);
-                bool ctr_relevant = !(bo & 0x04);  // decrement + check CTR
-                bool cond_relevant= !(bo & 0x10);  // check CR bit
-                bool ctr_zero     = !(bo & 0x02);  // branch when CTR==0 (vs !=0)
-                bool cond_on_clear= !(bo & 0x08);  // branch when CR bit CLEAR (vs SET)
+                bool ctr_relevant = !(bo & 0x04);
+                bool cond_relevant= !(bo & 0x10);
+                bool ctr_zero     = !(bo & 0x02);
+                bool cond_on_clear= !(bo & 0x08);
 
-                // W3 = target (LR or CTR); load early before LK might overwrite LR
+                // W3 = branch target; load before LK might overwrite LR
                 e.LDR_W(W3, PPC_PTR, is_ctr ? OFF_CTR : OFF_LR);
 
-                // W0 = running "taken" flag (1=taken, 0=not taken)
-                e.MOV_W32(W0, 1);
+                if (!ctr_relevant && !cond_relevant) {
+                    // Unconditional blr/bctr: always branch, no condition
+                    if (lk) { e.MOV_W32(W1, pc+4); e.STR_W(W1, PPC_PTR, OFF_LR); }
+                    e.AND_W_ALIGN4(W3, W3);
 
-                if (ctr_relevant) {
+                } else if (ctr_relevant && !cond_relevant) {
+                    // CTR-only (bdnzlr / bdzlr / bdnzctr / bdzctr)
+                    e.LDR_W(W1, PPC_PTR, OFF_CTR);
+                    e.SUBS_W_IMM(W1, W1, 1);          // flags set: Z=1 if CTR becomes 0
+                    e.STR_W(W1, PPC_PTR, OFF_CTR);
+                    if (is_ctr) e.MOV_W(W3, W1);      // bcctr: target is post-dec CTR
+                    if (lk) { e.MOV_W32(W2, pc+4); e.STR_W(W2, PPC_PTR, OFF_LR); }
+                    e.AND_W_ALIGN4(W3, W3);
+                    e.MOV_W32(W4, pc+4);
+                    e.CSEL_W(W3, W3, W4, ctr_zero ? A64_EQ : A64_NE);
+
+                } else if (!ctr_relevant && cond_relevant) {
+                    // Cond-only (beqlr / bnelr / etc.): branch directly from CR bit
+                    int crfD2  = bi / 4;
+                    int crbit2 = bi % 4;
+                    e.LDRB(W1, PPC_PTR, OFF_CR + crfD2);
+                    e.UBFM_W(W1, W1, 3-crbit2, 3-crbit2);
+                    e.CMP_W_IMM(W1, 0);               // flags preserved across LK write
+                    if (lk) { e.MOV_W32(W1, pc+4); e.STR_W(W1, PPC_PTR, OFF_LR); }
+                    e.AND_W_ALIGN4(W3, W3);
+                    if (lk) {
+                        // W1 = pc+4 from LK write; reuse as fallthrough
+                        e.CSEL_W(W3, W3, W1, cond_on_clear ? A64_EQ : A64_NE);
+                    } else {
+                        e.MOV_W32(W4, pc+4);
+                        e.CSEL_W(W3, W3, W4, cond_on_clear ? A64_EQ : A64_NE);
+                    }
+
+                } else {
+                    // Both CTR and COND: chain W0 flag via CSEL
+                    e.MOV_W32(W0, 1);
                     e.LDR_W(W1, PPC_PTR, OFF_CTR);
                     e.SUBS_W_IMM(W1, W1, 1);
                     e.STR_W(W1, PPC_PTR, OFF_CTR);
-                    e.CSET_W(W2, ctr_zero ? A64_EQ : A64_NE);
-                    e.AND_W(W0, W0, W2);
-                    // bcctr: target is post-decrement CTR
+                    e.CSEL_W(W0, W0, A64_WZR, ctr_zero ? A64_EQ : A64_NE);
                     if (is_ctr) e.MOV_W(W3, W1);
-                }
 
-                if (cond_relevant) {
-                    int crfD  = bi / 4;
-                    int crbit = bi % 4;
-                    e.LDRB(W1, PPC_PTR, OFF_CR + crfD);
-                    e.UBFM_W(W1, W1, 3 - crbit, 3 - crbit);
+                    int crfD2  = bi / 4;
+                    int crbit2 = bi % 4;
+                    e.LDRB(W1, PPC_PTR, OFF_CR + crfD2);
+                    e.UBFM_W(W1, W1, 3-crbit2, 3-crbit2);
                     e.CMP_W_IMM(W1, 0);
-                    e.CSET_W(W2, cond_on_clear ? A64_EQ : A64_NE);
-                    e.AND_W(W0, W0, W2);
+                    e.CSEL_W(W0, W0, A64_WZR, cond_on_clear ? A64_EQ : A64_NE);
+
+                    if (lk) { e.MOV_W32(W1, pc+4); e.STR_W(W1, PPC_PTR, OFF_LR); }
+                    e.AND_W_ALIGN4(W3, W3);
+                    e.MOV_W32(W4, pc+4);
+                    e.CMP_W_IMM(W0, 0);
+                    e.CSEL_W(W3, W3, W4, A64_NE);
                 }
-
-                // LK: if taken or unconditional, save PC+4 to LR
-                if (lk) {
-                    e.MOV_W32(W1, pc + 4);
-                    e.STR_W(W1, PPC_PTR, OFF_LR);
-                }
-
-                // Mask target to 4-byte boundary (matches interpreter)
-                e.MOV_W32(W4, 3);
-                e.BIC_W(W3, W3, W4);
-
-                // Select NPC: W3 = taken target, W4 = fall-through
-                e.MOV_W32(W4, pc + 4);
-                // CMP W0, 0 → CSEL W3, W3, W4, NE  (W3 = taken ? LR/CTR : pc+4)
-                e.CMP_W_IMM(W0, 0);
-                e.CSEL_W(W3, W3, W4, A64_NE);
 
                 emit_epilogue_npc_reg(e, inst_count + 1, pc, W3);
                 terminated = true;
