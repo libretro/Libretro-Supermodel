@@ -208,6 +208,10 @@ public:
     {
         emit(0x2A000000 | (Wm << 16) | (imm << 10) | (Wn << 5) | Wd);
     }
+    void ORR_W_LSR(int Wd, int Wn, int Wm, int imm)
+    {
+        emit(0x2A400000 | (Wm << 16) | (imm << 10) | (Wn << 5) | Wd);
+    }
 
     // --- Integer ALU (immediate, 32-bit) ---
     // imm12 must fit in 12 bits (0..4095); sh=1 shifts imm left by 12

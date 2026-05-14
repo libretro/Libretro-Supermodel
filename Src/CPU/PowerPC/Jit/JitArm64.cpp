@@ -276,10 +276,9 @@ static void emit_cr_from_flags_signed(Arm64Emitter &e, int crfD)
     e.LSL_W_IMM(W1, W1, 3);         // W1 = LT<<3
     e.ORR_W_LSL(W1, W1, W2, 2);     // W1 |= GT<<2
     e.ORR_W_LSL(W1, W1, W3, 1);     // W1 |= EQ<<1
-    // Add SO bit from XER bit 31
+    // Add SO bit from XER bit 31 (fold LSR+ORR into one shifted-register ORR)
     e.LDR_W(W2, PPC_PTR, OFF_XER);
-    e.LSR_W_IMM(W2, W2, 31);        // W2 = SO
-    e.ORR_W(W1, W1, W2);
+    e.ORR_W_LSR(W1, W1, W2, 31);    // W1 |= (XER >> 31) = W1 | SO
     e.STRB(W1, PPC_PTR, OFF_CR + crfD);
 }
 
@@ -295,8 +294,7 @@ static void emit_cr_from_flags_unsigned(Arm64Emitter &e, int crfD)
     e.ORR_W_LSL(W1, W1, W2, 2);
     e.ORR_W_LSL(W1, W1, W3, 1);
     e.LDR_W(W2, PPC_PTR, OFF_XER);
-    e.LSR_W_IMM(W2, W2, 31);
-    e.ORR_W(W1, W1, W2);
+    e.ORR_W_LSR(W1, W1, W2, 31);    // W1 |= (XER >> 31) = W1 | SO
     e.STRB(W1, PPC_PTR, OFF_CR + crfD);
 }
 
