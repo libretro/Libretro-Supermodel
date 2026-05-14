@@ -2466,6 +2466,42 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
             }
         }
 
+        // Peephole: lis rD, HI immediately followed by addi rD, rD, LO  or
+        //           ori  rD, rD, UIMM — fold into a single MOV_W32 + STR.
+        // Saves the LDR+ADD+STR that the second instruction would otherwise cost
+        // (typically 3 instructions → eliminated entirely).
+        if (!handled && primary == 15) {
+            int  rD_lis  = (op >> 21) & 0x1F;
+            int  rA_lis  = (op >> 16) & 0x1F;
+            if (rA_lis == 0) {
+                uint32_t hi_val   = (uint32_t)(int16_t)(op & 0xFFFF) << 16;
+                uint32_t next_op  = ppc_read_opcode_at(pc + 4);
+                int      next_pri = next_op >> 26;
+                int      next_rD  = (next_op >> 21) & 0x1F;
+                int      next_rA  = (next_op >> 16) & 0x1F;
+                uint32_t full_val = 0;
+                bool     fuse     = false;
+
+                if (next_pri == 14 && next_rD == rD_lis && next_rA == rD_lis) {
+                    // addi rD, rD, LO: signed add
+                    full_val = hi_val + (uint32_t)(int32_t)(int16_t)(next_op & 0xFFFF);
+                    fuse = true;
+                } else if (next_pri == 24 && next_rD == rD_lis && next_rA == rD_lis) {
+                    // ori rD, rD, UIMM: unsigned OR into lower 16 bits
+                    full_val = hi_val | (next_op & 0xFFFF);
+                    fuse = true;
+                }
+
+                if (fuse) {
+                    e.MOV_W32(W0, full_val);
+                    emit_store_gpr(e, W0, rD_lis);
+                    inst_count++;
+                    pc      += 4;
+                    handled  = true;
+                }
+            }
+        }
+
         if (!handled) switch (primary) {
         case  3: handled = true; break;  // twi — trap word immediate, NOP in emulator
         case  7: handled = translate_mulli(e, op);      break;
