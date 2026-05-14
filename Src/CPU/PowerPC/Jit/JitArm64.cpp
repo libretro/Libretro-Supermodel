@@ -70,7 +70,6 @@ bool JitArm64::init()
     }
 
     // Fill function pointer table at the very start of the write buffer.
-    // Blocks start at FN_TABLE_BYTES to keep the table intact across flushes.
     void **tbl = (void **)m_write_buf;
     tbl[FN_JIT_READ8]    = (void *)&jit_read8;
     tbl[FN_JIT_READ16]   = (void *)&jit_read16;
@@ -85,8 +84,20 @@ bool JitArm64::init()
     tbl[FN_JIT_FRES]     = (void *)&jit_fres;
     tbl[FN_JIT_FRSQRTE]  = (void *)&jit_frsqrte;
     tbl[FN_PPC_DISPATCH] = (void *)&ppc_dispatch_opcode;
-    g_fn_tbl   = m_write_buf;
-    m_code_pos = FN_TABLE_BYTES;    // blocks start after the table
+    g_fn_tbl = m_write_buf;
+
+    // Emit call stubs immediately after the table. Each stub is 3 instructions
+    // (12 bytes): ADRP X16, #0 + LDR X16, [X16, #i*8] + BR X16. Since both the
+    // stub and the table are within the first 4 KB of the code buffer (which is
+    // page-aligned by mmap), ADRP page_off=0 always yields the table base.
+    // JIT call sites use BL stub (1 instruction) instead of ADRP+LDR+BLR (3).
+    for (size_t i = 0; i < FN_TABLE_ENTRIES; i++) {
+        uint32_t *wp = (uint32_t *)(m_write_buf + FN_TABLE_BYTES + i * 12);
+        wp[0] = 0x90000010u;                           // ADRP X16, #0
+        wp[1] = 0xF9400210u | (uint32_t)(i << 10);    // LDR  X16, [X16, #i*8]
+        wp[2] = 0xD61F0200u;                           // BR   X16
+    }
+    m_code_pos = BLOCK_START;  // blocks start after table + stubs
     return true;
 }
 
@@ -104,8 +115,8 @@ void JitArm64::shutdown()
 void JitArm64::flush()
 {
     m_cache.clear();
-    // Preserve the function pointer table at offset 0; blocks restart after it.
-    m_code_pos = (g_fn_tbl != nullptr) ? FN_TABLE_BYTES : 0;
+    // Preserve the function pointer table and call stubs at offset 0; blocks restart after.
+    m_code_pos = (g_fn_tbl != nullptr) ? BLOCK_START : 0;
     memset(m_fast_cache, 0, sizeof(m_fast_cache));
 }
 
@@ -357,18 +368,14 @@ static void emit_update_xer_ca(Arm64Emitter &e)
 static void emit_call(Arm64Emitter &e, uint64_t fn_addr)
 {
     if (g_fn_tbl) {
-        // Linear scan of the table (13 entries, compile-time only — not hot)
+        // Linear scan of the table (compile-time only — not hot)
         void **tbl = (void **)g_fn_tbl;
         for (int i = 0; i < (int)JitArm64::FN_TABLE_ENTRIES; i++) {
             if ((uint64_t)tbl[i] == fn_addr) {
-                // Load fn pointer via PC-relative ADRP + LDR_X (always within ±4 GB)
-                uint64_t entry_addr  = (uint64_t)(g_fn_tbl + i * 8);
-                int64_t  page_off    = (int64_t)(entry_addr & ~0xFFFULL)
-                                     - (int64_t)((uint64_t)e.ptr() & ~0xFFFULL);
-                uint32_t byte_in_pg  = (uint32_t)(entry_addr & 0xFFF);
-                e.ADRP(X16, page_off);
-                e.LDR_X(X16, X16, byte_in_pg);
-                e.BLR(X16);
+                // BL to pre-emitted stub (ADRP+LDR+BR trampoline): 1 instruction vs 3.
+                // Stubs live at g_fn_tbl + FN_TABLE_BYTES + i*12; always within ±128 MB.
+                uint64_t stub_addr = (uint64_t)g_fn_tbl + JitArm64::FN_TABLE_BYTES + i * 12;
+                e.BL((int64_t)stub_addr - (int64_t)e.ptr());
                 return;
             }
         }
