@@ -928,9 +928,8 @@ static bool translate_rlwnm(Arm64Emitter &e, uint32_t op)
 
     emit_load_gpr(e, W0, rS);
     emit_load_gpr(e, W1, rB);
-    e.AND_W(W1, W1, 31);            // W1 = sh = rB & 31
-    e.NEG_W(W2, W1);                // W2 = -sh = 32-sh (mod 32) for RORV
-    e.ROR_W(W0, W0, W2);            // W0 = ROTL(rS, sh) = ROR(rS, 32-sh)
+    e.NEG_W(W2, W1);                // W2 = -rB; RORV uses W2[4:0] = (32-rB)[4:0]
+    e.ROR_W(W0, W0, W2);            // W0 = ROTL(rS, rB[4:0])
 
     if (mask != 0xFFFFFFFFu) {
         e.MOV_W32(W1, mask);
@@ -1259,8 +1258,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     case 24:
         emit_load_gpr(e, W0, rD);
         emit_load_gpr(e, W1, rB);
-        e.AND_W(W1, W1, 31);    // PPC shift is mod 32 but only 5 bits matter
-        e.LSL_W(W0, W0, W1);
+        e.LSL_W(W0, W0, W1);     // LSLV uses W1[4:0]; AND redundant
         emit_store_gpr(e, W0, rA);
         if (rc) emit_set_cr0_from_W0(e);
         return true;
@@ -1269,8 +1267,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     case 536:
         emit_load_gpr(e, W0, rD);
         emit_load_gpr(e, W1, rB);
-        e.AND_W(W1, W1, 31);
-        e.LSR_W(W0, W0, W1);
+        e.LSR_W(W0, W0, W1);     // LSRV uses W1[4:0]; AND redundant
         emit_store_gpr(e, W0, rA);
         if (rc) emit_set_cr0_from_W0(e);
         return true;
