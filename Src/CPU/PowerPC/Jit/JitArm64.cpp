@@ -2708,6 +2708,59 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
             break;
         }  // if (!handled) switch
 
+        // Post-switch peephole: rc=1 op writing CR0, immediately followed by a bc
+        // on CR0.  After emit_cr_from_flags_signed / emit_set_cr0_from_W0, ARM NZCV
+        // are live (V=0, N=sign(result), Z=zero) — branch directly from them.
+        if (handled && !terminated) {
+            bool has_rc1 = false;
+            if (primary == 28 || primary == 29) {
+                has_rc1 = true;   // andi./andis.: inherently Rc=1
+            } else if ((op & 1) &&
+                       (primary == 20 || primary == 21 || primary == 23 || primary == 31)) {
+                has_rc1 = true;   // rlwimi./rlwinm./rlwnm./op31 with Rc bit
+            }
+            if (has_rc1) {
+                uint32_t next_op = ppc_read_opcode_at(pc + 4);
+                int  nbo         = (next_op >> 21) & 0x1F;
+                int  nbi         = (next_op >> 16) & 0x1F;
+                int  n_crfD      = nbi / 4;
+                int  n_crbit     = nbi % 4;
+                bool nctr_rel    = !(nbo & 0x04);
+                bool ncond_rel   = !(nbo & 0x10);
+                bool ncond_clr   = !(nbo & 0x08);
+                if ((next_op >> 26) == 16 && !nctr_rel && ncond_rel
+                    && !(next_op & 1) && !((next_op >> 1) & 1)
+                    && n_crfD == 0 && n_crbit <= 2)
+                {
+                    static const int s_cond[3] = { A64_LT, A64_GT, A64_EQ };
+                    int a64_cond = s_cond[n_crbit];
+                    if (ncond_clr) a64_cond ^= 1;
+
+                    int32_t  bd               = (int32_t)((next_op & 0xFFFC) << 16) >> 16;
+                    uint32_t bc_pc            = pc + 4;
+                    uint32_t taken_target     = bc_pc + (uint32_t)bd;
+                    uint32_t not_taken_target = bc_pc + 4;
+
+                    void *taken_fn = nullptr, *not_taken_fn = nullptr;
+                    auto  it = m_cache.find(taken_target);
+                    if (it != m_cache.end()) taken_fn = (void *)it->second.fn;
+                    it = m_cache.find(not_taken_target);
+                    if (it != m_cache.end()) not_taken_fn = (void *)it->second.fn;
+
+                    uint32_t *nt = e.emit_B_COND_placeholder(a64_cond ^ 1);
+                    if (taken_fn) emit_epilogue_chained(e, inst_count + 2, bc_pc, taken_target, taken_fn);
+                    else          emit_epilogue(e, inst_count + 2, bc_pc, taken_target);
+                    e.patch_B_COND(nt, e.ptr());
+                    if (not_taken_fn) emit_epilogue_chained(e, inst_count + 2, bc_pc, not_taken_target, not_taken_fn);
+                    else              emit_epilogue(e, inst_count + 2, bc_pc, not_taken_target);
+
+                    inst_count++;
+                    pc       += 4;
+                    terminated = true;
+                }
+            }
+        }
+
         if (!handled) {
             // Fallback: call interpreter for this instruction
             emit_fallback(e, op, pc);
