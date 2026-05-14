@@ -267,8 +267,8 @@ public:
     {
         emit(0x71000000 | (sh << 22) | ((imm12 & 0xFFF) << 10) | (Wn << 5) | Wd);
     }
-    void CMP_W_IMM(int Wn, uint32_t imm12) { SUBS_W_IMM(A64_WZR, Wn, imm12); }
-    void CMN_W_IMM(int Wn, uint32_t imm12) { ADDS_W_IMM(A64_WZR, Wn, imm12); }
+    void CMP_W_IMM(int Wn, uint32_t imm12, int sh = 0) { SUBS_W_IMM(A64_WZR, Wn, imm12, sh); }
+    void CMN_W_IMM(int Wn, uint32_t imm12, int sh = 0) { ADDS_W_IMM(A64_WZR, Wn, imm12, sh); }
     void CMP_W(int Wn, int Wm)             { SUBS_W(A64_WZR, Wn, Wm); }
     void CMN_W(int Wn, int Wm)             { ADDS_W(A64_WZR, Wn, Wm); }
     void TST_W(int Wn, int Wm)             { ANDS_W(A64_WZR, Wn, Wm); }

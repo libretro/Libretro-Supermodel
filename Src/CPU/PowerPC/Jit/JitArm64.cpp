@@ -807,7 +807,11 @@ static bool translate_cmpi(Arm64Emitter &e, uint32_t op)
     if (simm >= 0 && (uint32_t)simm <= 4095) {
         e.CMP_W_IMM(W0, (uint32_t)simm);
     } else if (simm < 0 && (uint32_t)(-simm) <= 4095) {
-        e.CMN_W_IMM(W0, (uint32_t)(-simm));   // rA - simm = rA + |simm|
+        e.CMN_W_IMM(W0, (uint32_t)(-simm));
+    } else if (simm > 0 && ((uint32_t)simm & 0xFFF) == 0) {
+        e.CMP_W_IMM(W0, (uint32_t)simm >> 12, 1);   // multiple of 4096
+    } else if (simm < 0 && ((uint32_t)(-simm) & 0xFFF) == 0) {
+        e.CMN_W_IMM(W0, (uint32_t)(-simm) >> 12, 1);
     } else {
         e.MOV_W32(W1, (uint32_t)(int32_t)simm);
         e.CMP_W(W0, W1);
@@ -826,6 +830,8 @@ static bool translate_cmpli(Arm64Emitter &e, uint32_t op)
     emit_load_gpr(e, W0, rA);
     if (uimm <= 4095)
         e.CMP_W_IMM(W0, uimm);
+    else if ((uimm & 0xFFF) == 0)
+        e.CMP_W_IMM(W0, uimm >> 12, 1);  // multiple of 4096
     else {
         e.MOV_W32(W1, uimm);
         e.CMP_W(W0, W1);
