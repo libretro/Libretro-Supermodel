@@ -553,8 +553,7 @@ static void emit_epilogue_chained(Arm64Emitter &e, int inst_count, uint32_t last
     e.CMP_W(W4, W1);                                         // W4 vs dec_trigger (signed)
     uint32_t *dec_ok = e.emit_B_COND_placeholder(A64_GT);   // B.GT skip_dec_set
     e.LDR_W(W0, PPC_PTR, (uint32_t)OFF_INT_PENDING);
-    e.MOV_W32(W1, 2);
-    e.ORR_W(W0, W0, W1);
+    e.ORR_W_SET_BIT(W0, W0, 1);    // set decrementer-pending bit (bit 1 = 0x2)
     e.STR_W(W0, PPC_PTR, (uint32_t)OFF_INT_PENDING);
     e.patch_B_COND(dec_ok, e.ptr());
 
@@ -1286,13 +1285,10 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.CSET_W(W4, A64_MI);           // W4 = 1 if rS < 0
         e.TST_W(W3, W3);                // set Z if W3 == 0
         e.CSET_W(W3, A64_NE);           // W3 = 1 if lost bits != 0
-        e.AND_W(W3, W3, W4);            // W3 = CA
+        e.AND_W(W3, W3, W4);            // W3 = CA (0 or 1)
 
         e.LDR_W(W4, PPC_PTR, OFF_XER);
-        e.MOV_W32(W0, ~0x20000000U);    // W0 = ~XER_CA_MASK
-        e.AND_W(W4, W4, W0);            // clear CA bit
-        e.LSL_W_IMM(W3, W3, 29);        // W3 = CA << 29
-        e.ORR_W(W4, W4, W3);            // set CA bit if needed
+        e.BFI_W(W4, W3, 29, 1);         // insert CA into XER bit 29, clearing old value
         e.STR_W(W4, PPC_PTR, OFF_XER);
 
         emit_store_gpr(e, W2, rA);
@@ -1312,8 +1308,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
             emit_store_gpr(e, W0, rA);
             // clear XER.CA
             e.LDR_W(W1, PPC_PTR, OFF_XER);
-            e.MOV_W32(W2, ~0x20000000U);
-            e.AND_W(W1, W1, W2);
+            e.BFI_W(W1, A64_WZR, 29, 1);   // clear XER bit 29 (CA)
             e.STR_W(W1, PPC_PTR, OFF_XER);
         } else {
             // XER.CA = (rS < 0) && ((rS & ((1<<sh)-1)) != 0)
@@ -1327,14 +1322,11 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
             e.CSET_W(W2, A64_MI);              // W2 = 1 if negative
             e.TST_W(W1, W1);
             e.CSET_W(W3, A64_NE);              // W3 = 1 if lost bits != 0
-            e.AND_W(W3, W3, W2);               // W3 = CA
+            e.AND_W(W3, W3, W2);               // W3 = CA (0 or 1)
             emit_store_gpr(e, W0, rA);
             // Update XER.CA
             e.LDR_W(W1, PPC_PTR, OFF_XER);
-            e.MOV_W32(W2, ~0x20000000U);
-            e.AND_W(W1, W1, W2);
-            e.LSL_W_IMM(W3, W3, 29);
-            e.ORR_W(W1, W1, W3);
+            e.BFI_W(W1, W3, 29, 1);            // insert CA into XER bit 29
             e.STR_W(W1, PPC_PTR, OFF_XER);
         }
         if (rc) emit_set_cr0_from_W0(e);

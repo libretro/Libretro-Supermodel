@@ -243,6 +243,12 @@ public:
     void CMP_W(int Wn, int Wm)             { SUBS_W(A64_WZR, Wn, Wm); }
     void CMN_W(int Wn, int Wm)             { ADDS_W(A64_WZR, Wn, Wm); }
     void TST_W(int Wn, int Wm)             { ANDS_W(A64_WZR, Wn, Wm); }
+    // ORR with a single-bit logical immediate: Wd = Wn | (1 << bitpos)
+    void ORR_W_SET_BIT(int Wd, int Wn, int bitpos)
+    {
+        int immr = (32 - bitpos) & 0x1F;
+        emit(0x32000000 | (immr << 16) | (Wn << 5) | Wd);
+    }
 
     // --- Bitfield (32-bit) ---
     // UBFM Wd, Wn, #immr, #imms  (unsigned bitfield move)
