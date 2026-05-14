@@ -1905,11 +1905,10 @@ static bool translate_bc(Arm64Emitter &e, uint32_t op, uint32_t pc, int inst_cou
     }
 
     // Both CTR and COND must be satisfied: build W0 flag then CBZ
-    e.MOV_W32(W0, 1);
     e.LDR_W(W1, PPC_PTR, OFF_CTR);
     e.SUBS_W_IMM(W1, W1, 1);
     e.STR_W(W1, PPC_PTR, OFF_CTR);
-    e.CSEL_W(W0, W0, A64_WZR, ctr_zero ? A64_EQ : A64_NE);
+    e.CSET_W(W0, ctr_zero ? A64_EQ : A64_NE);
 
     {
         int crfD  = bi / 4;
@@ -2776,11 +2775,10 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
 
                 } else {
                     // Both CTR and COND: chain W0 flag via CSEL
-                    e.MOV_W32(W0, 1);
                     e.LDR_W(W1, PPC_PTR, OFF_CTR);
                     e.SUBS_W_IMM(W1, W1, 1);
                     e.STR_W(W1, PPC_PTR, OFF_CTR);
-                    e.CSEL_W(W0, W0, A64_WZR, ctr_zero ? A64_EQ : A64_NE);
+                    e.CSET_W(W0, ctr_zero ? A64_EQ : A64_NE);
                     if (is_ctr) e.MOV_W(W3, W1);
 
                     int crfD2  = bi / 4;
