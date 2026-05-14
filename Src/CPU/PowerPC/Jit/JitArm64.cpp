@@ -1135,9 +1135,14 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         }
         emit_load_gpr(e, W0, rD);
         emit_load_gpr(e, W1, rB);
-        e.AND_W(W0, W0, W1);
-        emit_store_gpr(e, W0, rA);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) {
+            e.ANDS_W(W0, W0, W1);          // sets Z/N flags → skip CMP in CR update
+            emit_store_gpr(e, W0, rA);
+            emit_cr_from_flags_signed(e, 0);
+        } else {
+            e.AND_W(W0, W0, W1);
+            emit_store_gpr(e, W0, rA);
+        }
         return true;
 
     // nor rA, rS, rB
@@ -1167,9 +1172,14 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         }
         emit_load_gpr(e, W0, rD);
         emit_load_gpr(e, W1, rB);
-        e.BIC_W(W0, W0, W1);
-        emit_store_gpr(e, W0, rA);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) {
+            e.BICS_W(W0, W0, W1);          // rS & ~rB, sets Z/N flags → skip CMP
+            emit_store_gpr(e, W0, rA);
+            emit_cr_from_flags_signed(e, 0);
+        } else {
+            e.BIC_W(W0, W0, W1);
+            emit_store_gpr(e, W0, rA);
+        }
         return true;
 
     // orc rA, rS, rB  (rA = rS | ~rB)

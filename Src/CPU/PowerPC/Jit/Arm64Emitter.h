@@ -185,6 +185,7 @@ public:
     void ORN_W(int Wd, int Wn, int Wm)   { emit(0x2A200000 | (Wm << 16) | (Wn << 5) | Wd); }
     void EOR_W(int Wd, int Wn, int Wm)   { emit(0x4A000000 | (Wm << 16) | (Wn << 5) | Wd); }
     void BIC_W(int Wd, int Wn, int Wm)   { emit(0x0A200000 | (Wm << 16) | (Wn << 5) | Wd); }
+    void BICS_W(int Wd, int Wn, int Wm)  { emit(0x6A200000 | (Wm << 16) | (Wn << 5) | Wd); }
     void MVN_W(int Wd, int Wm)            { ORN_W(Wd, A64_WZR, Wm); }
     void NEG_W(int Wd, int Wm)            { SUB_W(Wd, A64_WZR, Wm); }
     void MUL_W(int Wd, int Wn, int Wm)   { emit(0x1B007C00 | (Wm << 16) | (Wn << 5) | Wd); }
