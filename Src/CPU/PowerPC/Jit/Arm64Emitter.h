@@ -411,6 +411,16 @@ public:
     void FMOV_D_X(int Dd, int Xn) { emit(0x9E670000 | (Xn<<5) | Dd); }  // Dd = Xn (reinterpret bits)
     void FMOV_X_D(int Xd, int Dn) { emit(0x9E660000 | (Dn<<5) | Xd); }  // Xd = Dn (reinterpret bits)
 
+    // ADRP Xd, #page_off_bytes  (page_off_bytes must be page-aligned, ±4 GB)
+    // Sets Xd = (PC & ~0xFFF) + page_off_bytes
+    void ADRP(int Xd, int64_t page_off_bytes)
+    {
+        int64_t imm21 = page_off_bytes / 4096;
+        uint32_t immlo = (uint32_t)(imm21 & 3) << 29;
+        uint32_t immhi = (uint32_t)((imm21 >> 2) & 0x7FFFF) << 5;
+        emit(0x90000000 | immlo | immhi | (uint32_t)Xd);
+    }
+
     // DSB + ISB (data/instruction sync) for I-cache invalidation
     void DSB_ISH() { emit(0xD5033BBF); }
     void ISB()     { emit(0xD5033FDF); }

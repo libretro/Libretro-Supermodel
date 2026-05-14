@@ -8,6 +8,31 @@
 #include <cstdio>
 
 // ---------------------------------------------------------------------------
+// Function pointer table indices (8 bytes each, packed at m_code_buf[0])
+// ---------------------------------------------------------------------------
+enum {
+    FN_JIT_READ8       = 0,
+    FN_JIT_READ16      = 1,
+    FN_JIT_READ32      = 2,
+    FN_JIT_READ64      = 3,
+    FN_JIT_WRITE8      = 4,
+    FN_JIT_WRITE16     = 5,
+    FN_JIT_WRITE32     = 6,
+    FN_JIT_WRITE64     = 7,
+    FN_JIT_READ_TBL    = 8,
+    FN_JIT_READ_TBU    = 9,
+    FN_JIT_FRES        = 10,
+    FN_JIT_FRSQRTE     = 11,
+    FN_PPC_DISPATCH    = 12,
+    // indices 13-15 reserved
+};
+static_assert(FN_PPC_DISPATCH < JitArm64::FN_TABLE_ENTRIES, "FN table overflow");
+
+// Pointer to the function table base (set when the code buffer is allocated).
+// Used by emit_call() to choose ADRP+LDR_X over MOV_X64.
+static uint8_t *g_fn_tbl = nullptr;
+
+// ---------------------------------------------------------------------------
 // Singleton
 // ---------------------------------------------------------------------------
 JitArm64 &JitArm64::get()
@@ -32,20 +57,36 @@ bool JitArm64::init()
         m_code_buf  = (uint8_t *)p;
         m_write_buf = m_code_buf;
         m_dual_map  = false;
-        return true;
+    } else {
+        // Fallback: allocate RW, compile blocks there, mprotect to RX before execution.
+        // On Android 10+ this is the only reliable approach.
+        p = mmap(nullptr, CODE_BUF_SIZE,
+                 PROT_READ | PROT_WRITE,
+                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if (p == MAP_FAILED) return false;
+        m_write_buf = (uint8_t *)p;
+        m_code_buf  = m_write_buf;
+        m_dual_map  = false;
     }
 
-    // Fallback: allocate RW, compile blocks there, mprotect to RX before execution.
-    // On Android 10+ this is the only reliable approach.
-    p = mmap(nullptr, CODE_BUF_SIZE,
-             PROT_READ | PROT_WRITE,
-             MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
-    if (p == MAP_FAILED) return false;
-
-    m_write_buf = (uint8_t *)p;
-    m_code_buf  = m_write_buf;      // same mapping, protected before exec
-    m_dual_map  = false;
+    // Fill function pointer table at the very start of the write buffer.
+    // Blocks start at FN_TABLE_BYTES to keep the table intact across flushes.
+    void **tbl = (void **)m_write_buf;
+    tbl[FN_JIT_READ8]    = (void *)&jit_read8;
+    tbl[FN_JIT_READ16]   = (void *)&jit_read16;
+    tbl[FN_JIT_READ32]   = (void *)&jit_read32;
+    tbl[FN_JIT_READ64]   = (void *)&jit_read64;
+    tbl[FN_JIT_WRITE8]   = (void *)&jit_write8;
+    tbl[FN_JIT_WRITE16]  = (void *)&jit_write16;
+    tbl[FN_JIT_WRITE32]  = (void *)&jit_write32;
+    tbl[FN_JIT_WRITE64]  = (void *)&jit_write64;
+    tbl[FN_JIT_READ_TBL] = (void *)&jit_read_tbl;
+    tbl[FN_JIT_READ_TBU] = (void *)&jit_read_tbu;
+    tbl[FN_JIT_FRES]     = (void *)&jit_fres;
+    tbl[FN_JIT_FRSQRTE]  = (void *)&jit_frsqrte;
+    tbl[FN_PPC_DISPATCH] = (void *)&ppc_dispatch_opcode;
+    g_fn_tbl   = m_write_buf;
+    m_code_pos = FN_TABLE_BYTES;    // blocks start after the table
     return true;
 }
 
@@ -63,7 +104,8 @@ void JitArm64::shutdown()
 void JitArm64::flush()
 {
     m_cache.clear();
-    m_code_pos = 0;
+    // Preserve the function pointer table at offset 0; blocks restart after it.
+    m_code_pos = (g_fn_tbl != nullptr) ? FN_TABLE_BYTES : 0;
     memset(m_fast_cache, 0, sizeof(m_fast_cache));
 }
 
@@ -319,10 +361,29 @@ static void emit_update_xer_ca(Arm64Emitter &e)
     e.STR_W(W3, PPC_PTR, OFF_XER);
 }
 
-// Call an external C function whose address is a 64-bit constant.
-// Places address in X16 (IP0) and BLRs. Arguments must be in W0 etc. already.
+// Call an external C function.  When the function is in the pointer table at
+// the start of the code buffer, emit ADRP + LDR_X (2 instructions) instead of
+// MOV_X64 (3-4 instructions), saving 1-2 ARM instructions per C call.
 static void emit_call(Arm64Emitter &e, uint64_t fn_addr)
 {
+    if (g_fn_tbl) {
+        // Linear scan of the table (13 entries, compile-time only — not hot)
+        void **tbl = (void **)g_fn_tbl;
+        for (int i = 0; i < (int)JitArm64::FN_TABLE_ENTRIES; i++) {
+            if ((uint64_t)tbl[i] == fn_addr) {
+                // Load fn pointer via PC-relative ADRP + LDR_X (always within ±4 GB)
+                uint64_t entry_addr  = (uint64_t)(g_fn_tbl + i * 8);
+                int64_t  page_off    = (int64_t)(entry_addr & ~0xFFFULL)
+                                     - (int64_t)((uint64_t)e.ptr() & ~0xFFFULL);
+                uint32_t byte_in_pg  = (uint32_t)(entry_addr & 0xFFF);
+                e.ADRP(X16, page_off);
+                e.LDR_X(X16, X16, byte_in_pg);
+                e.BLR(X16);
+                return;
+            }
+        }
+    }
+    // Fallback: full 64-bit constant load
     e.MOV_X64(X16, fn_addr);
     e.BLR(X16);
 }

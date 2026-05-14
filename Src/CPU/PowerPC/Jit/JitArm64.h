@@ -66,6 +66,13 @@ public:
 
     bool is_available() const { return m_code_buf != nullptr; }
 
+    // Function pointer table: reserved at the very start of the code buffer.
+    // JIT blocks access helper functions via ADRP + LDR_X instead of MOV_X64,
+    // saving 1-2 instructions per C call. Table is filled in init() and preserved
+    // across flush() calls.
+    static constexpr size_t FN_TABLE_ENTRIES = 16;
+    static constexpr size_t FN_TABLE_BYTES   = FN_TABLE_ENTRIES * 8;  // 128 bytes
+
 private:
     JitArm64() = default;
 
