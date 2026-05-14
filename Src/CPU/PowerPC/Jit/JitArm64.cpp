@@ -863,30 +863,40 @@ static bool translate_rlwimi(Arm64Emitter &e, uint32_t op)
     int me = (op >> 1)  & 0x1F;
     int rc = op & 1;
 
-    uint32_t mask;
     if (mb <= me) {
-        int start = 31 - me;
-        int end   = 31 - mb;
-        int width = end - start + 1;
-        mask = ((width == 32) ? 0xFFFFFFFFu : ((1u << width) - 1u)) << start;
-    } else {
-        int start = 31 - mb + 1;
-        int end   = 31 - me - 1;
-        int width = end - start + 1;
-        uint32_t gap = ((width <= 0) ? 0u : (((width == 32) ? 0xFFFFFFFFu : (1u << width) - 1u) << start));
-        mask = ~gap;
+        int lsb   = 31 - me;
+        int width = me - mb + 1;
+        emit_load_gpr(e, W0, rS);
+        if (sh > 0) e.ROR_W_IMM(W0, W0, 32 - sh);
+        if (width == 32) {
+            // Full-word replace: just rotate and store
+            emit_store_gpr(e, W0, rA);
+            if (rc) emit_set_cr0_from_W0(e);
+            return true;
+        }
+        if (lsb > 0) e.LSR_W_IMM(W0, W0, lsb);   // shift field to bit 0
+        emit_load_gpr(e, W1, rA);
+        e.BFI_W(W1, W0, lsb, width);              // insert field into rA
+        emit_store_gpr(e, W1, rA);
+        if (rc) { e.CMP_W_IMM(W1, 0); emit_cr_from_flags_signed(e, 0); }
+        return true;
     }
 
-    emit_load_gpr(e, W0, rS);          // W0 = rS
-    if (sh > 0) e.ROR_W_IMM(W0, W0, 32 - sh);  // W0 = ROTL(rS, sh)
+    // mb > me: wrapping mask — fall through to mask/AND/ORR path
+    int    wstart = 31 - mb + 1;
+    int    wend   = 31 - me - 1;
+    int    wwidth = wend - wstart + 1;
+    uint32_t gap  = (wwidth <= 0) ? 0u : (((wwidth == 32) ? 0xFFFFFFFFu : (1u << wwidth) - 1u) << wstart);
+    uint32_t mask = ~gap;
+
+    emit_load_gpr(e, W0, rS);
+    if (sh > 0) e.ROR_W_IMM(W0, W0, 32 - sh);
     e.MOV_W32(W1, mask);
-    e.AND_W(W0, W0, W1);               // W0 = rotated_rS & mask
-
-    emit_load_gpr(e, W2, rA);          // W2 = rA
+    e.AND_W(W0, W0, W1);
+    emit_load_gpr(e, W2, rA);
     e.MOV_W32(W3, ~mask);
-    e.AND_W(W2, W2, W3);               // W2 = rA & ~mask
-    e.ORR_W(W0, W0, W2);               // W0 = inserted result
-
+    e.AND_W(W2, W2, W3);
+    e.ORR_W(W0, W0, W2);
     emit_store_gpr(e, W0, rA);
     if (rc) emit_set_cr0_from_W0(e);
     return true;
@@ -2113,12 +2123,9 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
     // We ignore FPSCR rounding mode and truncate (same as fctiwz) — acceptable for game code
     case 15:  // fctiwz rD, rB  (convert double to int32, sign-extend to 64 bits in FPR)
     {
-        // PPC stores result as sign-extended int64 in FPR.id
         emit_load_fpr(e, D0, rB);
-        e.FCVTZS_W_D(W0, D0);           // W0 = (int32_t)D0
-        e.ASR_W_IMM(W1, W0, 31);        // W1 = sign extension (0 or 0xFFFFFFFF)
-        e.STR_W(W0, PPC_PTR, OFF_FPR + rD * 8);      // lower 32 bits
-        e.STR_W(W1, PPC_PTR, OFF_FPR + rD * 8 + 4);  // upper 32 bits (sign ext)
+        e.FCVTZS_X_D(W0, D0);                        // X0 = sign-extended (int32)D0
+        e.STR_X(W0, PPC_PTR, OFF_FPR + rD * 8);
         return true;
     }
 
