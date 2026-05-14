@@ -1636,8 +1636,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     case 599: {
         emit_load_ea_reg(e, W0, rA, rB);
         emit_call(e, (uint64_t)(void *)&jit_read64);
-        e.FMOV_D_X(D0, 0);
-        emit_store_fpr(e, D0, rD);
+        e.STR_X(W0, PPC_PTR, (uint32_t)(OFF_FPR + rD * 8));
         return true;
     }
     // lfdux rD, rA, rB
@@ -1647,8 +1646,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.ADD_W(W0, W0, W1);
         emit_store_gpr(e, W0, rA);
         emit_call(e, (uint64_t)(void *)&jit_read64);
-        e.FMOV_D_X(D0, 0);
-        emit_store_fpr(e, D0, rD);
+        e.STR_X(W0, PPC_PTR, (uint32_t)(OFF_FPR + rD * 8));
         return true;
     }
 
@@ -1676,20 +1674,19 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     }
     // stfdx rS, rA, rB
     case 727: {
-        emit_load_fpr(e, D0, rD);
-        emit_load_ea_reg(e, W0, rA, rB);  // D0 safe; W0=EA
-        e.FMOV_X_D(1, D0);               // X1 = raw double bits
+        // emit_load_ea_reg may use W1 as scratch; load FPR into X1 after EA is ready.
+        emit_load_ea_reg(e, W0, rA, rB);  // W0 = EA (may clobber W1)
+        e.LDR_X(W1, PPC_PTR, (uint32_t)(OFF_FPR + rD * 8));  // X1 = raw double bits
         emit_call(e, (uint64_t)(void *)&jit_write64);
         return true;
     }
     // stfdux rS, rA, rB
     case 759: {
-        emit_load_fpr(e, D0, rD);
         emit_load_gpr(e, W0, rA);
         emit_load_gpr(e, W1, rB);
-        e.ADD_W(W0, W0, W1);
+        e.ADD_W(W0, W0, W1);             // W0 = EA
         emit_store_gpr(e, W0, rA);
-        e.FMOV_X_D(1, D0);               // X1 = raw double bits
+        e.LDR_X(W1, PPC_PTR, (uint32_t)(OFF_FPR + rD * 8));  // X1 = raw double bits
         emit_call(e, (uint64_t)(void *)&jit_write64);
         return true;
     }
@@ -2042,11 +2039,9 @@ static bool translate_lfd(Arm64Emitter &e, uint32_t op, bool update)
     if (update) {
         emit_store_gpr(e, W0, rA);
     }
-    // Store EA for the 64-bit read call (W0 = addr)
-    emit_call(e, (uint64_t)(void *)&jit_read64);  // X0 = 64-bit data
-    // jit_read64 returns UINT64 in X0; move bits into FP register
-    e.FMOV_D_X(D0, 0);               // D0 = reinterpret X0 as double
-    emit_store_fpr(e, D0, rD);
+    emit_call(e, (uint64_t)(void *)&jit_read64);   // X0 = 64-bit data
+    // Store raw bits directly into the FPR slot — no FMOV needed.
+    e.STR_X(W0, PPC_PTR, (uint32_t)(OFF_FPR + rD * 8));
     return true;
 }
 
@@ -2084,17 +2079,12 @@ static bool translate_stfd(Arm64Emitter &e, uint32_t op, bool update)
 
     if (update && rA == 0) return false;
 
-    // Load FPR into D0 first (kept there while we compute EA into W0)
-    emit_load_fpr(e, D0, rS);        // D0 = FPR[rS]
-
-    // Compute EA into W0 (may clobber W1, but D0 is unaffected)
+    // emit_load_ea_imm uses only W0; load EA first, then read FPR as integer into X1.
     emit_load_ea_imm(e, rA, simm);   // W0 = EA
     if (update) {
         emit_store_gpr(e, W0, rA);
     }
-
-    // Move 64-bit FPR bits into X1 (second arg); X0 already has EA from W0
-    e.FMOV_X_D(1, D0);               // X1 = raw double bits
+    e.LDR_X(W1, PPC_PTR, (uint32_t)(OFF_FPR + rS * 8));  // X1 = raw double bits
     emit_call(e, (uint64_t)(void *)&jit_write64);
     return true;
 }
