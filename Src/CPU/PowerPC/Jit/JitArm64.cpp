@@ -297,6 +297,10 @@ static void emit_add_simm16(Arm64Emitter &e, int Wd, int Wn, int16_t simm)
         e.ADD_W_IMM(Wd, Wn, v);
     } else if (v < 0 && -v <= 4095) {
         e.SUB_W_IMM(Wd, Wn, (uint32_t)(-v));
+    } else if (v > 0 && (v & 0xFFF) == 0) {
+        e.ADD_W_IMM(Wd, Wn, (uint32_t)v >> 12, 1);   // v is a multiple of 4096
+    } else if (v < 0 && ((-v) & 0xFFF) == 0) {
+        e.SUB_W_IMM(Wd, Wn, (uint32_t)(-v) >> 12, 1);
     } else {
         e.MOV_W32(W1, (uint32_t)(int32_t)simm);
         e.ADD_W(Wd, Wn, W1);
@@ -1971,6 +1975,10 @@ static void emit_load_ea_off32(Arm64Emitter &e, int rA, int32_t off)
         if      (off == 0)                          { /* nothing */ }
         else if (off > 0 && off <= 4095)            e.ADD_W_IMM(W0, W0, (uint32_t)off);
         else if (off < 0 && -off <= 4095)           e.SUB_W_IMM(W0, W0, (uint32_t)(-off));
+        else if (off > 0 && (off & 0xFFF) == 0 && (off >> 12) <= 4095)
+            e.ADD_W_IMM(W0, W0, (uint32_t)off >> 12, 1);
+        else if (off < 0 && ((-off) & 0xFFF) == 0 && ((-off) >> 12) <= 4095)
+            e.SUB_W_IMM(W0, W0, (uint32_t)(-off) >> 12, 1);
         else { e.MOV_W32(W1, (uint32_t)off); e.ADD_W(W0, W0, W1); }
     }
 }
@@ -2002,6 +2010,10 @@ static bool translate_addic(Arm64Emitter &e, uint32_t op, bool update_cr)
         e.ADDS_W_IMM(W0, W0, (uint32_t)simm);
     } else if (simm < 0 && (uint32_t)(-simm) <= 4095) {
         e.SUBS_W_IMM(W0, W0, (uint32_t)(-simm));   // rA + simm = rA - |simm|; C = NOT borrow = CA
+    } else if (simm > 0 && ((uint32_t)simm & 0xFFF) == 0) {
+        e.ADDS_W_IMM(W0, W0, (uint32_t)simm >> 12, 1);  // simm is multiple of 4096
+    } else if (simm < 0 && ((uint32_t)(-simm) & 0xFFF) == 0) {
+        e.SUBS_W_IMM(W0, W0, (uint32_t)(-simm) >> 12, 1);
     } else {
         e.MOV_W32(W1, (uint32_t)(int32_t)simm);
         e.ADDS_W(W0, W0, W1);
