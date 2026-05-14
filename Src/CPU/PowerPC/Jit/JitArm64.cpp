@@ -1887,8 +1887,14 @@ static bool translate_addic(Arm64Emitter &e, uint32_t op, bool update_cr)
     int16_t simm = (int16_t)(op & 0xFFFF);
 
     emit_load_gpr(e, W0, rA);
-    e.MOV_W32(W1, (uint32_t)(int32_t)simm);
-    e.ADDS_W(W0, W0, W1);              // W0 = rA + SIMM; ARM C = carry out = XER.CA
+    if (simm >= 0 && (uint32_t)simm <= 4095) {
+        e.ADDS_W_IMM(W0, W0, (uint32_t)simm);
+    } else if (simm < 0 && (uint32_t)(-simm) <= 4095) {
+        e.SUBS_W_IMM(W0, W0, (uint32_t)(-simm));   // rA + simm = rA - |simm|; C = NOT borrow = CA
+    } else {
+        e.MOV_W32(W1, (uint32_t)(int32_t)simm);
+        e.ADDS_W(W0, W0, W1);
+    }
     emit_store_gpr(e, W0, rD);
     emit_update_xer_ca(e);
     if (update_cr) emit_set_cr0_from_W0(e);
