@@ -2654,15 +2654,17 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
             case 449: {// cror    crBD = crBA | crBB
                 emit_load_cr_bit(e, W0, crBA);
                 emit_load_cr_bit(e, W1, crBB);
+                // After emit_load_cr_bit, W0/W1 are 0 or 1 (bits [31:1] = 0).
+                // EOR_W_FLIP_BIT(Wx, Wx, 0) toggles bit 0 without touching [31:1].
                 switch (subop) {
-                case  33: e.ORR_W(W0, W0, W1);  e.MVN_W(W0, W0); e.AND_W(W0, W0, 1); break; // NOR
-                case 129: e.MVN_W(W1, W1); e.AND_W(W0, W0, 1); e.AND_W(W1, W1, 1); e.AND_W(W0, W0, W1); break; // ANDC
-                case 193: e.EOR_W(W0, W0, W1); break;
-                case 225: e.AND_W(W0, W0, W1);  e.MVN_W(W0, W0); e.AND_W(W0, W0, 1); break; // NAND
-                case 257: e.AND_W(W0, W0, W1); break;
-                case 289: e.EOR_W(W0, W0, W1);  e.MVN_W(W0, W0); e.AND_W(W0, W0, 1); break; // EQV
-                case 417: e.MVN_W(W1, W1); e.AND_W(W1, W1, 1); e.ORR_W(W0, W0, W1); break; // ORC
-                case 449: e.ORR_W(W0, W0, W1); break;
+                case  33: e.ORR_W(W0, W0, W1); e.EOR_W_FLIP_BIT(W0, W0, 0); break; // NOR:  !(crBA|crBB)
+                case 129: e.EOR_W_FLIP_BIT(W1, W1, 0); e.AND_W(W0, W0, W1); break; // ANDC: crBA & ~crBB
+                case 193: e.EOR_W(W0, W0, W1); break;                                // XOR:  crBA ^ crBB
+                case 225: e.AND_W(W0, W0, W1); e.EOR_W_FLIP_BIT(W0, W0, 0); break; // NAND: !(crBA&crBB)
+                case 257: e.AND_W(W0, W0, W1); break;                                // AND:  crBA & crBB
+                case 289: e.EOR_W(W0, W0, W1); e.EOR_W_FLIP_BIT(W0, W0, 0); break; // EQV:  !(crBA^crBB)
+                case 417: e.EOR_W_FLIP_BIT(W1, W1, 0); e.ORR_W(W0, W0, W1); break; // ORC:  crBA | ~crBB
+                case 449: e.ORR_W(W0, W0, W1); break;                                // OR:   crBA | crBB
                 default: break;
                 }
                 emit_store_cr_bit(e, W0, W2, crBD);

@@ -249,6 +249,12 @@ public:
         int immr = (32 - bitpos) & 0x1F;
         emit(0x32000000 | (immr << 16) | (Wn << 5) | Wd);
     }
+    // EOR Wd, Wn, #(1<<bitpos)  — flip a single bit
+    void EOR_W_FLIP_BIT(int Wd, int Wn, int bitpos)
+    {
+        int immr = (32 - bitpos) & 0x1F;
+        emit(0x52000000 | (immr << 16) | (Wn << 5) | Wd);
+    }
 
     // --- Bitfield (32-bit) ---
     // UBFM Wd, Wn, #immr, #imms  (unsigned bitfield move)
