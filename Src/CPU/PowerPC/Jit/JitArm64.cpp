@@ -653,6 +653,10 @@ static bool translate_oris(Arm64Emitter &e, uint32_t op)
     int rA   = (op >> 16) & 0x1F;
     uint32_t uimm = (op & 0xFFFF) << 16;
 
+    if (uimm == 0) {
+        if (rA != rS) { emit_load_gpr(e, W0, rS); emit_store_gpr(e, W0, rA); }
+        return true;
+    }
     emit_load_gpr(e, W0, rS);
     e.MOV_W32(W1, uimm);
     e.ORR_W(W0, W0, W1);
@@ -667,6 +671,10 @@ static bool translate_xori(Arm64Emitter &e, uint32_t op)
     int rA   = (op >> 16) & 0x1F;
     uint32_t uimm = op & 0xFFFF;
 
+    if (uimm == 0) {
+        if (rA != rS) { emit_load_gpr(e, W0, rS); emit_store_gpr(e, W0, rA); }
+        return true;
+    }
     emit_load_gpr(e, W0, rS);
     e.MOV_W32(W1, uimm);
     e.EOR_W(W0, W0, W1);
@@ -681,6 +689,10 @@ static bool translate_xoris(Arm64Emitter &e, uint32_t op)
     int rA   = (op >> 16) & 0x1F;
     uint32_t uimm = (op & 0xFFFF) << 16;
 
+    if (uimm == 0) {
+        if (rA != rS) { emit_load_gpr(e, W0, rS); emit_store_gpr(e, W0, rA); }
+        return true;
+    }
     emit_load_gpr(e, W0, rS);
     e.MOV_W32(W1, uimm);
     e.EOR_W(W0, W0, W1);
@@ -759,12 +771,27 @@ static bool translate_cmpli(Arm64Emitter &e, uint32_t op)
 // Primary opcode 7: mulli rD, rA, SIMM
 static bool translate_mulli(Arm64Emitter &e, uint32_t op)
 {
-    int rD   = (op >> 21) & 0x1F;
-    int rA   = (op >> 16) & 0x1F;
-    int16_t simm = (int16_t)(op & 0xFFFF);
+    int rD    = (op >> 21) & 0x1F;
+    int rA    = (op >> 16) & 0x1F;
+    int32_t sv = (int32_t)(int16_t)(op & 0xFFFF);
 
+    if (sv == 0) {
+        e.MOV_W32(W0, 0);
+        emit_store_gpr(e, W0, rD);
+        return true;
+    }
+    uint32_t abs_sv = sv < 0 ? (uint32_t)(-sv) : (uint32_t)sv;
+    if ((abs_sv & (abs_sv - 1)) == 0) {
+        // |simm| is a power of two: use LSL [+ NEG] instead of MUL
+        int shift = __builtin_ctz(abs_sv);
+        emit_load_gpr(e, W0, rA);
+        if (shift > 0) e.LSL_W_IMM(W0, W0, shift);
+        if (sv < 0)    e.NEG_W(W0, W0);
+        emit_store_gpr(e, W0, rD);
+        return true;
+    }
     emit_load_gpr(e, W0, rA);
-    e.MOV_W32(W1, (uint32_t)(int32_t)simm);
+    e.MOV_W32(W1, (uint32_t)sv);
     e.MUL_W(W0, W0, W1);
     emit_store_gpr(e, W0, rD);
     return true;
@@ -2213,10 +2240,10 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
     }
 
     case 583: {  // mffs frD — move FPSCR to FPR (lower 32 bits)
+        // LDR_W zero-extends W0 to 64 bits (ARM64 rule), so STR_X stores
+        // FPSCR in the lower 4 bytes and 0 in the upper 4 bytes.
         e.LDR_W(W0, PPC_PTR, OFF_FPSCR);
-        e.STR_W(W0, PPC_PTR, (uint32_t)(OFF_FPR + rD * 8));
-        e.MOV_W32(W1, 0);
-        e.STR_W(W1, PPC_PTR, (uint32_t)(OFF_FPR + rD * 8 + 4));
+        e.STR_X(W0, PPC_PTR, (uint32_t)(OFF_FPR + rD * 8));
         return true;
     }
 
