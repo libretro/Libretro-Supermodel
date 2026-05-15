@@ -361,6 +361,20 @@ static void emit_set_cr0_from_W0(Arm64Emitter &e)
     emit_cr_from_flags_signed(e, 0);
 }
 
+// Update CR0 when the result in W0 is known to be non-negative (bit31==0).
+// LT is unconditionally 0; only EQ vs GT need checking. 7 instructions vs
+// 9 for CMP + emit_cr_from_flags_signed.
+static void emit_cr0_nonneg(Arm64Emitter &e)
+{
+    e.CMP_W_IMM(W0, 0);
+    e.MOV_W32(W1, 4);                // GT nibble (positive)
+    e.MOV_W32(W2, 2);                // EQ nibble
+    e.CSEL_W(W1, W2, W1, A64_EQ);   // W1 = W0==0 ? 2 : 4
+    e.LDR_W(W2, PPC_PTR, OFF_XER);
+    e.ORR_W_LSR(W1, W1, W2, 31);    // W1 = nibble | SO
+    e.STRB(W1, PPC_PTR, OFF_CR);
+}
+
 // Update CR0 when the result is a JIT compile-time constant (4 instructions
 // vs 9 for CMP + emit_cr_from_flags_signed). Hardcodes LT/EQ/GT nibble.
 static void emit_cr0_const_result(Arm64Emitter &e, int32_t val)
@@ -940,7 +954,7 @@ static bool translate_rlwinm(Arm64Emitter &e, uint32_t op)
         emit_load_gpr(e, W0, rS);
         e.UBFM_W(W0, W0, 32 - sh, 63 - sh - mb);
         emit_store_gpr(e, W0, rA);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr0_nonneg(e);   // UBFX zero-extends: bit31==0 always
         return true;
     }
 
@@ -1441,8 +1455,8 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
 
         emit_store_gpr(e, W2, rA);
         if (rc) {
-            e.MOV_W(W0, W2);
-            emit_set_cr0_from_W0(e);
+            e.CMP_W_IMM(W2, 0);
+            emit_cr_from_flags_signed(e, 0);
         }
         return true;
     }
@@ -1494,7 +1508,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         emit_load_gpr(e, W0, rD);
         e.CLZ_W(W0, W0);
         emit_store_gpr(e, W0, rA);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr0_nonneg(e);   // CLZ result is 0-32, always non-negative
         return true;
 
     // mulhwu rD, rA, rB  (unsigned multiply high: upper 32 bits of 64-bit product)
