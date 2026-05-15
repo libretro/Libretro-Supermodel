@@ -1443,19 +1443,26 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         return true;
 
     // slw rA, rS, rB
+    // PPC spec: if rB[26] (bit5) is set (shift >= 32), result = 0.
+    // ARM LSLV uses rB[4:0] (mod 32), so shifts of 32-63 would give wrong result.
     case 24:
         emit_load_gpr(e, W0, rD);
         emit_load_gpr(e, W1, rB);
-        e.LSL_W(W0, W0, W1);     // LSLV uses W1[4:0]; AND redundant
+        e.LSL_W(W0, W0, W1);                   // W0 = rS << (rB & 31)
+        e.TST_W_BITMASK(W1, 27, 0);            // Z=0 if bit5 of rB set (shift >= 32)
+        e.CSEL_W(W0, A64_WZR, W0, A64_NE);    // result = 0 if shift >= 32
         emit_store_gpr(e, W0, rA);
         if (rc) emit_set_cr0_from_W0(e);
         return true;
 
     // srw rA, rS, rB
+    // Same shift>=32 issue as slw.
     case 536:
         emit_load_gpr(e, W0, rD);
         emit_load_gpr(e, W1, rB);
-        e.LSR_W(W0, W0, W1);     // LSRV uses W1[4:0]; AND redundant
+        e.LSR_W(W0, W0, W1);                   // W0 = rS >> (rB & 31)
+        e.TST_W_BITMASK(W1, 27, 0);            // Z=0 if bit5 of rB set (shift >= 32)
+        e.CSEL_W(W0, A64_WZR, W0, A64_NE);    // result = 0 if shift >= 32
         emit_store_gpr(e, W0, rA);
         if (rc) emit_set_cr0_from_W0(e);
         return true;
