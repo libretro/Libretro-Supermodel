@@ -154,7 +154,6 @@ static constexpr int MAX_BLOCK_INSTS = 128;
 //   X16  = scratch for function addresses (caller-saved, IP0)
 //
 // Struct field offsets computed via offsetof()
-static int OFF_FATAL;
 static int OFF_R;
 static int OFF_PC;
 static int OFF_NPC;
@@ -181,7 +180,6 @@ static void compute_offsets()
     if (g_offsets_computed) return;
     PPC_REGS *dummy = nullptr;
 #define OFF(f) (int)((uint8_t*)&dummy->f - (uint8_t*)dummy)
-    OFF_FATAL  = OFF(fatalError);
     OFF_R      = OFF(r[0]);
     OFF_PC     = OFF(pc);
     OFF_NPC    = OFF(npc);
@@ -612,45 +610,46 @@ static void emit_epilogue(Arm64Emitter &e, int inst_count, uint32_t last_pc, uin
 }
 
 // Tail-call epilogue for a statically-known block target already compiled.
-// Updates icount/pc/npc, mirrors the dispatch-loop dec_trigger and interrupt
-// checks, then — if cycles remain and nothing is pending — restores the frame
-// and jumps directly to target_fn (no dispatch-loop roundtrip).
+// Updates icount, mirrors the dispatch-loop dec_trigger and interrupt checks,
+// then — if cycles remain and nothing is pending — tail-calls target_fn directly
+// (no dispatch-loop roundtrip).  pc/npc are only written on the slow-exit path
+// (icount exhausted / interrupt / fatal) so the dispatch loop can restart.
 // Both target_fn and this code must be within the same 16 MB code buffer. ✓
 //
-// Register usage: W4 = new_icount (preserved across the checks).
+// Register usage: W4 = new_icount (preserved across checks).
+// fatalError is mirrored into interrupt_pending bit 3 (0x8) by all fatal-setting
+// sites, so a single LDR+CBNZ on interrupt_pending covers both.
+//
+// Fast path ARM instructions (normal case): ~12 vs ~20 in the previous version.
 static void emit_epilogue_chained(Arm64Emitter &e, int inst_count, uint32_t last_pc,
                                    uint32_t next_pc, void *target_fn)
 {
-    // W4 = new_icount (keep for comparisons below)
+    // W4 = new_icount.  SUBS sets flags so B.LE below needs no separate CMP.
     e.LDR_W(W4, PPC_PTR, OFF_ICOUNT);
     if (inst_count <= 4095)
-        e.SUB_W_IMM(W4, W4, (uint32_t)inst_count);
+        e.SUBS_W_IMM(W4, W4, (uint32_t)inst_count);
     else {
         e.MOV_W32(W0, (uint32_t)inst_count);
-        e.SUB_W(W4, W4, W0);
+        e.SUBS_W(W4, W4, W0);
     }
     e.STR_W(W4, PPC_PTR, OFF_ICOUNT);
 
-    e.MOV_W32(W0, last_pc);
-    e.MOV_W32(W1, next_pc);
-    e.STP_W(W0, W1, PPC_PTR, OFF_PC);
+    // Early exit when icount <= 0.  Flags from SUBS survive STR/MOV/STP — no CMP needed.
+    uint32_t *exit_icount = e.emit_B_COND_placeholder(A64_LE);   // B.LE slow_exit
 
     // Mirror dispatch-loop: if (new_icount <= dec_trigger_cycle) interrupt_pending |= 2
     e.LDR_W(W1, PPC_PTR, (uint32_t)OFF_DEC_TRIGGER);
-    e.CMP_W(W4, W1);                                         // W4 vs dec_trigger (signed)
-    uint32_t *dec_ok = e.emit_B_COND_placeholder(A64_GT);   // B.GT skip_dec_set
+    e.CMP_W(W4, W1);
+    uint32_t *dec_ok = e.emit_B_COND_placeholder(A64_GT);        // B.GT skip_dec_set
     e.LDR_W(W0, PPC_PTR, (uint32_t)OFF_INT_PENDING);
-    e.ORR_W_SET_BIT(W0, W0, 1);    // set decrementer-pending bit (bit 1 = 0x2)
+    e.ORR_W_SET_BIT(W0, W0, 1);   // set decrementer-pending bit (bit 1 = 0x2)
     e.STR_W(W0, PPC_PTR, (uint32_t)OFF_INT_PENDING);
+    uint32_t *exit_dec = e.emit_B_placeholder();                  // B slow_exit (int pending)
     e.patch_B_COND(dec_ok, e.ptr());
 
-    // Exit if cycles exhausted or fatal error or interrupt pending
-    e.CMP_W_IMM(W4, 0);
-    uint32_t *exit1 = e.emit_B_COND_placeholder(A64_LE);    // B.LE slow_exit
-    e.LDRB(W0, PPC_PTR, (uint32_t)OFF_FATAL);
-    uint32_t *exit2 = e.emit_CBNZ_W_placeholder(W0);        // CBNZ slow_exit
+    // Exit if any interrupt or fatal error pending (fatalError mirrored into bit 3)
     e.LDR_W(W0, PPC_PTR, (uint32_t)OFF_INT_PENDING);
-    uint32_t *exit3 = e.emit_CBNZ_W_placeholder(W0);        // CBNZ slow_exit
+    uint32_t *exit_int = e.emit_CBNZ_W_placeholder(W0);          // CBNZ slow_exit
 
     // Fast path: tail call; X0 = PPC_REGS* for callee prologue
     e.MOV_X(0, PPC_PTR);
@@ -658,11 +657,14 @@ static void emit_epilogue_chained(Arm64Emitter &e, int inst_count, uint32_t last
     int64_t off = (int64_t)target_fn - (int64_t)e.ptr();
     e.B((int)off);
 
-    // Slow exit: return to dispatch loop
+    // Slow exit: write pc/npc so the dispatch loop can restart, then return
     uint32_t *slow_exit = e.ptr();
-    e.patch_B_COND(exit1, slow_exit);
-    e.patch_CBZ(exit2, slow_exit);
-    e.patch_CBZ(exit3, slow_exit);
+    e.patch_B_COND(exit_icount, slow_exit);
+    e.patch_B(exit_dec, slow_exit);
+    e.patch_CBZ(exit_int, slow_exit);
+    e.MOV_W32(W0, last_pc);
+    e.MOV_W32(W1, next_pc);
+    e.STP_W(W0, W1, PPC_PTR, OFF_PC);
     e.LDP_post(PPC_PTR, 30, A64_SP, 16);
     e.RET();
 }

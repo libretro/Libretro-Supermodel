@@ -202,6 +202,7 @@ void ppc603_exception(int exception)
 			ErrorLog("PowerPC triggered an unknown exception. Emulation halted until reset.");
 			DebugLog("PowerPC triggered an unknown exception (%d).\n", exception);
 			ppc.fatalError = true;
+			ppc.interrupt_pending |= 0x8;   // mirror for JIT chained-epilogue fast check
 			break;
 	}
 }

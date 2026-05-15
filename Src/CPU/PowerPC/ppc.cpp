@@ -204,6 +204,7 @@ static void ppc_change_pc(UINT32 newpc)
 	DebugLog("Invalid PC %08X, previous PC %08X\n", newpc, ppc.pc);
 	ErrorLog("PowerPC is out of bounds. Halting emulation until reset.");
 	ppc.fatalError = true;
+	ppc.interrupt_pending |= 0x8;   // mirror for JIT chained-epilogue fast check
 }
 
 static inline UINT8 READ8(UINT32 address)
@@ -445,6 +446,7 @@ static inline void ppc_set_spr(int spr, UINT32 value)
 	ErrorLog("PowerPC wrote to an invalid register. Halting emulation until reset.");
 	DebugLog("ppc: set_spr: unknown spr %d (%03X) !\n", spr, spr);
 	ppc.fatalError = true;
+	ppc.interrupt_pending |= 0x8;
 }
 
 static inline UINT32 ppc_get_spr(int spr)
@@ -507,6 +509,7 @@ static inline UINT32 ppc_get_spr(int spr)
 	ErrorLog("PowerPC read from an invalid register. Halting emulation until reset.");
 	DebugLog("ppc: get_spr: unknown spr %d (%03X) !\n", spr, spr);
 	ppc.fatalError = true;
+	ppc.interrupt_pending |= 0x8;
 	return 0;
 }
 
@@ -517,6 +520,7 @@ static inline void ppc_set_msr(UINT32 value)
 		ErrorLog("PowerPC entered an unemulated mode. Halting emulation until reset.");
 		DebugLog("ppc: set_msr: little_endian mode not supported !\n");
 		ppc.fatalError = true;
+		ppc.interrupt_pending |= 0x8;
 	}
 
 	MSR = value;
