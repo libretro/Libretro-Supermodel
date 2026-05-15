@@ -2946,7 +2946,10 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
                     && !(next_op & 1) && !((next_op >> 1) & 1)
                     && n_crfD == 0 && n_crbit <= 2)
                 {
-                    static const int s_cond[3] = { A64_LT, A64_GT, A64_EQ };
+                    // CR0[LT] = N (bit31) for all Rc=1 ops (arithmetic ops set N directly;
+                    // logical/shift ops use CMP or ANDS where V=0 so A64_MI = A64_LT).
+                    // Using A64_LT (N^V) is wrong for neg./add./subf. etc. when V=1 (signed overflow).
+                    static const int s_cond[3] = { A64_MI, A64_GT, A64_EQ };
                     int a64_cond = s_cond[n_crbit];
                     if (ncond_clr) a64_cond ^= 1;
 
