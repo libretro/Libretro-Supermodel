@@ -1205,9 +1205,8 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     case 714:
     case 202:
         emit_load_gpr(e, W0, rA);
-        emit_load_xer_ca(e, W1);
-        emit_arm_carry_from_W(e, W1);
-        e.ADCS_W(W0, W0, A64_WZR);
+        emit_load_xer_ca(e, W1);           // W1 = CA (0 or 1)
+        e.ADDS_W(W0, W0, W1);              // W0 = rA + CA; ARM C = carry = new XER.CA
         emit_store_gpr(e, W0, rD);
         emit_update_xer_ca(e);
         if (rc) emit_cr_from_arith_flags(e, 0);
