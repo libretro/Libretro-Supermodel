@@ -918,6 +918,19 @@ static bool translate_mulli(Arm64Emitter &e, uint32_t op)
         emit_store_gpr(e, W0, rD);
         return true;
     }
+    // sv = -(2^n - 1): SUB W0, W0, W0, LSL#n  (e.g. -3x, -7x, -15x, -31x)
+    // W0*(1-2^n) computes sv*rA in one instruction; saves 1 vs ADD_W_LSL+NEG or MOV+MUL.
+    // Positive 2^n-1 cases (sv=7,15,...) need SUB+NEG = 2 insns, same as MOV+MUL — not worth it.
+    if (sv < 0) {
+        uint32_t abs_sv_p1 = abs_sv + 1;
+        if (abs_sv_p1 && (abs_sv_p1 & abs_sv) == 0) {
+            int shift = __builtin_ctz(abs_sv_p1);
+            emit_load_gpr(e, W0, rA);
+            e.SUB_W_LSL(W0, W0, W0, shift);    // W0 = rA*(1-2^n) = sv*rA
+            emit_store_gpr(e, W0, rD);
+            return true;
+        }
+    }
     // sv = 1 + 2^n: ADD W0, W0, W0, LSL#n  (e.g. 3x, 5x, 9x, 17x)
     uint32_t abs_sv1 = abs_sv - 1;
     if (abs_sv1 && (abs_sv1 & (abs_sv1 - 1)) == 0) {
