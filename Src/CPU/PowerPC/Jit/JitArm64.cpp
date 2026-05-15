@@ -2941,6 +2941,8 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
             bool has_rc1 = false;
             if (primary == 28 || primary == 29) {
                 has_rc1 = true;   // andi./andis.: inherently Rc=1
+            } else if (primary == 13) {
+                has_rc1 = true;   // addic.: always updates CR0
             } else if ((op & 1) &&
                        (primary == 20 || primary == 21 || primary == 23 || primary == 31)) {
                 has_rc1 = true;   // rlwimi./rlwinm./rlwnm./op31 with Rc bit
@@ -2954,9 +2956,13 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
                 bool nctr_rel    = !(nbo & 0x04);
                 bool ncond_rel   = !(nbo & 0x10);
                 bool ncond_clr   = !(nbo & 0x08);
+                // GT condition (n_crbit=1): A64_GT = N^V==0 && Z==0, but PPC GT = N==0 && Z==0.
+                // These differ when V=1 (signed overflow), which can occur for ADDS/SUBS/NEGS in
+                // primary-31 arithmetic ops and primary-13 (addic.). Skip GT peephole for these.
+                bool gt_safe = !(n_crbit == 1 && (primary == 13 || primary == 31));
                 if ((next_op >> 26) == 16 && !nctr_rel && ncond_rel
                     && !(next_op & 1) && !((next_op >> 1) & 1)
-                    && n_crfD == 0 && n_crbit <= 2)
+                    && n_crfD == 0 && n_crbit <= 2 && gt_safe)
                 {
                     // CR0[LT] = N (bit31) for all Rc=1 ops (arithmetic ops set N directly;
                     // logical/shift ops use CMP or ANDS where V=0 so A64_MI = A64_LT).
