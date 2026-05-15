@@ -1505,9 +1505,8 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     case 19: {
         e.LDRB(W0, PPC_PTR, OFF_CR + 0);
         for (int i = 1; i < 8; i++) {
-            e.LSL_W_IMM(W0, W0, 4);
             e.LDRB(W1, PPC_PTR, OFF_CR + i);
-            e.ORR_W(W0, W0, W1);
+            e.ORR_W_LSL(W0, W1, W0, 4);   // W0 = W1 | (W0 << 4)
         }
         emit_store_gpr(e, W0, rD);
         return true;
