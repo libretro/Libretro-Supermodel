@@ -172,6 +172,9 @@ static int OFF_SRR0;
 static int OFF_SRR1;
 static int OFF_DEC_TRIGGER;
 static int OFF_INT_PENDING;
+static int OFF_SR;
+static int OFF_DSISR;
+static int OFF_DAR;
 
 static bool g_offsets_computed = false;
 
@@ -198,6 +201,9 @@ static void compute_offsets()
     OFF_SRR1        = OFF(srr1);
     OFF_DEC_TRIGGER = OFF(dec_trigger_cycle);
     OFF_INT_PENDING = OFF(interrupt_pending);
+    OFF_SR          = OFF(sr[0]);
+    OFF_DSISR       = OFF(dsisr);
+    OFF_DAR         = OFF(dar);
 #undef OFF
     g_offsets_computed = true;
 }
@@ -1625,6 +1631,8 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         }
         case 8:   e.LDR_W(W0, PPC_PTR, OFF_LR);            emit_store_gpr(e, W0, rD); return true;
         case 9:   e.LDR_W(W0, PPC_PTR, OFF_CTR);           emit_store_gpr(e, W0, rD); return true;
+        case 18:  e.LDR_W(W0, PPC_PTR, (uint32_t)OFF_DSISR); emit_store_gpr(e, W0, rD); return true;
+        case 19:  e.LDR_W(W0, PPC_PTR, (uint32_t)OFF_DAR);   emit_store_gpr(e, W0, rD); return true;
         case 22:  e.LDR_W(W0, PPC_PTR, OFF_DEC);           emit_store_gpr(e, W0, rD); return true;
         case 26:  e.LDR_W(W0, PPC_PTR, OFF_SRR0);          emit_store_gpr(e, W0, rD); return true;
         case 27:  e.LDR_W(W0, PPC_PTR, OFF_SRR1);          emit_store_gpr(e, W0, rD); return true;
@@ -1666,6 +1674,8 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         }
         case 8:   emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_LR);        return true;
         case 9:   emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_CTR);       return true;
+        case 18:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, (uint32_t)OFF_DSISR); return true;
+        case 19:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, (uint32_t)OFF_DAR);   return true;
         case 22:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_DEC);       return true;
         case 26:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_SRR0);      return true;
         case 27:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_SRR1);      return true;
@@ -1697,6 +1707,46 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         return true;
     }
 
+    // mfsr rD, SR  — move from segment register (SR index in bits 19:16)
+    case 595: {
+        int sr = (op >> 16) & 0xF;
+        e.LDR_W(W0, PPC_PTR, (uint32_t)(OFF_SR + sr * 4));
+        emit_store_gpr(e, W0, rD);
+        return true;
+    }
+
+    // mtsr SR, rS  — move to segment register (rS in rD field)
+    case 210: {
+        int sr = (op >> 16) & 0xF;
+        emit_load_gpr(e, W0, rD);
+        e.STR_W(W0, PPC_PTR, (uint32_t)(OFF_SR + sr * 4));
+        return true;
+    }
+
+    // mfsrin rD, rB  — move from segment register indirect (sr index = rB[31:28])
+    case 659: {
+        emit_load_gpr(e, W1, rB);
+        e.LSR_W_IMM(W1, W1, 28);              // W1 = sr_index (0-15)
+        e.LSL_W_IMM(W1, W1, 2);               // W1 = sr_index * 4
+        e.ADD_W_IMM(W1, W1, (uint32_t)OFF_SR); // W1 = byte offset in struct
+        e.ADD_X_UXTW(1, PPC_PTR, W1);         // X1 = &ppc.sr[sr_index]
+        e.LDR_W(W0, 1, 0);
+        emit_store_gpr(e, W0, rD);
+        return true;
+    }
+
+    // mtsrin rS, rB  — move to segment register indirect (rS in rD field)
+    case 242: {
+        emit_load_gpr(e, W1, rB);
+        e.LSR_W_IMM(W1, W1, 28);
+        e.LSL_W_IMM(W1, W1, 2);
+        e.ADD_W_IMM(W1, W1, (uint32_t)OFF_SR);
+        e.ADD_X_UXTW(1, PPC_PTR, W1);         // X1 = &ppc.sr[sr_index]
+        emit_load_gpr(e, W0, rD);             // rS in rD field
+        e.STR_W(W0, 1, 0);
+        return true;
+    }
+
     // tw rA, rB / twi — trap: NOP (traps don't occur in normal game code)
     case 4:
         return true;
@@ -1724,6 +1774,17 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     // dcbz: data cache block zero — NOP (no cache to zero in emulator)
     case 1014:
         return true;
+
+    // lwarx rD, rA, rB — load and reserve (single-core: treat as plain lwzx; no reservation tracking)
+    case 20:  return translate_op31_load_x(e, rD, rA, rB, (void *)&jit_read32, false);
+
+    // stwcx. rS, rA, rB — store conditional (single-core: always succeeds; set CR0[EQ]=1)
+    case 150: {
+        translate_op31_store_x(e, rD, rA, rB, (void *)&jit_write32);
+        e.MOV_W32(W0, 2);                     // EQ nibble (LT=GT=SO=0, EQ=1)
+        e.STRB(W0, PPC_PTR, OFF_CR + 0);
+        return true;
+    }
 
     // ---- Indexed loads (X-form) ----
     // lwzx rD, rA, rB

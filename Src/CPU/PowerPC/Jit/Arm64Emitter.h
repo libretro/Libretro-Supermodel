@@ -330,6 +330,13 @@ public:
     // AND Wd, Wn, #~3 — clear low 2 bits (4-byte align): AND Wd, Wn, #0xFFFFFFFC
     void AND_W_ALIGN4(int Wd, int Wn) { emit(0x121E7400 | (Wn << 5) | Wd); }
 
+    // ADD Xd, Xn, Wm, UXTW  (zero-extend Wm to 64-bit, add to Xn — used for dynamic struct offsets)
+    // Encoding: sf=1, op=0, S=0, extended-reg form (bit21=1), option=010 (UXTW), shift=0
+    void ADD_X_UXTW(int Xd, int Xn, int Wm)
+    {
+        emit(0x8B204000 | ((Wm & 0x1F) << 16) | ((Xn & 0x1F) << 5) | (Xd & 0x1F));
+    }
+
     // --- 64-bit ops ---
     void SUB_X_IMM(int Xd, int Xn, uint32_t imm12)
     {
