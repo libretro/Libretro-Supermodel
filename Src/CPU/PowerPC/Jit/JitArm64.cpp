@@ -1008,7 +1008,7 @@ static bool translate_rlwinm(Arm64Emitter &e, uint32_t op)
     // mb=0&&me=31 for non-wrapping) is filtered by the identity peephole or the mb==me+1 check.
     int immr_bm = (me + 1) & 31;
     int imms_bm = (mb <= me) ? (me - mb) : (32 + me - mb);
-    bool need_and = (mb > me) ? (mb != me + 1) : true;  // mb==me+1 → gap=0 → mask=all-ones
+    bool need_and = (mb > me) ? (mb != me + 1) : (mb != 0 || me != 31);
 
     emit_load_gpr(e, W0, rS);
 
