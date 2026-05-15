@@ -2089,7 +2089,7 @@ static bool translate_addic(Arm64Emitter &e, uint32_t op, bool update_cr)
     }
     emit_store_gpr(e, W0, rD);
     emit_update_xer_ca(e);
-    if (update_cr) emit_set_cr0_from_W0(e);
+    if (update_cr) emit_cr_from_arith_flags(e, 0);
     return true;
 }
 
