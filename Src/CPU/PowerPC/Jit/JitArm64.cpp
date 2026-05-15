@@ -1921,28 +1921,34 @@ static bool translate_bc(Arm64Emitter &e, uint32_t op, uint32_t pc, int inst_cou
         return true;
     }
 
-    // Both CTR and COND must be satisfied: build W0 flag then CBZ
+    // Both CTR and COND must be satisfied: CCMP fuses the two checks into flags
     e.LDR_W(W1, PPC_PTR, OFF_CTR);
-    e.SUBS_W_IMM(W1, W1, 1);
+    e.SUBS_W_IMM(W1, W1, 1);                // NZCV = ctr condition
     e.STR_W(W1, PPC_PTR, OFF_CTR);
-    e.CSET_W(W0, ctr_zero ? A64_EQ : A64_NE);
 
     {
         int crfD  = bi / 4;
         int crbit = bi % 4;
         int bitpos = 3 - crbit;
         e.LDRB(W1, PPC_PTR, OFF_CR + crfD);
-        // Test the CR bit; if the condition is NOT met, zero out W0 (taken flag).
-        // TST_W_BITMASK sets Z=1 if bit is clear, Z=0 if bit is set.
-        e.TST_W_BITMASK(W1, (32 - bitpos) & 31, 0);   // immr=(32-bitpos)&31, imms=0 → single-bit mask
-        e.CSEL_W(W0, W0, A64_WZR, cond_on_clear ? A64_EQ : A64_NE);
+        e.UBFM_W(W1, W1, bitpos, bitpos);    // W1 = CR bit (0 or 1)
+        // CCMP: if ctr_cond, compare W1 with 1 (Z=1 iff bit set); else force flags.
+        // For cond_on_set (taken when bit=1): nzcv_fail=0 → Z=0 when ctr fails (not taken).
+        // For cond_on_clear (taken when bit=0): nzcv_fail=4 → Z=1 when ctr fails (not taken).
+        int nzcv_fail = cond_on_clear ? 4 : 0;
+        e.CCMP_W_IMM(W1, 1, nzcv_fail, ctr_zero ? A64_EQ : A64_NE);
+        // After CCMP: Z=1 iff (bit set AND ctr_cond) for cond_on_set;
+        //             Z=0 iff (bit clear AND ctr_cond) for cond_on_clear.
     }
 
     if (lk) { e.MOV_W32(W1, pc + 4); e.STR_W(W1, PPC_PTR, OFF_LR); }
-    uint32_t *nt = e.emit_CBZ_W_placeholder(W0);
+    // Branch to not-taken path if condition fails:
+    // cond_on_set: taken when Z=1, skip on Z=0 → B.NE
+    // cond_on_clear: taken when Z=0, skip on Z=1 → B.EQ
+    uint32_t *nt = e.emit_B_COND_placeholder(cond_on_clear ? A64_EQ : A64_NE);
     if (taken_fn)  emit_epilogue_chained(e, inst_count + 1, pc, taken_target, taken_fn);
     else           emit_epilogue(e, inst_count + 1, pc, taken_target);
-    e.patch_CBZ(nt, e.ptr());
+    e.patch_B_COND(nt, e.ptr());
     if (not_taken_fn) emit_epilogue_chained(e, inst_count + 1, pc, pc + 4, not_taken_fn);
     else              emit_epilogue(e, inst_count + 1, pc, pc + 4);
     return true;
@@ -2797,25 +2803,24 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
                     }
 
                 } else {
-                    // Both CTR and COND: chain W0 flag via CSEL
+                    // Both CTR and COND: CCMP fuses CTR and CR conditions into flags
                     e.LDR_W(W1, PPC_PTR, OFF_CTR);
                     e.SUBS_W_IMM(W1, W1, 1);
                     e.STR_W(W1, PPC_PTR, OFF_CTR);
-                    e.CSET_W(W0, ctr_zero ? A64_EQ : A64_NE);
                     if (is_ctr) e.MOV_W(W3, W1);
 
                     int crfD2  = bi / 4;
                     int crbit2 = bi % 4;
                     int bitpos2 = 3 - crbit2;
                     e.LDRB(W1, PPC_PTR, OFF_CR + crfD2);
-                    e.TST_W_BITMASK(W1, (32 - bitpos2) & 31, 0);
-                    e.CSEL_W(W0, W0, A64_WZR, cond_on_clear ? A64_EQ : A64_NE);
+                    e.UBFM_W(W1, W1, bitpos2, bitpos2);
+                    int nzcv_fail = cond_on_clear ? 4 : 0;
+                    e.CCMP_W_IMM(W1, 1, nzcv_fail, ctr_zero ? A64_EQ : A64_NE);
 
                     if (lk) { e.MOV_W32(W1, pc+4); e.STR_W(W1, PPC_PTR, OFF_LR); }
                     e.AND_W_ALIGN4(W3, W3);
                     e.MOV_W32(W4, pc+4);
-                    e.CMP_W_IMM(W0, 0);
-                    e.CSEL_W(W3, W3, W4, A64_NE);
+                    e.CSEL_W(W3, W3, W4, cond_on_clear ? A64_NE : A64_EQ);
                 }
 
                 emit_epilogue_npc_reg(e, inst_count + 1, pc, W3);

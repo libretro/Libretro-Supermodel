@@ -277,6 +277,11 @@ public:
     void CMP_W(int Wn, int Wm)             { SUBS_W(A64_WZR, Wn, Wm); }
     void CMN_W(int Wn, int Wm)             { ADDS_W(A64_WZR, Wn, Wm); }
     void TST_W(int Wn, int Wm)             { ANDS_W(A64_WZR, Wn, Wm); }
+    // Conditional compare (immediate): if cond, set NZCV from Wn-imm5; else NZCV = nzcv_const
+    void CCMP_W_IMM(int Wn, int imm5, int nzcv_const, int cond)
+    {
+        emit(0x7A400800 | ((imm5 & 0x1F) << 16) | ((cond & 0xF) << 12) | (Wn << 5) | (nzcv_const & 0xF));
+    }
     // ORR with a single-bit logical immediate: Wd = Wn | (1 << bitpos)
     void ORR_W_SET_BIT(int Wd, int Wn, int bitpos)
     {
