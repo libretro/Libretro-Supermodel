@@ -921,9 +921,14 @@ static bool translate_rlwinm(Arm64Emitter &e, uint32_t op)
     // Peephole: sh=0, me==31, mb>0 — zero the upper mb bits via UBFX from bit 0
     if (sh == 0 && me == 31 && mb > 0) {
         emit_load_gpr(e, W0, rS);
-        e.UBFM_W(W0, W0, 0, 31 - mb);   // extract bits [0..31-mb], zero [32-mb..31]
-        emit_store_gpr(e, W0, rA);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) {
+            e.ANDS_W_BITMASK(W0, W0, 0, 31 - mb);  // mask = lower (32-mb) bits; sets N/Z
+            emit_store_gpr(e, W0, rA);
+            emit_cr_from_flags_signed(e, 0);
+        } else {
+            e.UBFM_W(W0, W0, 0, 31 - mb);
+            emit_store_gpr(e, W0, rA);
+        }
         return true;
     }
 
