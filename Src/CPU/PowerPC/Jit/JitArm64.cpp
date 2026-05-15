@@ -323,6 +323,21 @@ static void emit_cr_from_flags_signed(Arm64Emitter &e, int crfD)
     e.STRB(W1, PPC_PTR, OFF_CR + crfD);
 }
 
+// Like emit_cr_from_flags_signed but reads N (A64_MI) instead of LT (N^V).
+// Use after ADDS_W/ADCS_W/SUBS_W/SBCS_W: V may be set by the arithmetic, but
+// PPC CR0[LT] is bit31(result), not the signed-overflow-corrected N^V.
+static void emit_cr_from_arith_flags(Arm64Emitter &e, int crfD)
+{
+    e.CSET_W(W1, A64_MI);              // W1 = N (bit31 of result)
+    e.CSET_W(W2, A64_EQ);              // W2 = Z
+    e.LSL_W_IMM(W1, W1, 2);
+    e.ADD_W_IMM(W1, W1, 4);
+    e.SUB_W_LSL(W1, W1, W2, 1);
+    e.LDR_W(W2, PPC_PTR, OFF_XER);
+    e.ORR_W_LSR(W1, W1, W2, 31);
+    e.STRB(W1, PPC_PTR, OFF_CR + crfD);
+}
+
 // Update CR field crfD after unsigned comparison (flags set by CMP/SUBS for unsigned)
 // Uses cmpl which is really unsigned: CMP as unsigned = use Unsigned Higher / Lower
 static void emit_cr_from_flags_unsigned(Arm64Emitter &e, int crfD)
@@ -1113,7 +1128,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.ADDS_W(W0, W0, W1);
         emit_store_gpr(e, W0, rD);
         emit_update_xer_ca(e);          // clobbers W2,W3,W4; W0 unchanged
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr_from_arith_flags(e, 0);
         return true;
 
     // adde rD, rA, rB  (rD = rA + rB + XER.CA; addeo = 650)
@@ -1126,7 +1141,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.ADCS_W(W0, W0, W1);           // W0 = rA + rB + C; new ARM C = carry
         emit_store_gpr(e, W0, rD);
         emit_update_xer_ca(e);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr_from_arith_flags(e, 0);
         return true;
 
     // addze rD, rA  (rD = rA + 0 + XER.CA; addzeo = 714)
@@ -1138,7 +1153,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.ADCS_W(W0, W0, A64_WZR);
         emit_store_gpr(e, W0, rD);
         emit_update_xer_ca(e);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr_from_arith_flags(e, 0);
         return true;
 
     // addme rD, rA  (rD = rA + 0xFFFFFFFF + XER.CA; addmeo = 746)
@@ -1151,7 +1166,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.ADCS_W(W0, W0, W1);           // rA + 0xFFFFFFFF + CA
         emit_store_gpr(e, W0, rD);
         emit_update_xer_ca(e);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr_from_arith_flags(e, 0);
         return true;
 
     // subf rD, rA, rB  (rD = rB - rA; subfo = 552)
@@ -1172,7 +1187,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.SUBS_W(W0, W0, W1);           // ARM C = 1 if rB >= rA (no borrow) = PPC CA
         emit_store_gpr(e, W0, rD);
         emit_update_xer_ca(e);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr_from_arith_flags(e, 0);
         return true;
 
     // subfe rD, rA, rB  (rD = ~rA + rB + XER.CA; subfeo = 648)
@@ -1186,7 +1201,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.SBCS_W(W0, W0, W1);           // W0 = rB - rA - NOT(C) = ~rA + rB + CA
         emit_store_gpr(e, W0, rD);
         emit_update_xer_ca(e);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr_from_arith_flags(e, 0);
         return true;
 
     // subfze rD, rA  (rD = ~rA + 0 + XER.CA = 0 - rA - NOT(CA); subfzeo = 712)
@@ -1198,7 +1213,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.SBCS_W(W0, A64_WZR, W1);
         emit_store_gpr(e, W0, rD);
         emit_update_xer_ca(e);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr_from_arith_flags(e, 0);
         return true;
 
     // subfme rD, rA  (rD = ~rA + 0xFFFFFFFF + XER.CA; subfmeo = 744)
@@ -1212,7 +1227,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         e.SBCS_W(W0, W0, W1);
         emit_store_gpr(e, W0, rD);
         emit_update_xer_ca(e);
-        if (rc) emit_set_cr0_from_W0(e);
+        if (rc) emit_cr_from_arith_flags(e, 0);
         return true;
 
     // neg rD, rA  (nego = 616: OE ignored)
