@@ -220,6 +220,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "auto"
    },
+   {
+      "supermodel_jit_enable",
+      "JIT Recompiler (ARM64)",
+      NULL,
+      "Enable the ARM64 JIT recompiler for the PowerPC CPU. Significantly improves performance on ARM64 devices. Disable to use the interpreter for debugging.",
+      NULL,
+      "cpu",
+      {
+         { "enabled",  "Enabled" },
+         { "disabled", "Disabled (Interpreter)" },
+         { NULL, NULL },
+      },
+      "enabled"
+   },
    { NULL, NULL, NULL, NULL, NULL, NULL, {{0}}, NULL },
 };
 
@@ -281,6 +295,8 @@ void update_core_options(void)
    // If frequency is "auto" (0), use default 66 MHz
    float current_ppc_mhz = (g_options.ppc_frequency > 0) ? g_options.ppc_frequency : 66.0f;
    AdjustAudioForCPUFrequency(current_ppc_mhz);
+
+   g_options.jit_enable = strcmp(option_get("supermodel_jit_enable", "enabled"), "enabled") == 0;
 
    // if (log_cb)
    // {

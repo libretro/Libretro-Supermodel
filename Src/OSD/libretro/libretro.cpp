@@ -17,6 +17,7 @@
 #include "../../Graphics/SuperAA.h"
 #include "libretro_core_options.h"
 #include "CLibretroInputSystem.h"
+#include "CPU/PowerPC/ppc.h"
 
 // --- Global Variables ---
 retro_video_refresh_t video_cb = NULL;
@@ -48,6 +49,7 @@ CoreOptions g_options = {
    /* ppc_frequency        */ 0,
    /* frameskip            */ 0,
    /* sound_enable         */ true,
+   /* jit_enable           */ true,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates
@@ -207,6 +209,7 @@ bool retro_load_game(const struct retro_game_info *info)
 
    
    update_core_options();
+   ppc_set_jit_enabled(g_options.jit_enable);
    wrapper.InitializePaths(retro_base_directory);
    wrapper.setHwRender(hw_render); 
 
@@ -256,6 +259,7 @@ void retro_run(void)
       bool old_service_on_sticks = g_options.service_on_sticks;
 
       update_core_options();
+      ppc_set_jit_enabled(g_options.jit_enable);
 
       if (g_options.widescreen != old_widescreen)
       {

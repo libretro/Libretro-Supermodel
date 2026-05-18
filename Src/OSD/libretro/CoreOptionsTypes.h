@@ -14,6 +14,7 @@ struct CoreOptions {
    int ppc_frequency;
    int frameskip;
    bool sound_enable;
+   bool jit_enable;
 };
 
 extern CoreOptions g_options;
