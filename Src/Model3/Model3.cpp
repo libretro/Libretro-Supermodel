@@ -1771,6 +1771,7 @@ void CModel3::Write32(UINT32 addr, UINT32 data)
       break;
     }
 
+    DebugLog("PC=%08X\twrite32: %08X=%08X\n", ppc_get_pc(), addr, data);
     break;
 
   // Tile generator
@@ -1857,6 +1858,7 @@ void CModel3::Write32(UINT32 addr, UINT32 data)
       if (m_runNetBoard) printf("CMODEL3 : unknown W32 : %x (%x) data=%d\n", addr,addr >> 24,data);
 #endif
     //printf("PC=%08X\twrite32: %08X=%08X\n", ppc_get_pc(), addr, data);
+    DebugLog("PC=%08X\twrite32: %08X=%08X\n", ppc_get_pc(), addr, data);
     break;
   }
 }

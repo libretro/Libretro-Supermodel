@@ -760,7 +760,6 @@ void ppc_init(const PPC_CONFIG *config)
 	}
 
 	ppc.hid1 = pll_config << 28;
-
 }
 
 void ppc_shutdown(void)
