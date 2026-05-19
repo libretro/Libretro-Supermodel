@@ -2106,7 +2106,7 @@ static bool translate_bc(Arm64Emitter &e, uint32_t op, uint32_t pc, int inst_cou
 
     bool ctr_relevant  = !(bo & 0x04);
     bool cond_relevant = !(bo & 0x10);
-    bool ctr_zero      = !(bo & 0x02);   // true → branch if CTR==0 after decrement
+    bool ctr_zero      = (bo & 0x02) != 0;  // true → branch if CTR==0 after decrement (bdz); false → bdnz
     bool cond_on_clear = !(bo & 0x08);   // true → branch if CR bit CLEAR; false → SET
 
     if (!ctr_relevant && !cond_relevant) {
@@ -3028,7 +3028,7 @@ JitBlock *JitArm64::compile(uint32_t start_pc)
                 bool is_ctr       = (subop == 528);
                 bool ctr_relevant = !(bo & 0x04);
                 bool cond_relevant= !(bo & 0x10);
-                bool ctr_zero     = !(bo & 0x02);
+                bool ctr_zero     = (bo & 0x02) != 0;
                 bool cond_on_clear= !(bo & 0x08);
 
                 // W3 = branch target; load before LK might overwrite LR
