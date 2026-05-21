@@ -10,6 +10,7 @@ public:
 
 	void Create			(GLenum target, GLenum usage, GLsizeiptr size, const void* data=nullptr);
 	void BufferSubData	(GLintptr offset, GLsizeiptr size, const GLvoid* data);
+	void UpdateDynamic	(GLintptr offset, GLsizeiptr size, const GLvoid* data);
 	bool AppendData		(GLsizeiptr size, const GLvoid* data);
 	void Reset			();		// don't delete data, just go back to start
 	void Destroy		();

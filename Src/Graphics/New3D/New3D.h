@@ -225,6 +225,8 @@ private:
 	void DisableRenderStates();
 	void TranslateLosPosition(int inX, int inY, int& outX, int& outY) const;
 	bool ProcessLos(int priority);
+	void CollectLosResults();
+	bool HasTransparentMeshes(int priority, bool renderOverlay) const;
 	void CalcViewport(Viewport* vp);
 	void TranslateTexture(unsigned& x, unsigned& y, int width, int height, int& page) const;
 
@@ -287,6 +289,9 @@ private:
 	std::vector<FVertex> m_polyBufferRom;		// rom polys
 	std::unordered_map<UINT32, std::shared_ptr<std::vector<Mesh>>> m_romMap;	// a hash table for all the ROM models. The meshes don't have model matrices or tex offsets yet
 	TextureBank			m_textureBank[2];
+
+	GLuint m_losPBO[4];
+	bool m_losPendingRead[4];
 
 	GLuint m_vao;
 	VBO m_vbo;								// large VBO to hold our poly data, start of VBO is ROM data, ram polys follow

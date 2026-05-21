@@ -84,6 +84,16 @@ CNew3D::CNew3D(const Util::Config::Node &config, const std::string& gameName) :
 
 	glBindVertexArray(0);
 	m_vbo.Bind(false);
+
+	// Async LOS readback PBOs (one per priority layer)
+	memset(m_losPBO, 0, sizeof(m_losPBO));
+	memset(m_losPendingRead, 0, sizeof(m_losPendingRead));
+	glGenBuffers(4, m_losPBO);
+	for (int i = 0; i < 4; i++) {
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_losPBO[i]);
+		glBufferData(GL_PIXEL_PACK_BUFFER, 8, nullptr, GL_DYNAMIC_READ);
+	}
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 }
 
 CNew3D::~CNew3D()
@@ -92,6 +102,11 @@ CNew3D::~CNew3D()
 	if (m_vao) {
 		glDeleteVertexArrays(1, &m_vao);
 		m_vao = 0;
+	}
+
+	if (m_losPBO[0]) {
+		glDeleteBuffers(4, m_losPBO);
+		memset(m_losPBO, 0, sizeof(m_losPBO));
 	}
 
 	m_r3dShader.UnloadShader();
@@ -420,6 +435,10 @@ void CNew3D::DisableRenderStates()
 
 void CNew3D::RenderFrame(void)
 {
+	// Collect async LOS results from the previous frame into m_losBack
+	// before the swap, so they become visible to the CPU via m_losFront
+	CollectLosResults();
+
 	{
 		std::lock_guard<std::mutex> guard(m_losMutex);
 		std::swap(m_losBack, m_losFront);
@@ -454,7 +473,7 @@ void CNew3D::RenderFrame(void)
 	RenderViewport(0x800000);						// build model structure
 	
 	m_vbo.Bind(true);
-	m_vbo.BufferSubData(MAX_ROM_VERTS*sizeof(FVertex), m_polyBufferRam.size()*sizeof(FVertex), m_polyBufferRam.data());	// upload all the dynamic data to GPU in one go
+	m_vbo.UpdateDynamic(MAX_ROM_VERTS*sizeof(FVertex), m_polyBufferRam.size()*sizeof(FVertex), m_polyBufferRam.data());
 
 	if (!m_polyBufferRom.empty()) {
 
@@ -506,20 +525,21 @@ void CNew3D::RenderFrame(void)
 				ProcessLos(pri);
 			}
 
-			glDepthFunc(GL_GREATER);
+			if (HasTransparentMeshes(pri, renderOverlay)) {
+				glDepthFunc(GL_GREATER);
+				m_r3dShader.DiscardAlpha(false);
 
-			m_r3dShader.DiscardAlpha(false);
+				m_r3dFrameBuffers.StoreDepth();
+				m_r3dShader.SetLayer(Layer::trans1);
+				m_r3dFrameBuffers.SetFBO(Layer::trans1);
+				RenderScene(pri, renderOverlay, Layer::trans1);
 
-			m_r3dFrameBuffers.StoreDepth();
-			m_r3dShader.SetLayer(Layer::trans1);
-			m_r3dFrameBuffers.SetFBO(Layer::trans1);
-			RenderScene(pri, renderOverlay, Layer::trans1);
+				m_r3dFrameBuffers.RestoreDepth();
+				m_r3dShader.SetLayer(Layer::trans2);
+				m_r3dFrameBuffers.SetFBO(Layer::trans2);
+				RenderScene(pri, renderOverlay, Layer::trans2);
+			}
 
-			m_r3dFrameBuffers.RestoreDepth();
-			m_r3dShader.SetLayer(Layer::trans2);
-			m_r3dFrameBuffers.SetFBO(Layer::trans2);
-			RenderScene(pri, renderOverlay, Layer::trans2);
-						
 			DisableRenderStates();
 
 			if (!hasOverlay) break;								// no high priority polys						
@@ -1683,6 +1703,43 @@ void CNew3D::TranslateLosPosition(int inX, int inY, int& outX, int& outY) const
 	outY = m_yOffs + int(inY * m_yRatio);
 }
 
+bool CNew3D::HasTransparentMeshes(int priority, bool renderOverlay) const
+{
+	for (const auto& n : m_nodes) {
+		if (n.viewport.priority != priority || n.models.empty()) continue;
+		for (const auto& m : n.models) {
+			if (!m.meshes) continue;
+			for (const auto& mesh : *m.meshes) {
+				if (mesh.highPriority != renderOverlay) continue;
+				if (mesh.textureAlpha || mesh.polyAlpha || m.alpha < 1.0f)
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
+void CNew3D::CollectLosResults()
+{
+	for (int i = 0; i < 4; i++) {
+		if (!m_losPendingRead[i] || !m_losPBO[i]) continue;
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_losPBO[i]);
+		float* ptr = (float*)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, 8, GL_MAP_READ_BIT);
+		if (ptr) {
+			GLubyte stencilVal = Util::FloatAsInt32(ptr[1]);
+			float zVal = ptr[0] / NEAR_PLANE;
+			stencilVal &= 0x80;
+			auto zValP = reinterpret_cast<unsigned char*>(&zVal);
+			if (stencilVal == 0) zValP[0] |= 1;
+			else                 zValP[0] &= 0xFE;
+			m_losBack->value[i] = zVal;
+			glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+		}
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+		m_losPendingRead[i] = false;
+	}
+}
+
 bool CNew3D::ProcessLos(int priority)
 {
 	for (const auto &n : m_nodes) {
@@ -1692,28 +1749,24 @@ bool CNew3D::ProcessLos(int priority)
 				int losX, losY;
 				TranslateLosPosition(n.viewport.losPosX, n.viewport.losPosY, losX, losY);
 
-				float range[2];
-				glReadPixels(losX, losY, 1, 1, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, range);
-				GLubyte stencilVal = Util::FloatAsInt32(range[1]);
-
-				float zVal = range[0] / NEAR_PLANE;
-
-				// apply our mask to stencil, because layered poly attributes use the lower bits
-				stencilVal &= 0x80;
-
-				// if the stencil val is zero that means we've hit sky or whatever, if it hits a 1 we've hit geometry
-				// the real3d returns 1 in the top bit of the float if the line of sight test passes (ie doesn't hit geometry)
-
-				auto zValP = reinterpret_cast<unsigned char*>(&zVal);	// this is legal in c++, casting to int technically isn't
-
-				if (stencilVal == 0) {
-					zValP[0] |= 1;		// set first bit to 1
+				if (m_losPBO[priority]) {
+					// Async read: result collected at start of next frame via CollectLosResults()
+					glBindBuffer(GL_PIXEL_PACK_BUFFER, m_losPBO[priority]);
+					glReadPixels(losX, losY, 1, 1, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 0);
+					glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+					m_losPendingRead[priority] = true;
+				} else {
+					// Fallback: synchronous read
+					float range[2];
+					glReadPixels(losX, losY, 1, 1, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, range);
+					GLubyte stencilVal = Util::FloatAsInt32(range[1]);
+					float zVal = range[0] / NEAR_PLANE;
+					stencilVal &= 0x80;
+					auto zValP = reinterpret_cast<unsigned char*>(&zVal);
+					if (stencilVal == 0) zValP[0] |= 1;
+					else                 zValP[0] &= 0xFE;
+					m_losBack->value[priority] = zVal;
 				}
-				else {
-					zValP[0] &= 0xFE;	// set first bit to zero
-				}
-
-				m_losBack->value[priority] = zVal;
 
 				return true;
 			}

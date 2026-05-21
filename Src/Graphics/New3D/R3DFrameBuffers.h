@@ -27,11 +27,7 @@ private:
 
 	Result	CreateFBODepthCopy(int width, int height);
 	GLuint	CreateTexture(int width, int height);
-	void	AllocShaderTrans();
-	void	AllocShaderBase();
-
-	void	DrawBaseLayer();
-	void	DrawAlphaLayer();
+	void	AllocShaderComposite();
 
 	GLuint m_frameBufferID;
 	GLuint m_renderBufferID;
@@ -43,8 +39,7 @@ private:
 	int m_height;
 
 	// shaders
-	GLSLShader m_shaderBase;
-	GLSLShader m_shaderTrans;
+	GLSLShader m_shaderComposite;
 
 	// vao
 	GLuint m_vao;	// this really needed if we don't actually use vertex attribs?

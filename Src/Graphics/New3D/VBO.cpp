@@ -1,4 +1,5 @@
 #include "VBO.h"
+#include <cstring>
 
 VBO::VBO()
 {
@@ -24,6 +25,17 @@ void VBO::Create(GLenum target, GLenum usage, GLsizeiptr size, const void* data)
 void VBO::BufferSubData(GLintptr offset, GLsizeiptr size, const GLvoid* data)
 {
 	glBufferSubData(m_target, offset, size, data);
+}
+
+void VBO::UpdateDynamic(GLintptr offset, GLsizeiptr size, const GLvoid* data)
+{
+	void* ptr = glMapBufferRange(m_target, offset, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT);
+	if (ptr) {
+		memcpy(ptr, data, size);
+		glUnmapBuffer(m_target);
+	} else {
+		glBufferSubData(m_target, offset, size, data);
+	}
 }
 
 bool VBO::AppendData(GLsizeiptr size, const GLvoid* data)

@@ -20,8 +20,7 @@ R3DFrameBuffers::R3DFrameBuffers()
 
 	m_lastLayer = Layer::none;
 
-	AllocShaderTrans();
-	AllocShaderBase();
+	AllocShaderComposite();
 
 	glGenVertexArrays(1, &m_vao);
 	glBindVertexArray(m_vao);
@@ -32,8 +31,7 @@ R3DFrameBuffers::R3DFrameBuffers()
 R3DFrameBuffers::~R3DFrameBuffers()
 {
 	DestroyFBO();
-	m_shaderTrans.UnloadShaders();
-	m_shaderBase.UnloadShaders();
+	m_shaderComposite.UnloadShaders();
 
 	if (m_vao) {
 		glDeleteVertexArrays(1, &m_vao);
@@ -190,7 +188,7 @@ void R3DFrameBuffers::SetFBO(Layer layer)
 	m_lastLayer = layer;
 }
 
-void R3DFrameBuffers::AllocShaderBase()
+void R3DFrameBuffers::AllocShaderComposite()
 {
 	static const char *vertexShader = R"glsl(
 
@@ -208,121 +206,75 @@ void R3DFrameBuffers::AllocShaderBase()
 
 	static const char *fragmentShader = R"glsl(
 
-	// inputs
-	uniform sampler2D tex1;			// base tex
+	uniform sampler2D tex0;		// opaque layer
+	uniform sampler2D tex1;		// trans layer 1
+	uniform sampler2D tex2;		// trans layer 2
 
-	// outputs
 	out vec4 fragColor;
 
 	void main()
 	{
-		ivec2 tc = ivec2(gl_FragCoord.xy /*-vec2(0.5)*/);
-		fragColor = texelFetch(tex1, tc, 0);
-	}
+		ivec2 tc = ivec2(gl_FragCoord.xy);
+		vec4 base       = texelFetch(tex0, tc, 0);
+		vec4 colTrans1  = texelFetch(tex1, tc, 0);
+		vec4 colTrans2  = texelFetch(tex2, tc, 0);
 
-	)glsl";
-
-	std::string vs = Graphics::GLSLVersion::Get3D() + vertexShader;
-	std::string fs = Graphics::GLSLVersion::Get3D() + fragmentShader;
-	m_shaderBase.LoadShaders(vs.c_str(), fs.c_str());
-	m_shaderBase.uniformLoc[0] = m_shaderBase.GetUniformLocation("tex1");
-}
-
-void R3DFrameBuffers::AllocShaderTrans()
-{
-	static const char *vertexShader = R"glsl(
-
-	void main(void)
-	{
-		const vec4 vertices[] = vec4[](vec4(-1.0, -1.0, 0.0, 1.0),
-										vec4(-1.0,  1.0, 0.0, 1.0),
-										vec4( 1.0, -1.0, 0.0, 1.0),
-										vec4( 1.0,  1.0, 0.0, 1.0));
-
-		gl_Position = vertices[gl_VertexID % 4];
-	}
-
-	)glsl";
-
-	static const char *fragmentShader = R"glsl(
-
-	uniform sampler2D tex1;			// trans layer 1
-	uniform sampler2D tex2;			// trans layer 2
-
-	// outputs
-	out vec4 fragColor;
-
-	void main()
-	{
-		ivec2 tc = ivec2(gl_FragCoord.xy /*-vec2(0.5)*/);
-		vec4 colTrans1 = texelFetch(tex1, tc, 0);
-		vec4 colTrans2 = texelFetch(tex2, tc, 0);
-
-		// if both transparency layers overlap, the result is opaque
+		vec4 trans;
 		if (colTrans1.a * colTrans2.a > 0.0) {
 			vec3 mixCol = mix(colTrans1.rgb, colTrans2.rgb, (colTrans2.a + (1.0 - colTrans1.a)) / 2.0);
-			fragColor = vec4(mixCol, 1.0);
+			trans = vec4(mixCol, 1.0);
 		}
 		else if (colTrans1.a > 0.0) {
-			fragColor = colTrans1;
+			trans = colTrans1;
 		}
 		else {
-			fragColor = colTrans2;		// if alpha is zero it will have no effect anyway
+			trans = colTrans2;
 		}
+
+		// Premultiplied-alpha output equivalent to the old two-pass blend:
+		//   pass1: GL_SRC_ALPHA on base (att0.a is 1.0 for geometry, 0 for sky/background)
+		//   pass2: GL_SRC_ALPHA on trans composited on top
+		// Combined with GL_ONE / GL_ONE_MINUS_SRC_ALPHA at the draw call.
+		vec3  outRGB   = trans.a * trans.rgb + (1.0 - trans.a) * base.a * base.rgb;
+		float outAlpha = trans.a + base.a - trans.a * base.a;
+		fragColor = vec4(outRGB, outAlpha);
 	}
 
 	)glsl";
 
 	std::string vs = Graphics::GLSLVersion::Get3D() + vertexShader;
 	std::string fs = Graphics::GLSLVersion::Get3D() + fragmentShader;
-	m_shaderTrans.LoadShaders(vs.c_str(), fs.c_str());
-
-	m_shaderTrans.uniformLoc[0] = m_shaderTrans.GetUniformLocation("tex1");
-	m_shaderTrans.uniformLoc[1] = m_shaderTrans.GetUniformLocation("tex2");
+	m_shaderComposite.LoadShaders(vs.c_str(), fs.c_str());
+	m_shaderComposite.uniformLoc[0] = m_shaderComposite.GetUniformLocation("tex0");
+	m_shaderComposite.uniformLoc[1] = m_shaderComposite.GetUniformLocation("tex1");
+	m_shaderComposite.uniformLoc[2] = m_shaderComposite.GetUniformLocation("tex2");
 }
 
 void R3DFrameBuffers::Draw()
 {
-	glViewport	(0, 0, m_width, m_height);			// cover the entire screen
-	glDisable	(GL_DEPTH_TEST);					// disable depth testing / writing
-	glDisable	(GL_CULL_FACE);
-	glBlendFunc	(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable	(GL_BLEND);
+	glViewport		(0, 0, m_width, m_height);
+	glDisable		(GL_DEPTH_TEST);
+	glDisable		(GL_CULL_FACE);
+	glBlendFunc		(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);	// premultiplied-alpha blend
+	glEnable		(GL_BLEND);
 
-	for (int i = 0; i < (int)std::size(m_texIDs); i++) {	// bind our textures to correct texture units
+	for (int i = 0; i < (int)std::size(m_texIDs); i++) {
 		glActiveTexture(GL_TEXTURE0 + i);
 		glBindTexture(GL_TEXTURE_2D, m_texIDs[i]);
 	}
 
-	glActiveTexture		(GL_TEXTURE0);
-	glBindVertexArray	(m_vao);
+	glActiveTexture(GL_TEXTURE0);
+	glBindVertexArray(m_vao);
 
-	DrawBaseLayer		();
-	DrawAlphaLayer		();
-
-	glDisable			(GL_BLEND);
-	glBindVertexArray	(0);
-}
-
-void R3DFrameBuffers::DrawBaseLayer()
-{
-	m_shaderBase.EnableShader();
-	glUniform1i(m_shaderBase.uniformLoc[0], 0);
-
+	m_shaderComposite.EnableShader();
+	glUniform1i(m_shaderComposite.uniformLoc[0], 0);
+	glUniform1i(m_shaderComposite.uniformLoc[1], 1);
+	glUniform1i(m_shaderComposite.uniformLoc[2], 2);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	m_shaderComposite.DisableShader();
 
-	m_shaderBase.DisableShader();
-}
-
-void R3DFrameBuffers::DrawAlphaLayer()
-{
-	m_shaderTrans.EnableShader();
-	glUniform1i(m_shaderTrans.uniformLoc[0], 1);		// tex unit 1
-	glUniform1i(m_shaderTrans.uniformLoc[1], 2);		// tex unit 2
-
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-	m_shaderTrans.DisableShader();
+	glDisable(GL_BLEND);
+	glBindVertexArray(0);
 }
 
 }
