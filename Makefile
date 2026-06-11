@@ -405,9 +405,11 @@ ifeq ($(platform),rpi64)
     PLATFORM_DEFINES += -DGLES -Dgles -DHAVE_OPENGLES=1 -DHAVE_OPENGLES3=1 -DCORE_GLES -D__glext_h_ -D__GLEXT_H_
     
     # 2. CPU TUNING
-    ifeq ($(platform), rpi5)
+    # platform=rpi64 always matches above, so the specific board must be
+    # selected via board=rpi5 / board=rpi4 (e.g. make platform=rpi64 board=rpi5)
+    ifeq ($(board), rpi5)
         PLATFORM_DEFINES += -mcpu=cortex-a76
-    else ifeq ($(platform), rpi4-64)
+    else ifeq ($(board), rpi4)
         PLATFORM_DEFINES += -mcpu=cortex-a72
     else
         PLATFORM_DEFINES += -mcpu=cortex-a53
