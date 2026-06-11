@@ -78,6 +78,17 @@ void ppc603_exception(int exception)
 					ppc.npc = 0x00000000 | 0x0900;
 
 				ppc.interrupt_pending &= ~0x2;
+
+				// Prevent the JIT's "icount <= dec_trigger_cycle" check (necessarily a <=
+				// rather than the interpreter's exact ==, since icount advances in
+				// block-sized steps) from re-firing every block for the rest of this
+				// execution slot. Once delivered, dec_trigger_cycle is stale -- icount
+				// has already dropped below it and stays there -- so without this it
+				// would re-trigger immediately after the handler reloads DEC and
+				// re-enables EE, looping forever in the decrementer handler. A fresh
+				// trigger is computed on the next ppc_execute() call.
+				ppc.dec_trigger_cycle = 0x7fffffff;
+
 				ppc_change_pc(ppc.npc);
 			}
 			break;
