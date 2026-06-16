@@ -260,7 +260,7 @@ void ppc_reset(void)
 	ppc.cur_cycles = 0;
 	ppc.icount = 0;
 
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
 	JitArm64::get().flush();
 #endif
 }
@@ -312,7 +312,7 @@ int ppc_execute(int cycles)
 		PPCDebug->CPUActive();
 #endif // SUPERMODEL_DEBUGGER
 
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
 	// JIT dispatch loop: look up or compile a block and execute it.
 	// Falls back to the interpreter loop below if JIT is unavailable.
 	{
@@ -386,7 +386,7 @@ int ppc_execute(int cycles)
 		}
 		} // if (jit_ok)
 	}
-#endif // __aarch64__
+#endif // HAVE_PPC_JIT
 // Suppress unused-label warning when debugger is disabled
 
 	while( ppc.icount > 0 && !ppc.fatalError)
@@ -433,7 +433,7 @@ int ppc_execute(int cycles)
 		//ppc603_check_interrupts();
 	}
 
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
 jit_done:
 #endif
 

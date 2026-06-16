@@ -310,6 +310,7 @@ ifeq ($(platform),android)
             # Default to arm64 (aarch64)
             ARCH_TRIPLE := aarch64-linux-android
             CLANG_TRIPLE := aarch64-linux-android24
+            PLATFORM_DEFINES += -DHAVE_PPC_JIT
         endif
         
         TOOLCHAIN := $(NDK_ROOT)/toolchains/llvm/prebuilt/linux-x86_64/bin
@@ -399,11 +400,11 @@ ifeq ($(platform),rpi64)
     SHARED := -shared -Wl,--version-script=$(CORE_DIR)/link.T -Wl,-no-undefined
     
     # 1. ARCHITECTURE & FEATURE FLAGS
-    PLATFORM_DEFINES += -DARM -D__aarch64__ -DLSB_FIRST -DGL_GLEXT_PROTOTYPES
+    PLATFORM_DEFINES += -DARM -D__aarch64__ -DLSB_FIRST -DGL_GLEXT_PROTOTYPES -DHAVE_PPC_JIT
     PLATFORM_DEFINES += -fomit-frame-pointer -ffast-math -funsafe-math-optimizations
     # Prevent system header redeclaration
     PLATFORM_DEFINES += -DGLES -Dgles -DHAVE_OPENGLES=1 -DHAVE_OPENGLES3=1 -DCORE_GLES -D__glext_h_ -D__GLEXT_H_
-    
+
     # 2. CPU TUNING
     # platform=rpi64 always matches above, so the specific board must be
     # selected via board=rpi5 / board=rpi4 (e.g. make platform=rpi64 board=rpi5)
@@ -434,11 +435,11 @@ ifeq ($(platform),aarch64)
     SHARED := -shared -Wl,--version-script=$(CORE_DIR)/link.T -Wl,-no-undefined
     
     # 1. ARCHITECTURE & FEATURE FLAGS
-    PLATFORM_DEFINES += -DARM -D__aarch64__ -DLSB_FIRST -DGL_GLEXT_PROTOTYPES
+    PLATFORM_DEFINES += -DARM -D__aarch64__ -DLSB_FIRST -DGL_GLEXT_PROTOTYPES -DHAVE_PPC_JIT
     PLATFORM_DEFINES += -fomit-frame-pointer -ffast-math -funsafe-math-optimizations
     # Prevent system header redeclaration
     PLATFORM_DEFINES += -DGLES -Dgles -DHAVE_OPENGLES=1 -DHAVE_OPENGLES3=1 -DCORE_GLES -D__glext_h_ -D__GLEXT_H_
-    
+
     # 2. LIBRARY & PATHS
     LDFLAGS += $(SHARED) -L/usr/lib/aarch64-linux-gnu
     LIBS := -lGLESv2 -lz -lm

@@ -227,7 +227,7 @@ static inline UINT64 READ64(UINT32 address)
 	return Bus->Read64(address);
 }
 
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
 // Forward declaration — defined after JitArm64.h is included below.
 // Routes interpreter stores through the SMC page-bitmap check so that
 // self-modifying code patching (e.g. VF4 patching 0x61CF8 via emit_fallback)
@@ -237,7 +237,7 @@ static void ppc_smc_write(UINT32 addr);
 
 static inline void WRITE8(UINT32 address, UINT8 data)
 {
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
 	ppc_smc_write(address);
 #endif
 	Bus->Write8(address,data);
@@ -245,7 +245,7 @@ static inline void WRITE8(UINT32 address, UINT8 data)
 
 static inline void WRITE16(UINT32 address, UINT16 data)
 {
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
 	ppc_smc_write(address);
 #endif
 	Bus->Write16(address,data);
@@ -253,7 +253,7 @@ static inline void WRITE16(UINT32 address, UINT16 data)
 
 static inline void WRITE32(UINT32 address, UINT32 data)
 {
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
 	ppc_smc_write(address);
 #endif
 	Bus->Write32(address,data);
@@ -575,7 +575,7 @@ static void (* optable59[1024])(UINT32);
 static void (* optable63[1024])(UINT32);
 static void (* optable[64])(UINT32);
 
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
 #include "Jit/JitArm64.h"
 
 // Definition of the SMC forward-declared above.
@@ -1155,7 +1155,7 @@ UINT32 jit_read_tbl(void)                 { return (UINT32)ppc_read_timebase(); 
 UINT32 jit_read_tbu(void)                 { return (UINT32)(ppc_read_timebase() >> 32); }
 
 // SMC helper: invalidate any JIT block whose PC range covers addr.
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
 static inline void smc_check(UINT32 addr) { JitArm64::get().smc_write(addr); }
 #else
 static inline void smc_check(UINT32 addr) { (void)addr; }
