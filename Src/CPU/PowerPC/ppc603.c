@@ -355,7 +355,13 @@ int ppc_execute(int cycles)
 				// steps and may skip over the exact trigger value.  Guard against
 				// the sentinel so DEC doesn't fire on every single dispatch.
 				if (ppc.dec_trigger_cycle != 0x7fffffff && ppc.icount <= ppc.dec_trigger_cycle)
-					ppc.interrupt_pending |= 0x2;
+				{
+					// Only raise DEC when interrupts are enabled. With EE=0 the trigger
+					// stays active (dec_trigger_cycle unchanged) so it fires at the first
+					// block boundary after the game re-enables EE via mtmsr.
+					if (MSR & MSR_EE)
+						ppc.interrupt_pending |= 0x2;
+				}
 				if (ppc.interrupt_pending != 0)
 					ppc603_check_interrupts();
 			}
