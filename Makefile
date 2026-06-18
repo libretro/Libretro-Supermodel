@@ -386,7 +386,10 @@ ifeq ($(platform),win)
         override AR := x86_64-w64-mingw32-ar
     endif
     
-    LIBS += -lm -lz -lopengl32 -lglu32 -lgdi32
+    # Static-link MinGW runtimes and zlib so the DLL is self-contained — no
+    # libgcc_s_seh-1.dll / libstdc++-6.dll / zlib1.dll required on the user's system.
+    LDFLAGS += -static-libgcc -static-libstdc++
+    LIBS += -lm -Wl,-Bstatic -lz -Wl,-Bdynamic -lopengl32 -lglu32 -lgdi32
 endif
 
 # ============ Raspberry Pi 64-bit ============
