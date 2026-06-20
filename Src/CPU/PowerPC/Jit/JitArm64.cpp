@@ -153,7 +153,10 @@ void JitArm64::smc_write(uint32_t addr)
 {
     if ((addr >> 24) != 0u) return;                          // not work RAM
     if (!m_code_pages[(addr >> 12) & (CODE_PAGE_COUNT - 1)]) return; // page has no JIT blocks
-    invalidate_containing(addr);
+    // Flush the entire cache on SMC to prevent stale chained branches from
+    // executing invalidated blocks. Fine-grained invalidation (invalidate_containing)
+    // leaves baked B instructions in surviving blocks pointing at evicted code.
+    flush();
 }
 
 // ---------------------------------------------------------------------------
@@ -1744,7 +1747,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         case 9:   e.LDR_W(W0, PPC_PTR, OFF_CTR);           emit_store_gpr(e, W0, rD); return true;
         case 18:  e.LDR_W(W0, PPC_PTR, (uint32_t)OFF_DSISR); emit_store_gpr(e, W0, rD); return true;
         case 19:  e.LDR_W(W0, PPC_PTR, (uint32_t)OFF_DAR);   emit_store_gpr(e, W0, rD); return true;
-        case 22:  e.LDR_W(W0, PPC_PTR, OFF_DEC);           emit_store_gpr(e, W0, rD); return true;
+        case 22:  return false;  // mfspr DEC: fall back so read_decrementer() returns cycle-adjusted value
         case 26:  e.LDR_W(W0, PPC_PTR, OFF_SRR0);          emit_store_gpr(e, W0, rD); return true;
         case 27:  e.LDR_W(W0, PPC_PTR, OFF_SRR1);          emit_store_gpr(e, W0, rD); return true;
         case 272: e.LDR_W(W0, PPC_PTR, OFF_SPRG + 0);      emit_store_gpr(e, W0, rD); return true;
@@ -1787,7 +1790,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         case 9:   emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_CTR);       return true;
         case 18:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, (uint32_t)OFF_DSISR); return true;
         case 19:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, (uint32_t)OFF_DAR);   return true;
-        case 22:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_DEC);       return true;
+        case 22:  return false;  // mtspr DEC: fall back so write_decrementer() recalculates dec_trigger_cycle
         case 26:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_SRR0);      return true;
         case 27:  emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_SRR1);      return true;
         case 272: emit_load_gpr(e, W0, rD); e.STR_W(W0, PPC_PTR, OFF_SPRG + 0);  return true;
@@ -1799,10 +1802,11 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     }
 
     // mtmsr rS  (write machine state register)
+    // Falls back so ppc_set_msr() runs: checks LE mode, calls ppc603_check_interrupts()
+    // to deliver any interrupt newly enabled by the MSR write. Block terminates so the
+    // (possibly modified) NPC takes effect before the next block executes.
     case 146:
-        emit_load_gpr(e, W0, rD);   // rS is in rD field
-        e.STR_W(W0, PPC_PTR, OFF_MSR);
-        return true;
+        return false;
 
     // mcrxr crfD — copy XER[SO,OV,CA,0] to CR field crfD, then clear XER[31:28]
     case 512: {
@@ -1894,6 +1898,11 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         translate_op31_store_x(e, rD, rA, rB, (void *)&jit_write32);
         e.MOV_W32(W0, 2);                     // EQ nibble (LT=GT=SO=0, EQ=1)
         e.STRB(W0, PPC_PTR, OFF_CR + 0);
+        // Set ARM Z=1 so the Rc=1 peephole (which fuses a following bc on CR0[EQ]
+        // with live ARM flags) sees the correct outcome. Without this, a stale Z=0
+        // from a preceding andi./cmp causes the CAS retry branch to always re-fire,
+        // preventing the post-CAS kick code from ever executing.
+        e.CMP_W_IMM(W0, 2);                   // W0==2 → Z=1 (EQ success)
         return true;
     }
 

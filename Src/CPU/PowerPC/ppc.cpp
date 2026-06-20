@@ -802,7 +802,8 @@ void ppc_set_irq_line(int irqline)
 	}
 	else
 	{
-		ppc.interrupt_pending &= ~0x1;
+		ppc.interrupt_pending &= ~(0x1 | 0x8);
+		if (ppc.fatalError) ppc.interrupt_pending |= 0x8;
 	}
 }
 
