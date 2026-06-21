@@ -99,6 +99,15 @@ public:
     {
         emit(0x38000000 | ((simm9 & 0x1FF) << 12) | (Xn << 5) | Wt);
     }
+    // Halfword load/store (unsigned scaled offset, byte_off must be multiple of 2)
+    void LDRH(int Wt, int Xn, uint32_t byte_off)
+    {
+        emit(0x79400000 | ((byte_off / 2) << 10) | (Xn << 5) | Wt);
+    }
+    void STRH(int Wt, int Xn, uint32_t byte_off)
+    {
+        emit(0x79000000 | ((byte_off / 2) << 10) | (Xn << 5) | Wt);
+    }
 
     // --- Move immediates ---
     // MOVZ Xd, #imm16 [, LSL #hw*16]  (zeros other bits)

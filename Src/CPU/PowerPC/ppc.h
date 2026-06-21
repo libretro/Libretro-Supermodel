@@ -359,6 +359,7 @@ extern void ppc_set_jit_enabled(bool enabled);
 
 // These have been added to support the new Supermodel
 extern void ppc_attach_bus(class IBus *BusPtr);		// must be called first!
+extern void ppc_set_ram_ptr(UINT8 *ram_base);			// set RAM base for JIT inline fast-path
 
 // JIT support (exposed for use by JitArm64.cpp)
 #ifdef __cplusplus

@@ -224,6 +224,7 @@ static int OFF_INT_PENDING;
 static int OFF_SR;
 static int OFF_DSISR;
 static int OFF_DAR;
+static int OFF_RAM_PTR;
 
 static bool g_offsets_computed = false;
 
@@ -253,6 +254,7 @@ static void compute_offsets()
     OFF_SR          = OFF(sr[0]);
     OFF_DSISR       = OFF(dsisr);
     OFF_DAR         = OFF(dar);
+    OFF_RAM_PTR     = OFF(ram_ptr);
 #undef OFF
     g_offsets_computed = true;
 }
@@ -545,6 +547,122 @@ static void emit_load_ea_reg(Arm64Emitter &e, int Wd, int rA, int rB)
 }
 
 // ---------------------------------------------------------------------------
+// Inline RAM fast-path helpers
+//
+// The Model 3's 8MB PowerPC RAM lives at guest addresses 0x00000000–0x007FFFFF.
+// Rather than BL→vtable→CModel3::Read/Write32 for every access, we check the
+// address at JIT-compile time and, for the ~90% of accesses that hit RAM, emit
+// a direct host LDR/STR using the ram_ptr stored in PPC_REGS.
+//
+// Byte ordering: RAM is stored word-byte-reversed (little-endian in host memory)
+// so that 32-bit host LDR gives the correct big-endian PPC value with no swap.
+// 8-bit and 16-bit accesses use XOR addressing (^3 / ^2) to undo the reversal.
+//
+// On entry to each helper: W0 = guest EA, W1 = store data (stores only).
+// X16 is used as scratch (caller-saved IP0 — safe to clobber here).
+// ---------------------------------------------------------------------------
+
+// Emit: load 32-bit from RAM fast-path (W0=addr → W0=result), else call jit_read32.
+// Only safe for word-aligned addresses: unaligned lwz (addr%4==2) uses XOR-addressed
+// Read16 pairs that read different host bytes than a plain LDR would.
+static void emit_ram_load32(Arm64Emitter &e)
+{
+    // Reject unaligned: bits 1 or 0 set → slow path (avoids XOR-addressing mismatch)
+    uint32_t *slow_b0 = e.emit_TBNZ_W_placeholder(W0, 0);
+    uint32_t *slow_b1 = e.emit_TBNZ_W_placeholder(W0, 1);
+    // Reject out-of-range: addr >= 0x800000 → slow path
+    e.CMP_W_IMM(W0, 0x800u, 1);
+    uint32_t *slow_hi = e.emit_B_COND_placeholder(A64_CS);
+    // Fast: ram_ptr[addr]
+    e.LDR_X(X16, PPC_PTR, (uint32_t)OFF_RAM_PTR);        // X16 = ram_ptr
+    e.ADD_X_UXTW(X16, X16, W0);                           // X16 = ram_ptr + addr
+    e.LDR_W(W0, X16, 0);                                  // W0 = *(uint32_t*)(ram_ptr+addr)
+    uint32_t *done = e.emit_B_placeholder();
+    uint32_t *slow = e.ptr();
+    e.patch_TBZ(slow_b0, slow);
+    e.patch_TBZ(slow_b1, slow);
+    e.patch_B_COND(slow_hi, slow);
+    emit_call(e, (uint64_t)(void *)&jit_read32);
+    e.patch_B(done, e.ptr());
+}
+
+// Emit: load 8-bit from RAM fast-path (W0=addr → W0=result), else call jit_read8.
+static void emit_ram_load8(Arm64Emitter &e)
+{
+    e.CMP_W_IMM(W0, 0x800u, 1);
+    uint32_t *slow = e.emit_B_COND_placeholder(A64_CS);
+    e.LDR_X(X16, PPC_PTR, (uint32_t)OFF_RAM_PTR);
+    e.EOR_W_BITMASK(W4, W0, 0, 1);                        // W4 = addr^3 (XOR byte-swap: bitmask imm 0b11)
+    e.ADD_X_UXTW(X16, X16, W4);
+    e.LDRB(W0, X16, 0);
+    uint32_t *done = e.emit_B_placeholder();
+    e.patch_B_COND(slow, e.ptr());
+    emit_call(e, (uint64_t)(void *)&jit_read8);
+    e.patch_B(done, e.ptr());
+}
+
+// Emit: load 16-bit from RAM fast-path (W0=addr → W0=result), else call jit_read16.
+static void emit_ram_load16(Arm64Emitter &e, bool sign_extend)
+{
+    e.CMP_W_IMM(W0, 0x800u, 1);
+    uint32_t *slow = e.emit_B_COND_placeholder(A64_CS);
+    e.LDR_X(X16, PPC_PTR, (uint32_t)OFF_RAM_PTR);
+    e.EOR_W_BITMASK(W4, W0, 31, 0);                       // W4 = addr^2 (XOR halfword-swap: bitmask imm 0b10)
+    e.ADD_X_UXTW(X16, X16, W4);
+    e.LDRH(W0, X16, 0);
+    if (sign_extend) e.SXTH_W(W0, W0);
+    uint32_t *done = e.emit_B_placeholder();
+    e.patch_B_COND(slow, e.ptr());
+    emit_call(e, (uint64_t)(void *)&jit_read16);
+    if (sign_extend) e.SXTH_W(W0, W0);                    // also sign-extend on slow path
+    e.patch_B(done, e.ptr());
+}
+
+// Emit: store 32-bit to RAM fast-path (W0=addr, W1=data), else call jit_write32.
+static void emit_ram_store32(Arm64Emitter &e)
+{
+    e.CMP_W_IMM(W0, 0x800u, 1);
+    uint32_t *slow = e.emit_B_COND_placeholder(A64_CS);
+    e.LDR_X(X16, PPC_PTR, (uint32_t)OFF_RAM_PTR);
+    e.ADD_X_UXTW(X16, X16, W0);
+    e.STR_W(W1, X16, 0);
+    uint32_t *done = e.emit_B_placeholder();
+    e.patch_B_COND(slow, e.ptr());
+    emit_call(e, (uint64_t)(void *)&jit_write32);
+    e.patch_B(done, e.ptr());
+}
+
+// Emit: store 8-bit to RAM fast-path (W0=addr, W1=data), else call jit_write8.
+static void emit_ram_store8(Arm64Emitter &e)
+{
+    e.CMP_W_IMM(W0, 0x800u, 1);
+    uint32_t *slow = e.emit_B_COND_placeholder(A64_CS);
+    e.LDR_X(X16, PPC_PTR, (uint32_t)OFF_RAM_PTR);
+    e.EOR_W_BITMASK(W4, W0, 0, 1);                        // W4 = addr^3
+    e.ADD_X_UXTW(X16, X16, W4);
+    e.STRB(W1, X16, 0);
+    uint32_t *done = e.emit_B_placeholder();
+    e.patch_B_COND(slow, e.ptr());
+    emit_call(e, (uint64_t)(void *)&jit_write8);
+    e.patch_B(done, e.ptr());
+}
+
+// Emit: store 16-bit to RAM fast-path (W0=addr, W1=data), else call jit_write16.
+static void emit_ram_store16(Arm64Emitter &e)
+{
+    e.CMP_W_IMM(W0, 0x800u, 1);
+    uint32_t *slow = e.emit_B_COND_placeholder(A64_CS);
+    e.LDR_X(X16, PPC_PTR, (uint32_t)OFF_RAM_PTR);
+    e.EOR_W_BITMASK(W4, W0, 31, 0);                       // W4 = addr^2
+    e.ADD_X_UXTW(X16, X16, W4);
+    e.STRH(W1, X16, 0);
+    uint32_t *done = e.emit_B_placeholder();
+    e.patch_B_COND(slow, e.ptr());
+    emit_call(e, (uint64_t)(void *)&jit_write16);
+    e.patch_B(done, e.ptr());
+}
+
+// ---------------------------------------------------------------------------
 // Memory load/store translators
 // ---------------------------------------------------------------------------
 
@@ -567,16 +685,11 @@ static bool translate_load_imm(Arm64Emitter &e, uint32_t op, int opcode)
     }
 
     switch (opcode) {
-    case 32: case 33:
-        emit_call(e, (uint64_t)(void *)&jit_read32); break;
-    case 34: case 35:
-        emit_call(e, (uint64_t)(void *)&jit_read8);  break;
-    case 40: case 41:
-        emit_call(e, (uint64_t)(void *)&jit_read16); break;
-    case 42: case 43:
-        emit_call(e, (uint64_t)(void *)&jit_read16);
-        e.SXTH_W(W0, W0);              // sign-extend for lha/lhau
-        break;
+    case 32: case 33: emit_ram_load32(e);                                      break;
+    case 34: case 35: emit_call(e, (uint64_t)(void *)&jit_read8);             break;
+    case 40: case 41: emit_call(e, (uint64_t)(void *)&jit_read16);            break;
+    case 42: case 43: emit_call(e, (uint64_t)(void *)&jit_read16);
+                      e.SXTH_W(W0, W0);                                        break;
     default: return false;
     }
     emit_store_gpr(e, W0, rD);
@@ -604,9 +717,9 @@ static bool translate_store_imm(Arm64Emitter &e, uint32_t op, int opcode)
     }
 
     switch (opcode) {
-    case 36: case 37: emit_call(e, (uint64_t)(void *)&jit_write32); break;
-    case 38: case 39: emit_call(e, (uint64_t)(void *)&jit_write8);  break;
-    case 44: case 45: emit_call(e, (uint64_t)(void *)&jit_write16); break;
+    case 36: case 37: emit_call(e, (uint64_t)(void *)&jit_write32);           break;
+    case 38: case 39: emit_call(e, (uint64_t)(void *)&jit_write8);            break;
+    case 44: case 45: emit_call(e, (uint64_t)(void *)&jit_write16);           break;
     default: return false;
     }
     return true;
@@ -2079,7 +2192,8 @@ static bool translate_op31_load_x(Arm64Emitter &e, int rD, int rA, int rB,
                                    void *reader, bool sign_ext)
 {
     emit_load_ea_reg(e, W0, rA, rB);
-    emit_call(e, (uint64_t)reader);
+    if (reader == (void *)&jit_read32)       emit_ram_load32(e);
+    else                                     emit_call(e, (uint64_t)reader);
     if (sign_ext) e.SXTH_W(W0, W0);
     emit_store_gpr(e, W0, rD);
     return true;
@@ -2093,7 +2207,8 @@ static bool translate_op31_load_xu(Arm64Emitter &e, int rD, int rA, int rB,
     emit_load_gpr(e, W1, rB);
     e.ADD_W(W0, W0, W1);                // W0 = EA
     emit_store_gpr(e, W0, rA);          // rA = EA
-    emit_call(e, (uint64_t)reader);
+    if (reader == (void *)&jit_read32)       emit_ram_load32(e);
+    else                                     emit_call(e, (uint64_t)reader);
     if (sign_ext) e.SXTH_W(W0, W0);
     emit_store_gpr(e, W0, rD);
     return true;

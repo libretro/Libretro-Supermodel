@@ -123,6 +123,10 @@ typedef struct {
     // Fast CA cache: mirrors XER bit 29 as 0 or 1 for cheaper JIT access
     UINT8   xer_ca;
 
+    // JIT fast RAM pointer: set to the 8MB PowerPC RAM base so the JIT can
+    // inline RAM reads/writes without a C++ function call.
+    UINT8   *ram_ptr;
+
 #if HAS_PPC603
     int is603;
 #endif

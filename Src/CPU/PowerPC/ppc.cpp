@@ -856,6 +856,11 @@ void ppc_attach_bus(IBus *BusPtr)
 	Bus = BusPtr;
 }
 
+void ppc_set_ram_ptr(UINT8 *ram_base)
+{
+	ppc.ram_ptr = ram_base;
+}
+
 void ppc_save_state(CBlockFile *SaveState)
 {
 	SaveState->NewBlock("PowerPC", __FILE__);

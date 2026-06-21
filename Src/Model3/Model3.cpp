@@ -3044,6 +3044,7 @@ Result CModel3::LoadGame(const Game &game, const ROMSet &rom_set)
   // Initialize CPU
   ppc_init(&ppc_config);
   ppc_attach_bus(this);
+  ppc_set_ram_ptr(ram);  // JIT inline RAM fast-path
   PPCFetchRegions[0].start = 0;
   PPCFetchRegions[0].end = 0x007FFFFF;
   PPCFetchRegions[0].ptr = (UINT32 *) ram;
