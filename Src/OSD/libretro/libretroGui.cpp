@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include "libretroGui.h"
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -404,6 +405,78 @@ std::vector<std::string> RunGUI(const std::string& configPath, Util::Config::Nod
     // In Libretro, you cannot run a 'while' loop here because it blocks the frontend.
     // This function should probably be split into 'Init' and 'Draw' phases.
     // For now, returning empty to satisfy the compiler and avoid blocking.
-    
+
     return {};
+}
+
+// ---------------------------------------------------------------------------
+// In-game timing overlay
+// ---------------------------------------------------------------------------
+
+static bool s_overlayInitialized = false;
+
+void Libretro_InitOverlay(const char* glslVersion)
+{
+    if (s_overlayInitialized) return;
+    if (!ImGui::GetCurrentContext())
+    {
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGui::GetIO().IniFilename = nullptr;
+        ImGui::StyleColorsDark();
+    }
+    ImGui_ImplOpenGL3_Init(glslVersion);
+    s_overlayInitialized = true;
+}
+
+void Libretro_ShutdownOverlay()
+{
+    if (!s_overlayInitialized) return;
+    ImGui_ImplOpenGL3_Shutdown();
+    if (ImGui::GetCurrentContext())
+        ImGui::DestroyContext();
+    s_overlayInitialized = false;
+}
+
+void Libretro_DrawTimingOverlay(const FrameTimings& t, int displayW, int displayH, float gpuMs)
+{
+    if (!s_overlayInitialized) return;
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2((float)displayW, (float)displayH);
+    io.DeltaTime   = 1.0f / 57.53f;
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui::NewFrame();
+
+    const float PAD = 8.0f;
+    ImVec2 pos(PAD, PAD);
+    ImGui::SetNextWindowPos(pos, ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.55f);
+    ImGui::SetNextWindowSize(ImVec2(220, 0), ImGuiCond_Always);
+    ImGui::Begin("##timings", nullptr,
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs |
+        ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+    // Colour-code each row: green < threshold, yellow < 2×, red >= 2×
+    auto coloured = [](UINT32 ms, UINT32 warn, UINT32 crit) {
+        if      (ms >= crit) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1,0.3f,0.3f,1));
+        else if (ms >= warn) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1,1,0,1));
+        else                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f,1,0.4f,1));
+    };
+
+    ImGui::Text("Frame  timing (ms)");
+    ImGui::Separator();
+
+    coloured(t.ppcTicks,    20, 34); ImGui::Text("PPC    : %3u ms", t.ppcTicks);    ImGui::PopStyleColor();
+    coloured(t.renderTicks, 20, 34); ImGui::Text("Render : %3u ms", t.renderTicks); ImGui::PopStyleColor();
+    coloured((UINT32)gpuMs, 20, 34); ImGui::Text("GPU    : %5.1f ms", gpuMs);       ImGui::PopStyleColor();
+    coloured(t.syncTicks,    2,  5); ImGui::Text("Sync   : %3u ms", t.syncTicks);   ImGui::PopStyleColor();
+    coloured(t.sndTicks,    10, 20); ImGui::Text("Sound  : %3u ms", t.sndTicks);    ImGui::PopStyleColor();
+    coloured(t.frameTicks,  20, 34); ImGui::Text("Total  : %3u ms", t.frameTicks);  ImGui::PopStyleColor();
+
+    ImGui::End();
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

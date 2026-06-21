@@ -418,7 +418,7 @@ ifeq ($(platform),rpi64)
     else
         PLATFORM_DEFINES += -mcpu=cortex-a53
     endif
-    
+
     # 3. LIBRARY & PATHS
     LDFLAGS += $(SHARED) -L/usr/lib/aarch64-linux-gnu
     LIBS := -lGLESv2 -lz -lm

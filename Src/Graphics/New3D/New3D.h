@@ -294,7 +294,8 @@ private:
 	bool m_losPendingRead[4];
 
 	GLuint m_vao;
-	VBO m_vbo;								// large VBO to hold our poly data, start of VBO is ROM data, ram polys follow
+	VBO m_vbo;								// large VBO: [ROM_VERTS][RAM_VERTS_slot0][RAM_VERTS_slot1]
+	int m_ramSlot = 0;						// alternates 0/1 each frame so write slot != GPU read slot → avoids GLES3 sync stall
 	R3DShader m_r3dShader;
 	R3DScrollFog m_r3dScrollFog;
 	R3DFrameBuffers m_r3dFrameBuffers;

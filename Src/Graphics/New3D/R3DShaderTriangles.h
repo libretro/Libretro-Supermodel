@@ -111,14 +111,14 @@ uniform bool	polyAlpha;
 // matrices (shared with vertex shader)
 uniform mat4	projMat;
 
-//interpolated inputs from vertex shader
-in vec3		fsViewVertex;
-in vec3		fsViewNormal;		// per vertex normal vector
-in vec2		fsTexCoord;
-in vec4		fsColor;
-in float	fsFixedShade;
-in float	fsDiscardPoly;
-in float	fsLODBase;
+//interpolated inputs from vertex shader — must match vertex shader out precision (highp)
+in highp vec3	fsViewVertex;
+in highp vec3	fsViewNormal;		// per vertex normal vector
+in highp vec2	fsTexCoord;
+in highp vec4	fsColor;
+in highp float	fsFixedShade;
+in highp float	fsDiscardPoly;
+in highp float	fsLODBase;
 
 //outputs
 layout(location = 0) out vec4 out0;		// opaque

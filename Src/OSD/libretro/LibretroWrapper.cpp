@@ -152,6 +152,12 @@ LibretroWrapper::LibretroWrapper() :
 
 LibretroWrapper::~LibretroWrapper() {}
 
+FrameTimings LibretroWrapper::GetTimings() const
+{
+    if (Model3) return static_cast<CModel3*>(Model3)->GetTimings();
+    return FrameTimings{};
+}
+
 void LibretroWrapper::InitializePaths(const std::string& baseConfigPath) 
 {
     s_configFilePath   = baseConfigPath + "/Supermodel.ini";

@@ -70,7 +70,7 @@ bool R3DShader::LoadShader(const char* vertexShader, const char* fragmentShader)
 	bool quads = m_config["QuadRendering"].ValueAs<bool>();
 #endif
 
-	std::string versionStr = Graphics::GLSLVersion::GetR3D(quads);
+	std::string versionStr = Graphics::GLSLVersion::GetR3D(quads); // highp float for both vertex and fragment
 
 	const char* vShader = vertexShaderR3D;
 	const char* gShader = "";

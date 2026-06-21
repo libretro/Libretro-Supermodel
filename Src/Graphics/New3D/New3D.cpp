@@ -62,7 +62,9 @@ CNew3D::CNew3D(const Util::Config::Node &config, const std::string& gameName) :
 
 	glGenVertexArrays(1, &m_vao);
 	glBindVertexArray(m_vao);
-	m_vbo.Create(GL_ARRAY_BUFFER, GL_DYNAMIC_DRAW, sizeof(FVertex) * (MAX_RAM_VERTS + MAX_ROM_VERTS));
+	// Allocate 2× RAM region: slot 0 and slot 1 alternate each frame so the GPU
+	// always reads the previous slot while the CPU writes the current one, avoiding sync stalls.
+	m_vbo.Create(GL_ARRAY_BUFFER, GL_DYNAMIC_DRAW, sizeof(FVertex) * (MAX_ROM_VERTS + 2 * MAX_RAM_VERTS));
 	m_vbo.Bind(true);
 
 	glEnableVertexAttribArray(m_r3dShader.GetVertexAttribPos("inVertex"));
@@ -470,10 +472,13 @@ void CNew3D::RenderFrame(void)
 		return;
 	}
 
-	RenderViewport(0x800000);						// build model structure
-	
+	m_ramSlot = 1 - m_ramSlot;   // toggle slot BEFORE RenderViewport so vboOffset uses the same slot as the upload
+	RenderViewport(0x800000);						// build model structure (vboOffset computed with current m_ramSlot)
+
 	m_vbo.Bind(true);
-	m_vbo.UpdateDynamic(MAX_ROM_VERTS*sizeof(FVertex), m_polyBufferRam.size()*sizeof(FVertex), m_polyBufferRam.data());
+	int ramBase   = (MAX_ROM_VERTS + m_ramSlot * MAX_RAM_VERTS) * (int)sizeof(FVertex);
+	int ramVerts  = std::min((int)m_polyBufferRam.size(), MAX_RAM_VERTS);  // guard: never exceed slot capacity
+	m_vbo.UpdateDynamic(ramBase, ramVerts * sizeof(FVertex), m_polyBufferRam.data());
 
 	if (!m_polyBufferRom.empty()) {
 
@@ -1570,7 +1575,7 @@ void CNew3D::CacheModel(Model *m, const UINT32 *data)
 		if (m->dynamic) {
 
 			// calculate VBO values for current mesh
-			it.second.vboOffset		= (int)m_polyBufferRam.size() + MAX_ROM_VERTS;
+			it.second.vboOffset		= (int)m_polyBufferRam.size() + MAX_ROM_VERTS + m_ramSlot * MAX_RAM_VERTS;
 			it.second.vertexCount	= (int)it.second.verts.size();
 
 			// copy poly data to main buffer

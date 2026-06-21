@@ -80,6 +80,24 @@ std::string GLSLVersion::GetR3D(bool useQuads)
     }
 }
 
+std::string GLSLVersion::GetR3DFragment(bool useQuads)
+{
+    if (IsGLES()) {
+        // Fragment shaders use mediump float for 2× throughput on mobile GPUs.
+        // Colors, textures and lighting are all fine with 16-bit precision.
+        // Samplers and ints keep highp so data texture lookups stay accurate.
+        return Get(
+            (int)PrecisionFlags::INT |
+            (int)PrecisionFlags::SAMPLER_UINT |
+            (int)PrecisionFlags::SAMPLER_INT |
+            (int)PrecisionFlags::ANDROID_DEFINE
+            // NOTE: FLOAT is intentionally omitted → default mediump float
+        ) + "precision mediump float;\n";
+    } else {
+        return useQuads ? "#version 450 core\n" : "#version 410 core\n";
+    }
+}
+
 std::string GLSLVersion::GetImGui()
 {
     if (IsGLES()) {

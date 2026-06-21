@@ -18,6 +18,8 @@
 #include "libretro_core_options.h"
 #include "CLibretroInputSystem.h"
 #include "CPU/PowerPC/ppc.h"
+#include "libretroGui.h"
+#include "../../Graphics/GLSLVersion.h"
 
 // --- Global Variables ---
 retro_video_refresh_t video_cb = NULL;
@@ -31,6 +33,12 @@ retro_log_printf_t log_cb;
 struct retro_hw_render_callback hw_render;
 struct retro_rumble_interface rumble;
 static LibretroWrapper wrapper = LibretroWrapper();
+
+// GPU timer queries (double-buffered: write slot N, read slot N-1)
+static GLuint s_gpuQuery[2]  = {0, 0};
+static int    s_gpuSlot      = 0;
+static float  s_gpuMs        = 0.0f;
+static bool   s_gpuQueryOK   = false;
 
 // Path buffers
 char retro_save_directory[4096];
@@ -162,19 +170,34 @@ void context_reset(void)
 
     emu->PauseThreads();
     wrapper.InitGL();
-    
+
     // CRITICAL FIX: Force 1-byte alignment for textures.
-    // This prevents the "split-screen" / ghosting on legacy drivers 
+    // This prevents the "split-screen" / ghosting on legacy drivers
     // when handling NPOT resolutions like 496x384.
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    Libretro_InitOverlay(Graphics::GLSLVersion::GetImGui().c_str());
+
+    // Allocate GPU timer queries — only if the EXT is actually available
+    s_gpuQueryOK = false;
+    s_gpuMs      = 0.0f;
+    s_gpuSlot    = 0;
+    if (glGenQueriesEXT && glBeginQueryEXT && glEndQueryEXT &&
+        glGetQueryObjectuivEXT && glGetQueryObjectui64vEXT)
+    {
+        if (s_gpuQuery[0]) glDeleteQueriesEXT(2, s_gpuQuery);
+        glGenQueriesEXT(2, s_gpuQuery);
+        s_gpuQueryOK = (s_gpuQuery[0] != 0 && s_gpuQuery[1] != 0);
+    }
 
     emu->ResumeThreads();
 }
 
 void context_destroy(void)
 {
-   // GL Cleanup handled by wrapper destructor usually
+    if (s_gpuQuery[0] && glDeleteQueriesEXT) { glDeleteQueriesEXT(2, s_gpuQuery); s_gpuQuery[0] = s_gpuQuery[1] = 0; }
+    Libretro_ShutdownOverlay();
 }
 
 // --- Game Loading ---
@@ -417,7 +440,25 @@ void retro_run(void)
       glClearDepth(1.0);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+      // Collect previous frame's GPU time (non-blocking: result from 1 frame ago)
+      if (s_gpuQueryOK) {
+          int readSlot = s_gpuSlot ^ 1;
+          GLuint available = 0;
+          glGetQueryObjectuivEXT(s_gpuQuery[readSlot], GL_QUERY_RESULT_AVAILABLE_EXT, &available);
+          if (available) {
+              GLuint64 elapsed = 0;
+              glGetQueryObjectui64vEXT(s_gpuQuery[readSlot], GL_QUERY_RESULT_EXT, &elapsed);
+              s_gpuMs = elapsed / 1000000.0f;
+          }
+          glBeginQueryEXT(GL_TIME_ELAPSED_EXT, s_gpuQuery[s_gpuSlot]);
+      }
+
       wrapper.Supermodel(game, false);
+
+      if (s_gpuQueryOK) {
+          glEndQueryEXT(GL_TIME_ELAPSED_EXT);
+          s_gpuSlot ^= 1;
+      }
 
       glViewport(0, 0, target_w, target_h);
       // REMOVED: glFlush() - not needed before glBlitFramebuffer and causes unnecessary GPU stall
@@ -440,6 +481,10 @@ void retro_run(void)
       );
 
       glBindFramebuffer(GL_FRAMEBUFFER, ra_fbo);
+
+      // Draw timing overlay on top of the blitted frame
+      Libretro_DrawTimingOverlay(wrapper.GetTimings(), target_w, target_h, s_gpuMs);
+
       video_cb(RETRO_HW_FRAME_BUFFER_VALID, target_w, target_h, 0);
    }
 }

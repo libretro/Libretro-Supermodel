@@ -63,6 +63,14 @@ public:
     static std::string GetR3D(bool useQuads = false);
 
     /**
+     * @brief Get GLSL version string for R3D fragment shaders on GLES.
+     * Uses mediump float (16-bit) instead of highp for all color/texture/lighting
+     * calculations — 2× throughput on mobile GPUs (VideoCore VII, Mali, etc.).
+     * Vertex positions remain highp via GetR3D() on the vertex shader source.
+     */
+    static std::string GetR3DFragment(bool useQuads = false);
+
+    /**
      * @brief Get GLSL version string for ImGui compatibility
      * Returns minimal version string for ImGui's OpenGL3 backend
      */

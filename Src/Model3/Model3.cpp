@@ -2188,7 +2188,6 @@ void CModel3::RunMainBoardFrame(bool skipRender)
     }
 
 	timings.ppcTicks = CThread::GetTicks() - start;
-	{ static int s_ft = 0; if (++s_ft % 5 == 0) DumpTimings(); }
 }
 
 void CModel3::SyncGPUs(void)

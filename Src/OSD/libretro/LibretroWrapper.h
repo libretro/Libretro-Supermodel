@@ -1,5 +1,6 @@
 #include <Supermodel.h>
 #include <Model3/IEmulator.h>
+#include <Model3/Model3.h>
 #include <libretro.h>
 #include "ROMSet.h"
 #include <Inputs/Input.h>
@@ -43,6 +44,7 @@ public:
     CRTcolor getCRTColors() const { return CRTcolors; }
     Game getGame() const { return game; }
     IEmulator* getEmulator() const { return Model3; }
+    FrameTimings GetTimings() const;
     std::shared_ptr<CInputSystem> getInputSystem() const { return m_inputSystem; }
     retro_hw_render_callback getHwRender() const { return hw_render; }
     static const std::string& GetGameXMLPath() { return s_gameXMLFilePath; }
