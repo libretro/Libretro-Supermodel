@@ -241,7 +241,7 @@ ifeq ($(platform),osx)
     # Force osxcross compiler (override shell env)
     override CC := o64-clang
     override CXX := o64-clang++
-    override LD := o64-ld
+    override LD := o64-clang++
     
     TARGET := $(TARGET_NAME)_libretro.dylib
     LDFLAGS += -dynamiclib -fPIC
