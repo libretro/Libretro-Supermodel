@@ -108,8 +108,8 @@ uniform int		hardwareStep;
 uniform int		colourLayer;
 uniform bool	polyAlpha;
 
-// matrices (shared with vertex shader)
-uniform mat4	projMat;
+// matrices (shared with vertex shader — must be highp in both to match vertex precision)
+uniform highp mat4	projMat;
 
 //interpolated inputs from vertex shader — must match vertex shader out precision (highp)
 in highp vec3	fsViewVertex;

@@ -179,10 +179,11 @@ void context_reset(void)
 
     Libretro_InitOverlay(Graphics::GLSLVersion::GetImGui().c_str());
 
-    // Allocate GPU timer queries — only if the EXT is actually available
+    // GPU timer queries: EXT variant (GLES3 only), core variant TODO for desktop GL
     s_gpuQueryOK = false;
     s_gpuMs      = 0.0f;
     s_gpuSlot    = 0;
+#if defined(CORE_GLES)
     if (glGenQueriesEXT && glBeginQueryEXT && glEndQueryEXT &&
         glGetQueryObjectuivEXT && glGetQueryObjectui64vEXT)
     {
@@ -190,30 +191,33 @@ void context_reset(void)
         glGenQueriesEXT(2, s_gpuQuery);
         s_gpuQueryOK = (s_gpuQuery[0] != 0 && s_gpuQuery[1] != 0);
     }
+#endif
 
     emu->ResumeThreads();
 }
 
 void context_destroy(void)
 {
+#if defined(CORE_GLES)
     if (s_gpuQuery[0] && glDeleteQueriesEXT) { glDeleteQueriesEXT(2, s_gpuQuery); s_gpuQuery[0] = s_gpuQuery[1] = 0; }
+#endif
     Libretro_ShutdownOverlay();
 }
 
 // --- Game Loading ---
 bool retro_load_game(const struct retro_game_info *info)
 {
+   hw_render.context_reset   = context_reset;
+   hw_render.context_destroy = context_destroy;
+   hw_render.depth           = true;
+   hw_render.stencil         = true;
+   hw_render.bottom_left_origin = true;
+
 #if defined(ANDROID) || defined(CORE_GLES)
    hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES3;
 #else
-   hw_render.context_type = RETRO_HW_CONTEXT_OPENGL; 
+   hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
 #endif
-   hw_render.context_reset = context_reset;
-   hw_render.context_destroy = context_destroy;
-   hw_render.depth = true;
-   hw_render.stencil = true;
-   hw_render.bottom_left_origin = true;             // GL standard
-
    if (!environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
        log_cb(RETRO_LOG_ERROR, "[Supermodel] HW Render Context negotiation failed.\n");
        return false;
@@ -440,6 +444,7 @@ void retro_run(void)
       glClearDepth(1.0);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+#if defined(CORE_GLES)
       // Collect previous frame's GPU time (non-blocking: result from 1 frame ago)
       if (s_gpuQueryOK) {
           int readSlot = s_gpuSlot ^ 1;
@@ -452,13 +457,16 @@ void retro_run(void)
           }
           glBeginQueryEXT(GL_TIME_ELAPSED_EXT, s_gpuQuery[s_gpuSlot]);
       }
+#endif
 
       wrapper.Supermodel(game, false);
 
+#if defined(CORE_GLES)
       if (s_gpuQueryOK) {
           glEndQueryEXT(GL_TIME_ELAPSED_EXT);
           s_gpuSlot ^= 1;
       }
+#endif
 
       glViewport(0, 0, target_w, target_h);
       // REMOVED: glFlush() - not needed before glBlitFramebuffer and causes unnecessary GPU stall

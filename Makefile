@@ -188,7 +188,7 @@ ifeq ($(platform),android)
     SOURCES_CXX := $(filter-out %/Legacy3D/Error.cpp %/Legacy3D/Legacy3D.cpp %/Legacy3D/Models.cpp %/Legacy3D/TextureRefs.cpp,$(SOURCES_CXX))
 endif
 
-# rpi64 and aarch64 use GLES3, not desktop OpenGL
+# rpi64 and aarch64 use GLES3 (RetroArch on RPi5 provides only GLES context via EGL)
 ifeq ($(platform),rpi64)
     SOURCES_C := $(filter-out %/glsym/glsym_gl.c,$(SOURCES_C))
     SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/glsym_es3.c
@@ -299,7 +299,6 @@ ifeq ($(platform),android)
             ARCH_TRIPLE := arm-linux-androideabi
             CLANG_TRIPLE := armv7a-linux-androideabi24
             PLATFORM_DEFINES += -march=armv7-a -mfloat-abi=softfp -mfpu=neon
-            PLATFORM_DEFINES += -mvectorize-with-neon-quad
         else ifeq ($(arch),x86)
             ARCH_TRIPLE := i686-linux-android
             CLANG_TRIPLE := i686-linux-android24
@@ -422,7 +421,7 @@ ifeq ($(platform),rpi64)
     # 3. LIBRARY & PATHS
     LDFLAGS += $(SHARED) -L/usr/lib/aarch64-linux-gnu
     LIBS := -lGLESv2 -lz -lm
-    
+
     # 4. CXXFLAGS
     CXXFLAGS += -std=c++17
 endif

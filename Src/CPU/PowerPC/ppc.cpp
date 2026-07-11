@@ -588,6 +588,9 @@ static void ppc_smc_write(UINT32 addr) { JitArm64::get().smc_write(addr); }
 static bool s_jit_executing = false;
 static bool s_ppc_jit_enabled = true;
 
+// Cached outside ppc struct so it survives ppc_base_init()'s memset.
+static void *s_jit_ram_base = nullptr;
+
 #include "PPCDisasm.h"
 #include "ppc603.c"
 
@@ -603,6 +606,7 @@ void ppc_base_init(void)
 	int i,j;
 
 	memset(&ppc, 0, sizeof(ppc));
+	ppc.ram_ptr = (UINT8 *)s_jit_ram_base;   // restore after memset
 
 	for( i=0; i < 64; i++ ) {
 		optable[i] = ppc_invalid;
@@ -858,7 +862,8 @@ void ppc_attach_bus(IBus *BusPtr)
 
 void ppc_set_ram_ptr(UINT8 *ram_base)
 {
-	ppc.ram_ptr = ram_base;
+	s_jit_ram_base = ram_base;   // survive future ppc_base_init() memsets
+	ppc.ram_ptr    = ram_base;
 }
 
 void ppc_save_state(CBlockFile *SaveState)

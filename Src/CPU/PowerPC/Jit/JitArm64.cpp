@@ -2055,7 +2055,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     // lfsx rD, rA, rB
     case 535: {
         emit_load_ea_reg(e, W0, rA, rB);
-        emit_call(e, (uint64_t)(void *)&jit_read32);
+        emit_ram_load32(e);                              // lfsx — fastmem
         e.FMOV_S_W(D0, W0);
         e.FCVT_D_S(D0, D0);
         emit_store_fpr(e, D0, rD);
@@ -2067,7 +2067,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
         emit_load_gpr(e, W1, rB);
         e.ADD_W(W0, W0, W1);
         emit_store_gpr(e, W0, rA);
-        emit_call(e, (uint64_t)(void *)&jit_read32);
+        emit_ram_load32(e);                              // lfsux — fastmem
         e.FMOV_S_W(D0, W0);
         e.FCVT_D_S(D0, D0);
         emit_store_fpr(e, D0, rD);
@@ -2145,7 +2145,7 @@ static bool translate_op31(Arm64Emitter &e, uint32_t op)
     // lwbrx rD, rA, rB — load word byte-reversed
     case 534: {
         emit_load_ea_reg(e, W0, rA, rB);
-        emit_call(e, (uint64_t)(void *)&jit_read32);
+        emit_ram_load32(e);                              // lwbrx — fastmem
         e.REV_W(W0, W0);
         emit_store_gpr(e, W0, rD);
         return true;
@@ -2456,7 +2456,7 @@ static bool translate_lmw(Arm64Emitter &e, uint32_t op)
 
     for (int i = 0; i < n; i++) {
         emit_load_ea_off32(e, rA, (int32_t)simm + i * 4);  // W0 = EA
-        emit_call(e, (uint64_t)(void *)&jit_read32);
+        emit_ram_load32(e);                                  // lmw — fastmem
         emit_store_gpr(e, W0, rD + i);
     }
     return true;
@@ -2499,7 +2499,7 @@ static bool translate_lfs(Arm64Emitter &e, uint32_t op, bool update)
     if (update) {
         emit_store_gpr(e, W0, rA);   // rA = EA (write-back)
     }
-    emit_call(e, (uint64_t)(void *)&jit_read32);  // W0 = float bits
+    emit_ram_load32(e);               // lfs/lfsu — fastmem; W0 = float bits
     e.FMOV_S_W(D0, W0);              // D0(S0) = reinterpret as float
     e.FCVT_D_S(D0, D0);              // D0 = (double)float
     emit_store_fpr(e, D0, rD);
