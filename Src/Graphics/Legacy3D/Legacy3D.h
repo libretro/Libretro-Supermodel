@@ -31,6 +31,7 @@
 
 #include "TextureRefs.h"
 #include "Graphics/IRender3D.h"
+#include "Graphics/New3D/Mat4.h"	// matrix stack: replaces the fixed-function one
 #include <GL/glew.h>
 #include "Util/NewConfig.h"
 #include "Types.h"
@@ -521,7 +522,26 @@ private:
 	GLint	specularLoc;			// attribute
 	GLint	shininessLoc;			// attribute
 	GLint	fogIntensityLoc;		// attribute
-	
+
+	// GLES has no fixed pipeline: the four streams that used to ride on
+	// glVertexPointer/glNormalPointer/glColorPointer/glTexCoordPointer become
+	// ordinary generic attributes, and the fog state that used to live in
+	// glFogf() becomes uniforms.
+	GLint	positionLoc;			// attribute (was gl_Vertex)
+	GLint	normalLoc;				// attribute (was gl_Normal)
+	GLint	colorLoc;				// attribute (was gl_Color)
+	GLint	texCoordLoc;			// attribute (was gl_MultiTexCoord0)
+	GLint	fogDensityLoc;			// uniform  (was GL_FOG_DENSITY)
+	GLint	fogStartLoc;			// uniform  (was GL_FOG_START)
+	GLint	fogColorLoc;			// uniform  (was GL_FOG_COLOR)
+
+	// Replaces the fixed-function matrix stack. Models.cpp used to read these
+	// back with glGetFloatv(GL_PROJECTION_MATRIX/GL_MODELVIEW_MATRIX) to feed
+	// the shader uniforms; now it reads them straight from here.
+	New3D::Mat4 m_modelView;
+	New3D::Mat4 m_projection;
+
+
 	// Model caching
 	ModelCache	VROMCache;	// VROM (static) models
 	ModelCache	PolyCache;	// polygon RAM (dynamic) models
@@ -532,7 +552,7 @@ private:
  	 * Textures are decoded and copied from texture RAM into this temporary buffer
  	 * before being uploaded. Dimensions are 512x512.
  	 */
-	GLfloat	*textureBuffer;	// RGBA8 format
+	GLubyte	*textureBuffer;	// RGBA8 format (uploaded as GL_UNSIGNED_BYTE: 4x less bandwidth than GL_FLOAT)
 
 	// JTAG configuration settings
 	bool blockCulling;

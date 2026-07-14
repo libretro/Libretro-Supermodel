@@ -1,5 +1,6 @@
 #include <compat/msvc.h>
 #include <math.h>
+#include <chrono>
 #include <rthreads/rthreads.h>
 #include <streams/file_stream.h>
 #include <string/stdstring.h>
@@ -63,6 +64,7 @@ CoreOptions g_options = {
 #else
                               false,
 #endif
+   /* timing_overlay      */ false,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates
@@ -72,6 +74,21 @@ static unsigned last_height = 0;
 static uint8_t g_nvram_buffer[NVRAM_BUFFER_SIZE];
 // Optimization: Cache save state size
 static size_t g_cached_serialize_size = 0;
+
+// PGO: defined only in -fprofile-generate builds (weak, so a normal build links
+// fine and these are no-ops). RetroArch can tear the core down without running
+// libgcov's destructors, which would silently drop the whole profile — so flush
+// it explicitly at the points we know are reached.
+extern "C" void __gcov_dump(void) __attribute__((weak));
+
+static void pgo_flush(void)
+{
+   if (__gcov_dump)
+   {
+      __gcov_dump();
+      if (log_cb) log_cb(RETRO_LOG_INFO, "[PGO] profile flushed\n");
+   }
+}
 
 // --- Logging Helper ---
 static void fallback_log(enum retro_log_level level, const char *fmt, ...)
@@ -124,7 +141,7 @@ void retro_init(void)
 
 void retro_deinit(void)
 {
-    // Clean up if necessary
+    pgo_flush();
 }
 
 unsigned retro_api_version(void)
@@ -279,9 +296,12 @@ void retro_unload_game(void)
    }
    
    wrapper.ShutDownSupermodel();
+   pgo_flush();   // RetroArch may never call retro_deinit before exiting
 }
 void retro_run(void)
 {
+   const auto t_frame_start = std::chrono::steady_clock::now();
+
    // Check if options were changed
    bool options_updated = false;
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &options_updated) && options_updated)
@@ -490,10 +510,55 @@ void retro_run(void)
 
       glBindFramebuffer(GL_FRAMEBUFFER, ra_fbo);
 
-      // Draw timing overlay on top of the blitted frame
-      Libretro_DrawTimingOverlay(wrapper.GetTimings(), target_w, target_h, s_gpuMs);
+      // Timing overlay: ImGui NewFrame + Render + a draw call. Was unconditional,
+      // i.e. every frame of every session paid for a debug overlay.
+      const FrameTimings t = wrapper.GetTimings();
+      if (g_options.timing_overlay)
+         Libretro_DrawTimingOverlay(t, target_w, target_h, s_gpuMs);
 
+      // Everything above (blit + overlay) plus video_cb below is invisible to
+      // CModel3's own "Total" — and it is exactly what the standalone build does
+      // not do. video_cb is where RetroArch runs its shader chain (a curved CRT
+      // preset at display resolution is not free on V3D) and waits for vsync.
+      const auto t_post = std::chrono::steady_clock::now();
       video_cb(RETRO_HW_FRAME_BUFFER_VALID, target_w, target_h, 0);
+      const auto t_end = std::chrono::steady_clock::now();
+
+      auto ms = [](auto a, auto b) {
+         return std::chrono::duration<float, std::milli>(b - a).count();
+      };
+
+      // Average over the period, never a single sample: with frameskip the render
+      // runs on 1 frame in N, and any fixed sampling period that shares a factor
+      // with N always lands on the same phase of the cycle and lies to you.
+      // renderTicks is also stale on skipped frames (Model3 only writes it when it
+      // actually renders), so it is averaged over rendered frames only.
+      static float    acc_run = 0.0f, acc_emu = 0.0f, acc_present = 0.0f, max_run = 0.0f;
+      static unsigned acc_ppc = 0, acc_render = 0, rendered = 0, log_frames = 0;
+
+      const float emu     = ms(t_frame_start, t_post);
+      const float present = ms(t_post, t_end);
+
+      acc_emu     += emu;
+      acc_present += present;
+      acc_run     += emu + present;
+      if (emu + present > max_run) max_run = emu + present;
+      acc_ppc += t.ppcTicks;
+      if (!skipRender) { acc_render += t.renderTicks; rendered++; }
+
+      if (++log_frames >= 61) {   // 61: coprime with every frameskip cycle (1..4)
+         const float n = (float)log_frames;
+         log_cb(RETRO_LOG_INFO,
+                "[Timing] avg over %u frames | PPC:%4.1f  Render:%4.1f (%u drawn)  "
+                "emu+blit:%5.1f  present:%5.1f  retro_run:%5.1f  worst:%5.1f ms\n",
+                log_frames,
+                acc_ppc / n,
+                rendered ? acc_render / (float)rendered : 0.0f, rendered,
+                acc_emu / n, acc_present / n, acc_run / n, max_run);
+         log_frames = 0; rendered = 0;
+         acc_run = acc_emu = acc_present = max_run = 0.0f;
+         acc_ppc = acc_render = 0;
+      }
    }
 }
 

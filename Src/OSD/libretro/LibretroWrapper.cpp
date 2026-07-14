@@ -27,7 +27,7 @@
 #include "OSD/FileSystemPath.h"
 #include "GameLoader.h"
 #include "Debugger/SupermodelDebugger.h"
-#if !defined(ANDROID) && !defined(CORE_GLES)
+#if !defined(ANDROID) && !defined(CORE_GLES) || defined(USE_LEGACY3D)
 #include "Graphics/Legacy3D/Legacy3D.h"
 #endif
 #include "Graphics/New3D/New3D.h"
@@ -45,6 +45,7 @@
 #include "CLibretroOutputSystem.h"
 #include "libretroGui.h"
 #include "LibretroConfigProvider.h"
+#include "CoreOptionsTypes.h"
 
 // --- External Audio Hooks ---
 extern void PlayCallback(void *userdata, UINT8 *stream, int len);
@@ -143,9 +144,9 @@ static CCrosshair* s_crosshair = nullptr;
 #define ALOG(...)
 #endif
 
-LibretroWrapper::LibretroWrapper() : 
-    xRes(800), yRes(600), xOffset(0), yOffset(0), 
-    totalXRes(800), totalYRes(600), aaValue(0)
+LibretroWrapper::LibretroWrapper() :
+    xRes(800), yRes(600), xOffset(0), yOffset(0),
+    totalXRes(800), totalYRes(600), aaValue(0), CRTcolors(CRTcolor::None)
 {
       g_ctx = this;
 }
@@ -391,8 +392,13 @@ bool LibretroWrapper::InitRenderers()
     }
 
     Render2D = new CRender2D(s_runtime_config);
+    // Legacy3D is only linked in when built with RENDERER=legacy (see Makefile).
+    // On GLES platforms it is otherwise absent from the binary entirely, hence
+    // the compile-time switch rather than a runtime config check.
     Render3D =
-#if defined(ANDROID) || defined(CORE_GLES) || defined(__APPLE__)
+#if defined(USE_LEGACY3D)
+        (IRender3D*)new Legacy3D::CLegacy3D(s_runtime_config);
+#elif defined(ANDROID) || defined(CORE_GLES) || defined(__APPLE__)
         (IRender3D*)new New3D::CNew3D(s_runtime_config, Model3->GetGame().name);
 #else
         s_runtime_config["New3DEngine"].ValueAs<bool>()
@@ -523,36 +529,17 @@ int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
     {
         Model3->RunFrame(skipRender);
 
-        // ULTRA-LIGHTWEIGHT: Calculate FPS only once every 60 frames
-        static int frameCount = 0;
-        static auto lastMeasureTime = std::chrono::steady_clock::now();
-        static float cachedFPS = 57.53f;  // Start at target
-        
-        frameCount++;
-        
-        // Only recalculate FPS every 60 frames (basically once per second)
-        if (frameCount >= 240)
-        {
-            auto currentTime = std::chrono::steady_clock::now();
-            auto deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-                currentTime - lastMeasureTime
-            ).count();
-            
-            if (deltaTime > 0) {
-                // Average FPS over last 60 frames
-                cachedFPS = (240.0f * 1000.0f) / (float)deltaTime;
-            }
-            
-            lastMeasureTime = currentTime;
-            frameCount = 0;
-        }
-        
-        // Use the cached FPS value (only updated every 60 frames)
-        float actualFPS = std::max(25.0f, std::min(60.0f, cachedFPS));
-        int samplesThisFrame = (int)((44100.0f / actualFPS) + 0.5f);
-        int bytesThisFrame = samplesThisFrame * 4;
-        
-        PlayCallback(NULL, NULL, bytesThisFrame);
+        // One frame of emulated time is one frame's worth of audio, full stop:
+        // 44100 / 57.53 = 766 samples. This used to be computed from the MEASURED
+        // framerate instead, which is a positive feedback loop under RetroArch's
+        // synchronous audio driver: fps dips -> 44100/fps sends MORE samples than
+        // real time -> the driver blocks in audio_batch_cb to absorb the excess ->
+        // fps dips further -> even more samples. Measured on Daytona 2: the sample
+        // count climbed 766 -> 1047 while audio_batch_cb blocked for up to 36 ms
+        // per frame, producing exactly the recurring 30-50 ms frame spikes.
+        // The frontend already resamples to keep audio and video in sync; the core
+        // must simply hand it one frame of audio per frame.
+        PlayCallback(NULL, NULL, BYTES_PER_FRAME_SYNC);
     }
 
     if (Inputs->uiExit->Pressed())
@@ -728,24 +715,20 @@ Result LibretroWrapper::ConfigureInputs(CInputs *Inputs, Util::Config::Node *fil
 int LibretroWrapper::Emulate(const char* romPath)
 {
     WriteDefaultConfigurationFileIfNotPresent();
-#ifdef ANDROID
-    // Use the RetroArch logger bridge so we can see errors in the RetroArch logs
+
+    // Route ALL of Supermodel's logging (InfoLog/DebugLog/ErrorLog, including the
+    // DumpTimings profiler output) through the RetroArch log callback, on every
+    // platform — not just Android. Previously non-Android builds used a file/console
+    // logger via CreateLogger(), so InfoLog never reached the RetroArch frontend log
+    // and the profiler lines were invisible.
     auto ra_logger = std::make_shared<CRetroArchLogger>();
     SetLogger(ra_logger);
-#else
-    SetLogger(std::make_shared<CConsoleErrorLogger>());
-#endif
 
     char* argv[] = { (char*)"supermodel", (char*)romPath };
     int argc = 2;
     auto cmd_line = LibretroConfigProvider::ParseCommandLine(argc, argv);
     if (cmd_line.error) return 1;
 
-#ifndef ANDROID
-    auto logger = CreateLogger(cmd_line.config);
-    if (!logger) return 1;
-    SetLogger(logger);
-#endif
     InfoLog("Supermodel Version " SUPERMODEL_VERSION);
   
     bool rom_specified = !cmd_line.rom_files.empty();
@@ -785,7 +768,9 @@ int LibretroWrapper::Emulate(const char* romPath)
     std::shared_ptr<CInputSystem> InputSystem;
     Outputs = nullptr;
 
-    aaValue = s_runtime_config["Supersampling"].ValueAs<int>();
+    aaValue   = s_runtime_config["Supersampling"].ValueAs<int>();
+    CRTcolors = (CRTcolor)s_runtime_config["CRTcolors"].ValueAs<int>();   // 0 = None; was never read, left indeterminate
+
     m_inputSystem = std::make_shared<CLibretroInputSystem>();
     InputSystem = m_inputSystem;
 

@@ -231,6 +231,8 @@ void CLegacy3D::DecodeTexture(int format, int x, int y, int width, int height)
   //printf("Decoding texture format %u: %u x %u @ (%u, %u) sheet %u\n", format, width, height, x, y, texNum);
 
   // Copy and decode
+  // Decode directly to 8-bit RGBA (storage is GL_RGBA8 anyway). Exact bit-replication
+  // expansion (5->8: (v<<3)|(v>>2), 4->8: (v<<4)|v) matches the float*255 path losslessly.
   int i = 0;
   switch (format)
   {
@@ -239,22 +241,24 @@ void CLegacy3D::DecodeTexture(int format, int x, int y, int width, int height)
     {
       for (int xi = x; xi < (x+width); xi++)
       {
-        textureBuffer[i++] = 0.0; // R
-        textureBuffer[i++] = 0.0; // G
-        textureBuffer[i++] = 1.0f;  // B
-        textureBuffer[i++] = 1.0f;  // A
+        textureBuffer[i++] = 0;   // R
+        textureBuffer[i++] = 0;   // G
+        textureBuffer[i++] = 255; // B
+        textureBuffer[i++] = 255; // A
       }
     }
-    break;    
+    break;
   case 0: // T1RGB5
     for (int yi = y; yi < (y+height); yi++)
     {
       for (int xi = x; xi < (x+width); xi++)
       {
-        textureBuffer[i++] = (GLfloat) ((textureRAM[yi*2048+xi]>>10)&0x1F) * (1.0f/31.0f);  // R
-        textureBuffer[i++] = (GLfloat) ((textureRAM[yi*2048+xi]>>5)&0x1F) * (1.0f/31.0f); // G
-        textureBuffer[i++] = (GLfloat) ((textureRAM[yi*2048+xi]>>0)&0x1F) * (1.0f/31.0f); // B
-        textureBuffer[i++] = ((textureRAM[yi*2048+xi]&0x8000)?0.0f:1.0f);         // T
+        uint16_t p = textureRAM[yi*2048+xi];
+        unsigned r = (p>>10)&0x1F, g = (p>>5)&0x1F, b = p&0x1F;
+        textureBuffer[i++] = (r<<3)|(r>>2);           // R
+        textureBuffer[i++] = (g<<3)|(g>>2);           // G
+        textureBuffer[i++] = (b<<3)|(b>>2);           // B
+        textureBuffer[i++] = (p&0x8000) ? 0 : 255;    // T
       }
     }
     break;
@@ -263,25 +267,25 @@ void CLegacy3D::DecodeTexture(int format, int x, int y, int width, int height)
     {
       for (int xi = x; xi < (x+width); xi++)
       {
-        textureBuffer[i++] = (GLfloat) ((textureRAM[yi*2048+xi]>>12)&0xF) * (1.0f/15.0f); // R
-        textureBuffer[i++] = (GLfloat) ((textureRAM[yi*2048+xi]>>8)&0xF) * (1.0f/15.0f);  // G
-        textureBuffer[i++] = (GLfloat) ((textureRAM[yi*2048+xi]>>4)&0xF) * (1.0f/15.0f);  // B
-        textureBuffer[i++] = (GLfloat) ((textureRAM[yi*2048+xi]>>0)&0xF) * (1.0f/15.0f);  // A
+        uint16_t p = textureRAM[yi*2048+xi];
+        unsigned r = (p>>12)&0xF, g = (p>>8)&0xF, b = (p>>4)&0xF, a = p&0xF;
+        textureBuffer[i++] = (r<<4)|r;  // R
+        textureBuffer[i++] = (g<<4)|g;  // G
+        textureBuffer[i++] = (b<<4)|b;  // B
+        textureBuffer[i++] = (a<<4)|a;  // A
       }
     }
     break;
-  case 5: // 8-bit grayscale
+  case 5: // 8-bit grayscale (low byte)
     for (int yi = y; yi < (y+height); yi++)
     {
       for (int xi = x; xi < (x+width); xi++)
       {
-        // Interpret as 8-bit grayscale
         uint16_t texel = textureRAM[yi*2048+xi] & 0xFF;
-        GLfloat c = texel * (1.0f/255.0f);
-        textureBuffer[i++] = c;
-        textureBuffer[i++] = c;
-        textureBuffer[i++] = c;
-        textureBuffer[i++] = (texel == 0xFF) ? 0.f : 1.f;
+        textureBuffer[i++] = texel;
+        textureBuffer[i++] = texel;
+        textureBuffer[i++] = texel;
+        textureBuffer[i++] = (texel == 0xFF) ? 0 : 255;
       }
     }
     break;
@@ -291,8 +295,8 @@ void CLegacy3D::DecodeTexture(int format, int x, int y, int width, int height)
       for (int xi = x; xi < (x+width); xi++)
       {
         uint16_t texel = textureRAM[yi*2048+xi] >> 8;
-        GLfloat c = (texel >> 4) * (1.0f/15.0f);
-        GLfloat a = (texel & 0xF) * (1.0f/15.0f);
+        unsigned c = texel >> 4, a = texel & 0xF;
+        c = (c<<4)|c; a = (a<<4)|a;
         textureBuffer[i++] = c;
         textureBuffer[i++] = c;
         textureBuffer[i++] = c;
@@ -300,17 +304,16 @@ void CLegacy3D::DecodeTexture(int format, int x, int y, int width, int height)
       }
     }
     break;
-  case 6: // 8-bit grayscale
+  case 6: // 8-bit grayscale (high byte)
     for (int yi = y; yi < (y+height); yi++)
     {
       for (int xi = x; xi < (x+width); xi++)
       {
         uint16_t texel = textureRAM[yi*2048+xi] >> 8;
-        GLfloat c = texel * (1.0f/255.0f);
-        textureBuffer[i++] = c;
-        textureBuffer[i++] = c;
-        textureBuffer[i++] = c;
-        textureBuffer[i++] = (texel == 0xFF) ? 0.f : 1.f;
+        textureBuffer[i++] = texel;
+        textureBuffer[i++] = texel;
+        textureBuffer[i++] = texel;
+        textureBuffer[i++] = (texel == 0xFF) ? 0 : 255;
       }
     }
     break;
@@ -320,8 +323,8 @@ void CLegacy3D::DecodeTexture(int format, int x, int y, int width, int height)
       for (int xi = x; xi < (x+width); xi++)
       {
         uint16_t texel = textureRAM[yi*2048+xi] & 0xFF;
-        GLfloat c = (texel >> 4) * (1.0f/15.0f);
-        GLfloat a = (texel & 0xF) * (1.0f/15.0f);
+        unsigned c = texel >> 4, a = texel & 0xF;
+        c = (c<<4)|c; a = (a<<4)|a;
         textureBuffer[i++] = c;
         textureBuffer[i++] = c;
         textureBuffer[i++] = c;
@@ -335,8 +338,8 @@ void CLegacy3D::DecodeTexture(int format, int x, int y, int width, int height)
       for (int xi = x; xi < (x+width); xi++)
       {
         uint16_t texel = textureRAM[yi*2048+xi] >> 8;
-        GLfloat c = (texel & 0xF) * (1.0f/15.0f);
-        GLfloat a = (texel >> 4) * (1.0f/15.0f);
+        unsigned c = texel & 0xF, a = texel >> 4;
+        c = (c<<4)|c; a = (a<<4)|a;
         textureBuffer[i++] = c;
         textureBuffer[i++] = c;
         textureBuffer[i++] = c;
@@ -350,8 +353,8 @@ void CLegacy3D::DecodeTexture(int format, int x, int y, int width, int height)
       for (int xi = x; xi < (x+width); xi++)
       {
         uint16_t texel = textureRAM[yi*2048+xi] & 0xFF;
-        GLfloat c = (texel & 0xF) * (1.0f/15.0f);
-        GLfloat a = (texel >> 4) * (1.0f/15.0f);
+        unsigned c = texel & 0xF, a = texel >> 4;
+        c = (c<<4)|c; a = (a<<4)|a;
         textureBuffer[i++] = c;
         textureBuffer[i++] = c;
         textureBuffer[i++] = c;
@@ -365,7 +368,7 @@ void CLegacy3D::DecodeTexture(int format, int x, int y, int width, int height)
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glActiveTexture(GL_TEXTURE0 + texSheet->mapNum);           // activate correct texture unit
   glBindTexture(GL_TEXTURE_2D, texMapIDs[texSheet->mapNum]); // bind correct texture map
-  glTexSubImage2D(GL_TEXTURE_2D, 0, texSheet->xOffset + x, texSheet->yOffset + y, width, height, GL_RGBA, GL_FLOAT, textureBuffer);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, texSheet->xOffset + x, texSheet->yOffset + y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, textureBuffer);
   
   // Mark texture as decoded
   texSheet->texFormat[y/32][x/32] = format;
@@ -380,10 +383,10 @@ void CLegacy3D::UploadTextures(unsigned level, unsigned x, unsigned y, unsigned 
   // Make everything red
   for (int i = 0; i < 512*512; )
   {
-    textureBuffer[i++] = 1.0f;
-    textureBuffer[i++] = 0.0f;
-    textureBuffer[i++] = 0.0f;
-    textureBuffer[i++] = 1.0f;
+    textureBuffer[i++] = 255;
+    textureBuffer[i++] = 0;
+    textureBuffer[i++] = 0;
+    textureBuffer[i++] = 255;
   }
 #endif
 
@@ -471,8 +474,8 @@ void CLegacy3D::MultMatrix(UINT32 matrixOffset)
   m[CMINDEX(3, 0)] = 0.0;
   m[CMINDEX(3, 1)] = 0.0;
   m[CMINDEX(3, 2)] = 0.0;
-  m[CMINDEX(3, 3)] = 1.0; 
-  glMultMatrixf(m);
+  m[CMINDEX(3, 3)] = 1.0;
+  m_modelView.MultMatrix(m);
 }
 
 /*
@@ -516,14 +519,14 @@ void CLegacy3D::InitMatrixStack(UINT32 matrixBaseAddr)
   m[CMINDEX(3,0)]=0.0;  m[CMINDEX(3,1)]=0.0;  m[CMINDEX(3,2)]=0.0;  m[CMINDEX(3,3)]=1.0;
   
   if (step > 0x10)
-    glLoadMatrixf(m);
+    m_modelView.LoadMatrix(m);
   else
   {
     // Scaling seems to help w/ Step 1.0's extremely large coordinates
     GLfloat s = 1.0f/2048.0f;
-    glLoadIdentity();
-    glScalef(s,s,s);
-    glMultMatrixf(m);
+    m_modelView.LoadIdentity();
+    m_modelView.Scale(s,s,s);
+    m_modelView.MultMatrix(m);
   }
   
   // Set matrix base address and apply matrix #0 (coordinate system matrix)
@@ -614,6 +617,8 @@ Result CLegacy3D::DrawModel(UINT32 modelAddr)
     if (NULL == ModelRef)
     {
       // Model could not be cached. Render what we have so far and try again.
+      // This throws away the STATIC VROM cache too, so every VROM model has to be
+      // re-decoded and re-uploaded (textures included) over the following frames.
       DrawDisplayList(&VROMCache, POLY_STATE_NORMAL);
       DrawDisplayList(&PolyCache, POLY_STATE_NORMAL);
       DrawDisplayList(&VROMCache, POLY_STATE_ALPHA);
@@ -691,9 +696,9 @@ void CLegacy3D::DescendCullingNode(UINT32 addr)
   }
   
   // Apply matrix and translation
-  glPushMatrix();
+  m_modelView.PushMatrix();
   if ((node[0x00]&0x10))  // apply translation vector
-    glTranslatef(x,y,z);
+    m_modelView.Translate(x,y,z);
   else if (matrixOffset)  // multiply matrix, if specified
     MultMatrix(matrixOffset);
     
@@ -713,7 +718,7 @@ void CLegacy3D::DescendCullingNode(UINT32 addr)
     DescendNodePtr(node1Ptr);
 
   // Proceed to second link
-  glPopMatrix();
+  m_modelView.PopMatrix();
 #ifdef DEBUG
   m_debugHighlightAll = oldDebugHighlightAll;
 #endif
@@ -848,8 +853,7 @@ void CLegacy3D::RenderViewport(UINT32 addr, int pri, bool wideScreen)
   // TO-DO: investigate clipping planes
   
   // Set up viewport and projection (TO-DO: near and far clipping)
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
+  m_projection.LoadIdentity();
   if (wideScreen && (vpX==0) && (vpWidth>=495) && (vpY==0) && (vpHeight >= 383))  // only expand viewports that occupy whole screen
   {
     // Wide screen hack only modifies X axis and not the Y FOV
@@ -857,7 +861,7 @@ void CLegacy3D::RenderViewport(UINT32 addr, int pri, bool wideScreen)
     viewportY      = yOffs + (GLint) ((float)(384-(vpY+vpHeight))*yRatio);
     viewportWidth  = totalXRes;
     viewportHeight = (GLint) ((float)vpHeight*yRatio);
-    gluPerspective(fovYDegrees,(GLfloat)viewportWidth/(GLfloat)viewportHeight,0.1f,1e5);  // use actual full screen ratio to get proper X FOV
+    m_projection.Perspective(fovYDegrees,(GLfloat)viewportWidth/(GLfloat)viewportHeight,0.1f,1e5f);  // use actual full screen ratio to get proper X FOV
     //printf("viewportX=%d, viewportY=%d, viewportWidth=%d, viewportHeight=%d\tvpY=%d vpHeight=%d\n", viewportX, viewportY, viewportWidth, viewportHeight, vpY,vpHeight);
   }
   else
@@ -866,7 +870,7 @@ void CLegacy3D::RenderViewport(UINT32 addr, int pri, bool wideScreen)
     viewportY      = yOffs + (GLint) ((float)(384-(vpY+vpHeight))*yRatio);
     viewportWidth  = (GLint) ((float)vpWidth*xRatio);
     viewportHeight = (GLint) ((float)vpHeight*yRatio);
-    gluPerspective(fovYDegrees,(GLdouble)vpWidth/(GLdouble)vpHeight,0.1,1e5);        // use Model 3 viewport ratio
+    m_projection.Perspective(fovYDegrees,(GLfloat)vpWidth/(GLfloat)vpHeight,0.1f,1e5f);        // use Model 3 viewport ratio
   }
   
   // Lighting (note that sun vector points toward sun -- away from vertex)
@@ -922,7 +926,6 @@ void CLegacy3D::RenderViewport(UINT32 addr, int pri, bool wideScreen)
 
   // Set up coordinate system and base matrix
   UINT32 matrixBase = vpnode[0x16] & 0xFFFFFF;
-  glMatrixMode(GL_MODELVIEW);
   InitMatrixStack(matrixBase);
 
   // Safeguard: weird coordinate system matrices usually indicate scenes that will choke the renderer
@@ -1002,11 +1005,11 @@ void CLegacy3D::RenderFrame(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   }
   
-  // Enable VBO client states
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glEnableClientState(GL_NORMAL_ARRAY);
-  glEnableClientState(GL_COLOR_ARRAY);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  // Enable vertex attribute arrays (these four used to be client states)
+  if (positionLoc != -1)     glEnableVertexAttribArray(positionLoc);
+  if (normalLoc != -1)       glEnableVertexAttribArray(normalLoc);
+  if (colorLoc != -1)        glEnableVertexAttribArray(colorLoc);
+  if (texCoordLoc != -1)     glEnableVertexAttribArray(texCoordLoc);
   if (subTextureLoc != -1)   glEnableVertexAttribArray(subTextureLoc);
   if (texParamsLoc != -1)    glEnableVertexAttribArray(texParamsLoc);
   if (texFormatLoc != -1)    glEnableVertexAttribArray(texFormatLoc);
@@ -1052,10 +1055,10 @@ void CLegacy3D::RenderFrame(void)
   if (texFormatLoc != -1)     glDisableVertexAttribArray(texFormatLoc);
   if (texParamsLoc != -1)     glDisableVertexAttribArray(texParamsLoc);
   if (subTextureLoc != -1)    glDisableVertexAttribArray(subTextureLoc);
-  glDisableClientState(GL_COLOR_ARRAY);
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glDisableClientState(GL_NORMAL_ARRAY);
-  glDisableClientState(GL_VERTEX_ARRAY);
+  if (colorLoc != -1)         glDisableVertexAttribArray(colorLoc);
+  if (texCoordLoc != -1)      glDisableVertexAttribArray(texCoordLoc);
+  if (normalLoc != -1)        glDisableVertexAttribArray(normalLoc);
+  if (positionLoc != -1)      glDisableVertexAttribArray(positionLoc);
 
   if (m_aaTarget) {
       glBindFramebuffer(GL_FRAMEBUFFER, 0);			// restore target if needed
@@ -1113,7 +1116,7 @@ void CLegacy3D::SetStepping(int stepping)
 Result CLegacy3D::SetupGLObjects()
 {
     // Allocate memory for texture buffer
-    textureBuffer = new(std::nothrow) GLfloat[1024 * 1024 * 4];
+    textureBuffer = new(std::nothrow) GLubyte[1024 * 1024 * 4];
     if (NULL == textureBuffer)
         return ErrorLog("Insufficient memory for texture decode buffer.");
 
@@ -1153,15 +1156,11 @@ Result CLegacy3D::SetupGLObjects()
     int mapSize = 2048 * mapExtent;
     while (mapExtent > 1)
     {
+        // GLES has no proxy textures, so the GL_MAX_TEXTURE_SIZE query above is
+        // the only size check available. It is authoritative on Mesa; the proxy
+        // was a belt-and-braces check against lying desktop drivers.
         if ((mapExtent - 1) * (mapExtent - 1) < idealTexSheets)
-        {
-            // Use a GL proxy texture to double check max texture size returned above
-            glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_RGBA8, mapSize, mapSize, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, NULL);
-            GLint glTexWidth;
-            glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &glTexWidth);
-            if (glTexWidth == mapSize)
-                break;
-        }
+            break;
         mapExtent--;
         mapSize -= 2048;
     }
@@ -1220,7 +1219,12 @@ Result CLegacy3D::SetupGLObjects()
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, mapSize, mapSize, 0, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1, 0);
+            // Storage allocation only (no data). GLES3 rejects GL_RGBA8 paired with
+            // GL_UNSIGNED_SHORT_5_5_5_1 (that type is only legal with GL_RGB5_A1) and
+            // fails the whole map creation; desktop GL happily ignored the mismatch.
+            // GL_UNSIGNED_BYTE is the type that actually matches GL_RGBA8, and it is
+            // what DecodeTexture() uploads with anyway.
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, mapSize, mapSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
             if (glGetError() != GL_NO_ERROR)
             {
                 // Ran out of video memory or texture size is too large
@@ -1277,8 +1281,15 @@ Result CLegacy3D::SetupGLObjects()
     spotEllipseLoc = glGetUniformLocation(shaderProgram, "spotEllipse");
     spotRangeLoc = glGetUniformLocation(shaderProgram, "spotRange");
     spotColorLoc = glGetUniformLocation(shaderProgram, "spotColor");
+    fogDensityLoc = glGetUniformLocation(shaderProgram, "fogDensity");
+    fogStartLoc = glGetUniformLocation(shaderProgram, "fogStart");
+    fogColorLoc = glGetUniformLocation(shaderProgram, "fogColor");
 
     // Get locations of custom vertex attributes
+    positionLoc = glGetAttribLocation(shaderProgram, "inVertex");
+    normalLoc = glGetAttribLocation(shaderProgram, "inNormal");
+    colorLoc = glGetAttribLocation(shaderProgram, "inColor");
+    texCoordLoc = glGetAttribLocation(shaderProgram, "inTexCoord");
     subTextureLoc = glGetAttribLocation(shaderProgram, "subTexture");
     texParamsLoc = glGetAttribLocation(shaderProgram, "texParams");
     texFormatLoc = glGetAttribLocation(shaderProgram, "texFormat");
@@ -1298,9 +1309,9 @@ Result CLegacy3D::SetupGLObjects()
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
     glClearDepth(1.0);
-    glEnable(GL_TEXTURE_2D);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    // glEnable(GL_TEXTURE_2D) was fixed-function texturing state; meaningless
+    // once every draw goes through a shader, and invalid in GLES.
+    m_modelView.LoadIdentity();
 
     // Mark all textures as dirty
     UploadTextures(0, 0, 0, 2048, 2048);
@@ -1349,7 +1360,24 @@ CLegacy3D::CLegacy3D(const Util::Config::Node &config)
   textureRAM = NULL;
   textureBuffer = NULL;
   texSheets = NULL;
-  
+
+  // Shader locations are assigned in SetupGLObjects(). If that fails (it can:
+  // GL texture map creation is allowed to give up), RenderFrame() still runs and
+  // would feed these to glEnableVertexAttribArray(). -1 is the "absent" value
+  // every use site already checks for.
+  shaderProgram = 0;
+  numTexMaps = 0;
+  numTexSheets = 0;
+  textureMapLoc = -1;
+  for (auto &loc : textureMapLocs) loc = -1;
+  modelViewMatrixLoc = projectionMatrixLoc = lightingLoc = mapSizeLoc = -1;
+  spotEllipseLoc = spotRangeLoc = spotColorLoc = -1;
+  fogDensityLoc = fogStartLoc = fogColorLoc = -1;
+  positionLoc = normalLoc = colorLoc = texCoordLoc = -1;
+  subTextureLoc = texParamsLoc = texFormatLoc = texMapLoc = transLevelLoc = -1;
+  lightEnableLoc = specularLoc = shininessLoc = fogIntensityLoc = -1;
+
+
   // Clear model cache pointers so we can safely destroy them if init fails
   for (int i = 0; i < 2; i++)
   {

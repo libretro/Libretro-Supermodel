@@ -15,6 +15,7 @@ struct CoreOptions {
    int frameskip;
    bool sound_enable;
    bool jit_enable;
+   bool timing_overlay;      // draw the ImGui frame-timing overlay (costs a draw pass every frame)
 };
 
 extern CoreOptions g_options;
