@@ -507,6 +507,7 @@ static constexpr char fragmentShaderMultiSheetSource[] =
 "uniform vec3       spotColor;      // spotlight RGB color\n"
 "uniform vec3       lighting[2];    // lighting state (lighting[0] = sun direction, lighting[1].x,y = diffuse, ambient intensities from 0-1.0)\n"
 "uniform float      mapSize;        // texture map size (2048,4096,6144 etc)\n"
+"uniform vec3       fogColor;       // was gl_Fog.color\n"
 "\n"
 "// Inputs from vertex shader \n"
 "varying vec4    fsColor;       // was gl_Color (interpolated gl_FrontColor)\n"
