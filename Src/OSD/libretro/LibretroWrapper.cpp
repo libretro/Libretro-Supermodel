@@ -144,9 +144,9 @@ static CCrosshair* s_crosshair = nullptr;
 #define ALOG(...)
 #endif
 
-LibretroWrapper::LibretroWrapper() : 
-    xRes(800), yRes(600), xOffset(0), yOffset(0), 
-    totalXRes(800), totalYRes(600), aaValue(0)
+LibretroWrapper::LibretroWrapper() :
+    xRes(800), yRes(600), xOffset(0), yOffset(0),
+    totalXRes(800), totalYRes(600), aaValue(0), CRTcolors(CRTcolor::None)
 {
       g_ctx = this;
 }
@@ -785,7 +785,9 @@ int LibretroWrapper::Emulate(const char* romPath)
     std::shared_ptr<CInputSystem> InputSystem;
     Outputs = nullptr;
 
-    aaValue = s_runtime_config["Supersampling"].ValueAs<int>();
+    aaValue   = s_runtime_config["Supersampling"].ValueAs<int>();
+    CRTcolors = (CRTcolor)s_runtime_config["CRTcolors"].ValueAs<int>();   // 0 = None; was never read, left indeterminate
+
     m_inputSystem = std::make_shared<CLibretroInputSystem>();
     InputSystem = m_inputSystem;
 
