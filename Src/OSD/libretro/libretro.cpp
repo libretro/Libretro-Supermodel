@@ -492,7 +492,19 @@ void retro_run(void)
       glBindFramebuffer(GL_FRAMEBUFFER, ra_fbo);
 
       // Draw timing overlay on top of the blitted frame
-      Libretro_DrawTimingOverlay(wrapper.GetTimings(), target_w, target_h, s_gpuMs);
+      const FrameTimings t = wrapper.GetTimings();
+      Libretro_DrawTimingOverlay(t, target_w, target_h, s_gpuMs);
+
+      // Same numbers in the frontend log, once a second — the overlay is a live
+      // snapshot, the log is what you paste when profiling. ponytail: fixed 60-frame
+      // period, make it a core option if it ever needs to be off or faster.
+      static unsigned log_frames = 0;
+      if (++log_frames >= 60) {
+         log_frames = 0;
+         log_cb(RETRO_LOG_INFO,
+                "[Timing] PPC:%3u ms  Render:%3u ms  GPU:%5.1f ms  Sync:%3u ms  Sound:%3u ms  Total:%3u ms\n",
+                t.ppcTicks, t.renderTicks, s_gpuMs, t.syncTicks, t.sndTicks, t.frameTicks);
+      }
 
       video_cb(RETRO_HW_FRAME_BUFFER_VALID, target_w, target_h, 0);
    }
