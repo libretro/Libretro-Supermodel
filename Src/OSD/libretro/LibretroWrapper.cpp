@@ -27,7 +27,7 @@
 #include "OSD/FileSystemPath.h"
 #include "GameLoader.h"
 #include "Debugger/SupermodelDebugger.h"
-#if !defined(ANDROID) && !defined(CORE_GLES)
+#if !defined(ANDROID) && !defined(CORE_GLES) || defined(USE_LEGACY3D)
 #include "Graphics/Legacy3D/Legacy3D.h"
 #endif
 #include "Graphics/New3D/New3D.h"
@@ -395,8 +395,13 @@ bool LibretroWrapper::InitRenderers()
     s_runtime_config.Get("TransparencyFast").SetValue(g_options.transparency_fast);
 
     Render2D = new CRender2D(s_runtime_config);
+    // Legacy3D is only linked in when built with RENDERER=legacy (see Makefile).
+    // On GLES platforms it is otherwise absent from the binary entirely, hence
+    // the compile-time switch rather than a runtime config check.
     Render3D =
-#if defined(ANDROID) || defined(CORE_GLES) || defined(__APPLE__)
+#if defined(USE_LEGACY3D)
+        (IRender3D*)new Legacy3D::CLegacy3D(s_runtime_config);
+#elif defined(ANDROID) || defined(CORE_GLES) || defined(__APPLE__)
         (IRender3D*)new New3D::CNew3D(s_runtime_config, Model3->GetGame().name);
 #else
         s_runtime_config["New3DEngine"].ValueAs<bool>()

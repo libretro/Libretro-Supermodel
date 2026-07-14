@@ -179,25 +179,46 @@ else
     SOURCES_CXX += $(CORE_DIR)/Src/OSD/Unix/FileSystemPath.cpp
 endif
 
+# Renderer selection: new3d (default) or legacy.
+#   make platform=rpi64 RENDERER=legacy
+# Legacy3D is the old desktop-GL renderer. It is being ported to run inside the
+# GLES3 context (GLES2-style code: client vertex arrays, #version 100 shaders),
+# so on GLES platforms it is only compiled in when explicitly asked for.
+RENDERER ?= new3d
+
+LEGACY3D_SOURCES := %/Legacy3D/Error.cpp %/Legacy3D/Legacy3D.cpp %/Legacy3D/Models.cpp %/Legacy3D/TextureRefs.cpp
+
+ifeq ($(RENDERER),legacy)
+    RENDERER_DEFINES := -DUSE_LEGACY3D
+    DROP_LEGACY3D :=
+else
+    RENDERER_DEFINES :=
+    DROP_LEGACY3D := 1
+endif
+
 # Platform-specific source filtering (MUST be before OBJECTS computation!)
 # macOS and Android don't support Legacy3D (old fixed-pipeline OpenGL)
 ifeq ($(platform),osx)
-    SOURCES_CXX := $(filter-out %/Legacy3D/Error.cpp %/Legacy3D/Legacy3D.cpp %/Legacy3D/Models.cpp %/Legacy3D/TextureRefs.cpp,$(SOURCES_CXX))
+    SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
 endif
 ifeq ($(platform),android)
-    SOURCES_CXX := $(filter-out %/Legacy3D/Error.cpp %/Legacy3D/Legacy3D.cpp %/Legacy3D/Models.cpp %/Legacy3D/TextureRefs.cpp,$(SOURCES_CXX))
+    SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
 endif
 
 # rpi64 and aarch64 use GLES3 (RetroArch on RPi5 provides only GLES context via EGL)
 ifeq ($(platform),rpi64)
     SOURCES_C := $(filter-out %/glsym/glsym_gl.c,$(SOURCES_C))
     SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/glsym_es3.c
-    SOURCES_CXX := $(filter-out %/Legacy3D/Error.cpp %/Legacy3D/Legacy3D.cpp %/Legacy3D/Models.cpp %/Legacy3D/TextureRefs.cpp,$(SOURCES_CXX))
+ifdef DROP_LEGACY3D
+    SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
+endif
 endif
 ifeq ($(platform),aarch64)
     SOURCES_C := $(filter-out %/glsym/glsym_gl.c,$(SOURCES_C))
     SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/glsym_es3.c
-    SOURCES_CXX := $(filter-out %/Legacy3D/Error.cpp %/Legacy3D/Legacy3D.cpp %/Legacy3D/Models.cpp %/Legacy3D/TextureRefs.cpp,$(SOURCES_CXX))
+ifdef DROP_LEGACY3D
+    SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
+endif
 endif
 
 # GIT version
@@ -458,7 +479,7 @@ CXX ?= g++
 AR ?= ar
 
 # Assemble final DEFINES from COREDEFINES and PLATFORM_DEFINES (mirrors old build system)
-DEFINES := $(COREDEFINES) $(PLATFORM_DEFINES)
+DEFINES := $(COREDEFINES) $(PLATFORM_DEFINES) $(RENDERER_DEFINES)
 OBJOUT  ?= -o
 LINKOUT ?= -o
 LIBM    ?= -lm

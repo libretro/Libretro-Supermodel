@@ -230,10 +230,10 @@ void CLegacy3D::DrawDisplayList(ModelCache *Cache, POLY_STATE state)
 {
   // Bind and activate VBO (pointers activate currently bound VBO)
   glBindBuffer(GL_ARRAY_BUFFER, Cache->vboID);
-  glVertexPointer(3, GL_FLOAT, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_X*sizeof(GLfloat))); 
-  glNormalPointer(GL_FLOAT, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_NX*sizeof(GLfloat))); 
-  glTexCoordPointer(2, GL_FLOAT, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_U*sizeof(GLfloat)));
-  glColorPointer(3, GL_FLOAT, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_R*sizeof(GLfloat)));
+  if (positionLoc != -1)     glVertexAttribPointer(positionLoc, 3, GL_FLOAT, GL_FALSE, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_X*sizeof(GLfloat)));
+  if (normalLoc != -1)       glVertexAttribPointer(normalLoc, 3, GL_FLOAT, GL_FALSE, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_NX*sizeof(GLfloat)));
+  if (texCoordLoc != -1)     glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_U*sizeof(GLfloat)));
+  if (colorLoc != -1)        glVertexAttribPointer(colorLoc, 3, GL_FLOAT, GL_FALSE, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_R*sizeof(GLfloat)));
   if (subTextureLoc != -1)   glVertexAttribPointer(subTextureLoc, 4, GL_FLOAT, GL_FALSE, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_TEXTURE_X*sizeof(GLfloat)));
   if (texParamsLoc != -1)    glVertexAttribPointer(texParamsLoc, 4, GL_FLOAT, GL_FALSE, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_TEXPARAMS_EN*sizeof(GLfloat)));
   if (texFormatLoc != -1)    glVertexAttribPointer(texFormatLoc, 1, GL_FLOAT, GL_FALSE, VBO_VERTEX_SIZE*sizeof(GLfloat), (GLvoid *) (VBO_VERTEX_OFFSET_TEXFORMAT*sizeof(GLfloat)));
@@ -269,9 +269,10 @@ void CLegacy3D::DrawDisplayList(ModelCache *Cache, POLY_STATE state)
         {
           if (lightingLoc != -1)         glUniform3fv(lightingLoc, 2, D->Data.Viewport.lightingParams);
           if (projectionMatrixLoc != -1) glUniformMatrix4fv(projectionMatrixLoc, 1, GL_FALSE, D->Data.Viewport.projectionMatrix);
-          glFogf(GL_FOG_DENSITY, D->Data.Viewport.fogParams[3]);
-          glFogf(GL_FOG_START, D->Data.Viewport.fogParams[4]);
-          glFogfv(GL_FOG_COLOR, &(D->Data.Viewport.fogParams[0]));
+          // Fog: was fixed-function state read back by the shader as gl_Fog.*
+          if (fogDensityLoc != -1)       glUniform1f(fogDensityLoc, D->Data.Viewport.fogParams[3]);
+          if (fogStartLoc != -1)         glUniform1f(fogStartLoc, D->Data.Viewport.fogParams[4]);
+          if (fogColorLoc != -1)         glUniform3fv(fogColorLoc, 1, &(D->Data.Viewport.fogParams[0]));
           if (spotEllipseLoc != -1)      glUniform4fv(spotEllipseLoc, 1, D->Data.Viewport.spotEllipse);
           if (spotRangeLoc != -1)        glUniform2fv(spotRangeLoc, 1, D->Data.Viewport.spotRange);
           if (spotColorLoc != -1)        glUniform3fv(spotColorLoc, 1, D->Data.Viewport.spotColor);
@@ -342,8 +343,8 @@ Result CLegacy3D::AppendDisplayList(ModelCache *Cache, bool isViewport, const st
       memcpy(Cache->List[lm].Data.Viewport.spotRange, spotRange, sizeof(spotRange));
       memcpy(Cache->List[lm].Data.Viewport.spotColor, spotColor, sizeof(spotColor));
       
-      // Copy projection matrix
-      glGetFloatv(GL_PROJECTION_MATRIX, Cache->List[lm].Data.Viewport.projectionMatrix);
+      // Copy projection matrix (was glGetFloatv(GL_PROJECTION_MATRIX))
+      memcpy(Cache->List[lm].Data.Viewport.projectionMatrix, m_projection.currentMatrix, 16*sizeof(float));
     }
     else if (Model->numVerts[i] > 0)  // vertices exist for this state
     { 
@@ -357,8 +358,8 @@ Result CLegacy3D::AppendDisplayList(ModelCache *Cache, bool isViewport, const st
       // Misc. parameters
       Cache->List[lm].Data.Model.useStencil = Model->useStencil;
       
-      // Copy modelview matrix
-      glGetFloatv(GL_MODELVIEW_MATRIX, Cache->List[lm].Data.Model.modelViewMatrix);
+      // Copy modelview matrix (was glGetFloatv(GL_MODELVIEW_MATRIX))
+      memcpy(Cache->List[lm].Data.Model.modelViewMatrix, m_modelView.currentMatrix, 16*sizeof(float));
       
       /*
        * Determining if winding was reversed (but not polygon normal):
