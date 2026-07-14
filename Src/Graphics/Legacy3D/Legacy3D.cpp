@@ -617,6 +617,8 @@ Result CLegacy3D::DrawModel(UINT32 modelAddr)
     if (NULL == ModelRef)
     {
       // Model could not be cached. Render what we have so far and try again.
+      // This throws away the STATIC VROM cache too, so every VROM model has to be
+      // re-decoded and re-uploaded (textures included) over the following frames.
       DrawDisplayList(&VROMCache, POLY_STATE_NORMAL);
       DrawDisplayList(&PolyCache, POLY_STATE_NORMAL);
       DrawDisplayList(&VROMCache, POLY_STATE_ALPHA);

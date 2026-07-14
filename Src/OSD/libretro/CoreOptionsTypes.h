@@ -16,6 +16,7 @@ struct CoreOptions {
    bool sound_enable;
    bool jit_enable;
    bool transparency_fast;   // New3D: true = 1-layer transparency (faster), false = 2-layer (accurate)
+   bool timing_overlay;      // draw the ImGui frame-timing overlay (costs a draw pass every frame)
 };
 
 extern CoreOptions g_options;

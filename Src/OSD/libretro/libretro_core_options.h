@@ -49,6 +49,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "native"
    },
    {
+      "supermodel_timing_overlay",
+      "Frame Timing Overlay",
+      NULL,
+      "Show the per-frame timing overlay (PPC/Render/GPU/Total). Costs an extra draw pass every frame, so leave it off unless you are profiling.",
+      NULL,
+      "video",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+   {
       "supermodel_transparency",
       "Transparency Quality",
       NULL,
@@ -218,7 +232,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_ppc_frequency",
       "PowerPC CPU Frequency",
       NULL,
-      "Adjust PowerPC CPU frequency to trade cycle accuracy for performance on low-end hardware. 'Auto' uses defaults based on game stepping (66/100/166 MHz).",
+      "Adjust PowerPC CPU frequency to trade cycle accuracy for performance on low-end hardware. 'Auto' uses defaults based on game stepping (66/100/166 MHz) — on a Stepping 2.x game like Daytona 2 that means 166 MHz, i.e. 2.4x the CPU work the Recalbox standalone does at its default of 70 MHz.",
       NULL,
       "cpu",
       {
@@ -226,6 +240,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
          { "33",   "33 MHz (Half Speed - Aggressive)" },
          { "50",   "50 MHz (0.75x Speed)" },
          { "66",   "66 MHz (Step 1.0 Default)" },
+         { "70",   "70 MHz (Recalbox standalone default)" },
          { "100",  "100 MHz (Step 1.5 Default)" },
          { "133",  "133 MHz (2.0x Base)" },
          { "166",  "166 MHz (Step 2.x Default)" },
@@ -281,6 +296,7 @@ void update_core_options(void)
       g_options.resolution_multiplier = 1.0f;  // native
 
    g_options.transparency_fast = strcmp(option_get("supermodel_transparency", "high"), "fast") == 0;
+   g_options.timing_overlay = strcmp(option_get("supermodel_timing_overlay", "disabled"), "enabled") == 0;
 
    g_options.widescreen = strcmp(option_get("supermodel_wide_screen", "disabled"), "enabled") == 0;
    g_options.vsync = strcmp(option_get("supermodel_vsync", "enabled"), "enabled") == 0;
