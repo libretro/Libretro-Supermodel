@@ -532,36 +532,17 @@ int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
     {
         Model3->RunFrame(skipRender);
 
-        // ULTRA-LIGHTWEIGHT: Calculate FPS only once every 60 frames
-        static int frameCount = 0;
-        static auto lastMeasureTime = std::chrono::steady_clock::now();
-        static float cachedFPS = 57.53f;  // Start at target
-        
-        frameCount++;
-        
-        // Only recalculate FPS every 60 frames (basically once per second)
-        if (frameCount >= 240)
-        {
-            auto currentTime = std::chrono::steady_clock::now();
-            auto deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(
-                currentTime - lastMeasureTime
-            ).count();
-            
-            if (deltaTime > 0) {
-                // Average FPS over last 60 frames
-                cachedFPS = (240.0f * 1000.0f) / (float)deltaTime;
-            }
-            
-            lastMeasureTime = currentTime;
-            frameCount = 0;
-        }
-        
-        // Use the cached FPS value (only updated every 60 frames)
-        float actualFPS = std::max(25.0f, std::min(60.0f, cachedFPS));
-        int samplesThisFrame = (int)((44100.0f / actualFPS) + 0.5f);
-        int bytesThisFrame = samplesThisFrame * 4;
-        
-        PlayCallback(NULL, NULL, bytesThisFrame);
+        // One frame of emulated time is one frame's worth of audio, full stop:
+        // 44100 / 57.53 = 766 samples. This used to be computed from the MEASURED
+        // framerate instead, which is a positive feedback loop under RetroArch's
+        // synchronous audio driver: fps dips -> 44100/fps sends MORE samples than
+        // real time -> the driver blocks in audio_batch_cb to absorb the excess ->
+        // fps dips further -> even more samples. Measured on Daytona 2: the sample
+        // count climbed 766 -> 1047 while audio_batch_cb blocked for up to 36 ms
+        // per frame, producing exactly the recurring 30-50 ms frame spikes.
+        // The frontend already resamples to keep audio and video in sync; the core
+        // must simply hand it one frame of audio per frame.
+        PlayCallback(NULL, NULL, BYTES_PER_FRAME_SYNC);
     }
 
     if (Inputs->uiExit->Pressed())
