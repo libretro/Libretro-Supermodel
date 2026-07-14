@@ -218,7 +218,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_ppc_frequency",
       "PowerPC CPU Frequency",
       NULL,
-      "Adjust PowerPC CPU frequency to trade cycle accuracy for performance on low-end hardware. 'Auto' uses defaults based on game stepping (66/100/166 MHz) — on a Stepping 2.x game like Daytona 2 that means 166 MHz, i.e. 2.4x the CPU work the Recalbox standalone does at its default of 70 MHz.",
+      "Adjust PowerPC CPU frequency to trade cycle accuracy for performance on low-end hardware. 'Auto' follows the game's stepping (66/100/166 MHz): a Stepping 2.x game such as Daytona 2 runs at 166 MHz, which is over twice the CPU work of 70 MHz. Underclocking is the single biggest performance lever on weak hardware, at the cost of cycle accuracy.",
       NULL,
       "cpu",
       {
@@ -226,7 +226,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
          { "33",   "33 MHz (Half Speed - Aggressive)" },
          { "50",   "50 MHz (0.75x Speed)" },
          { "66",   "66 MHz (Step 1.0 Default)" },
-         { "70",   "70 MHz (Recalbox standalone default)" },
+         { "70",   "70 MHz (Fast - Underclocked)" },
          { "100",  "100 MHz (Step 1.5 Default)" },
          { "133",  "133 MHz (2.0x Base)" },
          { "166",  "166 MHz (Step 2.x Default)" },
