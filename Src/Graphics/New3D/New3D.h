@@ -243,7 +243,6 @@ private:
 	std::atomic_bool m_sunClamp;
 	std::atomic_bool m_blockCulling;
 	bool m_noWhiteFlash;
-	bool m_transparencyFast;	// true = 1-layer transparency (skip trans2 pass + depth blit), false = 2-layer (accurate)
 
 	// Stepping
 	int		m_step;

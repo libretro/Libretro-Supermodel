@@ -391,9 +391,6 @@ bool LibretroWrapper::InitRenderers()
         renderTarget = m_libretrFBO;
     }
 
-    // Reflect the runtime core option into the config the renderer reads.
-    s_runtime_config.Get("TransparencyFast").SetValue(g_options.transparency_fast);
-
     Render2D = new CRender2D(s_runtime_config);
     // Legacy3D is only linked in when built with RENDERER=legacy (see Makefile).
     // On GLES platforms it is otherwise absent from the binary entirely, hence

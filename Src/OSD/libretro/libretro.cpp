@@ -64,7 +64,6 @@ CoreOptions g_options = {
 #else
                               false,
 #endif
-   /* transparency_fast    */ false,
    /* timing_overlay      */ false,
 };
 

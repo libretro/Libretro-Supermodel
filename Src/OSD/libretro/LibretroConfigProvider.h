@@ -39,7 +39,6 @@ namespace LibretroConfigProvider {
         // Platform-specific/UI
         config.Set("New3DEngine", true, "Video");
         config.Set("QuadRendering", false, "Video");
-        config.Set("TransparencyFast", false, "Video");
         config.Set("XResolution", 496, "Video");
         config.Set("YResolution", 384, "Video");
         config.SetEmpty("WindowXPosition");
