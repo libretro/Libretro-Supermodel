@@ -45,6 +45,7 @@
 #include "CLibretroOutputSystem.h"
 #include "libretroGui.h"
 #include "LibretroConfigProvider.h"
+#include "CoreOptionsTypes.h"
 
 // --- External Audio Hooks ---
 extern void PlayCallback(void *userdata, UINT8 *stream, int len);
@@ -390,6 +391,9 @@ bool LibretroWrapper::InitRenderers()
         renderTarget = m_libretrFBO;
     }
 
+    // Reflect the runtime core option into the config the renderer reads.
+    s_runtime_config.Get("TransparencyFast").SetValue(g_options.transparency_fast);
+
     Render2D = new CRender2D(s_runtime_config);
     Render3D =
 #if defined(ANDROID) || defined(CORE_GLES) || defined(__APPLE__)
@@ -728,24 +732,20 @@ Result LibretroWrapper::ConfigureInputs(CInputs *Inputs, Util::Config::Node *fil
 int LibretroWrapper::Emulate(const char* romPath)
 {
     WriteDefaultConfigurationFileIfNotPresent();
-#ifdef ANDROID
-    // Use the RetroArch logger bridge so we can see errors in the RetroArch logs
+
+    // Route ALL of Supermodel's logging (InfoLog/DebugLog/ErrorLog, including the
+    // DumpTimings profiler output) through the RetroArch log callback, on every
+    // platform — not just Android. Previously non-Android builds used a file/console
+    // logger via CreateLogger(), so InfoLog never reached the RetroArch frontend log
+    // and the profiler lines were invisible.
     auto ra_logger = std::make_shared<CRetroArchLogger>();
     SetLogger(ra_logger);
-#else
-    SetLogger(std::make_shared<CConsoleErrorLogger>());
-#endif
 
     char* argv[] = { (char*)"supermodel", (char*)romPath };
     int argc = 2;
     auto cmd_line = LibretroConfigProvider::ParseCommandLine(argc, argv);
     if (cmd_line.error) return 1;
 
-#ifndef ANDROID
-    auto logger = CreateLogger(cmd_line.config);
-    if (!logger) return 1;
-    SetLogger(logger);
-#endif
     InfoLog("Supermodel Version " SUPERMODEL_VERSION);
   
     bool rom_specified = !cmd_line.rom_files.empty();

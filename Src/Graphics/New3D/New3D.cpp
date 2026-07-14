@@ -54,6 +54,7 @@ CNew3D::CNew3D(const Util::Config::Node &config, const std::string& gameName) :
 
 	m_wideScreen = config["WideScreen"].ValueAs<bool>();
 	m_noWhiteFlash = config["NoWhiteFlash"].ValueAs<bool>();
+	m_transparencyFast = config["TransparencyFast"].ValueAsDefault<bool>(false);
 
 	m_r3dShader.LoadShader();
 	glUseProgram(0);
@@ -534,16 +535,26 @@ void CNew3D::RenderFrame(void)
 				glDepthFunc(GL_GREATER);
 				m_r3dShader.DiscardAlpha(false);
 
-				m_r3dFrameBuffers.StoreDepth();
+				// Fast mode: single transparency layer. trans1 renders against the
+				// live opaque depth in the main FBO, so it needs neither the
+				// full-screen StoreDepth() blit nor the trans2 pass. The composite
+				// shader already handles an all-zero trans2 (cleared at frame start),
+				// so output stays correct — only blending of two overlapping
+				// translucent surfaces is approximated by a single layer.
+				if (!m_transparencyFast) {
+					m_r3dFrameBuffers.StoreDepth();
+				}
 				m_r3dShader.SetLayer(Layer::trans1);
 				m_r3dFrameBuffers.SetFBO(Layer::trans1);
 				RenderScene(pri, renderOverlay, Layer::trans1);
 
-				// No RestoreDepth blit — SetFBO(trans2) binds m_frameBufferIDTrans2
-				// which is pre-wired to the copy depth (= opaque depth from StoreDepth).
-				m_r3dShader.SetLayer(Layer::trans2);
-				m_r3dFrameBuffers.SetFBO(Layer::trans2);
-				RenderScene(pri, renderOverlay, Layer::trans2);
+				if (!m_transparencyFast) {
+					// No RestoreDepth blit — SetFBO(trans2) binds m_frameBufferIDTrans2
+					// which is pre-wired to the copy depth (= opaque depth from StoreDepth).
+					m_r3dShader.SetLayer(Layer::trans2);
+					m_r3dFrameBuffers.SetFBO(Layer::trans2);
+					RenderScene(pri, renderOverlay, Layer::trans2);
+				}
 			}
 
 			DisableRenderStates();

@@ -31,8 +31,16 @@ void CLibretroOutputSystem::Attached()
 
 void CLibretroOutputSystem::SendOutput(EOutputs output, UINT8 prevValue, UINT8 value)
 {
-    // RawDrive = index 7, useful for debugging
+    // RawDrive = index 7. This fires on every drive-board output change — many
+    // times per frame on force-feedback games (e.g. srally2). The log_cb call
+    // (varargs format + frontend level check) runs even when the frontend
+    // filters DEBUG out, so it's pure overhead and floods the log. Gate it
+    // behind a DEBUG build so retail builds pay nothing.
+#ifdef DEBUG
     if (output == OutputRawDrive) {
         log_cb(RETRO_LOG_DEBUG, "[Outputs] RawDrive: %u\n", value);
     }
+#else
+    (void)output; (void)prevValue; (void)value;
+#endif
 }

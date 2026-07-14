@@ -49,6 +49,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "native"
    },
    {
+      "supermodel_transparency",
+      "Transparency Quality",
+      NULL,
+      "New3D transparency layers. 'High' (2-layer) is the accurate default. 'Fast' (1-layer) skips the second transparency pass and a full-screen depth blit, cutting GPU fill in heavy scenes (recommended for RPi5 at native resolution); slight quality loss only where two translucent surfaces overlap.",
+      NULL,
+      "video",
+      {
+         { "high", "High (2-layer) - Accurate" },
+         { "fast", "Fast (1-layer) - RPi5" },
+         { NULL, NULL },
+      },
+      "high"
+   },
+   {
       "supermodel_wide_screen",
       "Widescreen Hack",
       NULL,
@@ -265,6 +279,8 @@ void update_core_options(void)
       g_options.resolution_multiplier = 4.0f;
    else
       g_options.resolution_multiplier = 1.0f;  // native
+
+   g_options.transparency_fast = strcmp(option_get("supermodel_transparency", "high"), "fast") == 0;
 
    g_options.widescreen = strcmp(option_get("supermodel_wide_screen", "disabled"), "enabled") == 0;
    g_options.vsync = strcmp(option_get("supermodel_vsync", "enabled"), "enabled") == 0;

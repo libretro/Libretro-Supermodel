@@ -15,6 +15,7 @@ struct CoreOptions {
    int frameskip;
    bool sound_enable;
    bool jit_enable;
+   bool transparency_fast;   // New3D: true = 1-layer transparency (faster), false = 2-layer (accurate)
 };
 
 extern CoreOptions g_options;

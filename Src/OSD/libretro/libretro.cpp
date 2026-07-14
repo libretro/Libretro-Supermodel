@@ -63,6 +63,7 @@ CoreOptions g_options = {
 #else
                               false,
 #endif
+   /* transparency_fast    */ false,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates
