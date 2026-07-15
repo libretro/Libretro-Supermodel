@@ -2587,6 +2587,17 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
     int sub = (op >> 1) & 0x3FF;
     (void)rA;  // some sub-ops don't use rA
 
+    // The A-form ops fsel/fmul/fmsub/fmadd/fnmsub/fnmadd encode frC in bits 6-10, which overlap
+    // the 10-bit `sub`. Without collapsing it, only their frC==0 forms matched and every real
+    // fmul/fmadd fell back to the interpreter. Reduce these to their 5-bit opcode so they match
+    // for any frC; the codes {23,25,28..31} collide with no X-form op in the switch below (the
+    // interpreter fills all 32 frC slots for exactly these — see optable63 in ppc.cpp).
+    {
+        int lo = sub & 0x1F;
+        if (lo == 23 || lo == 25 || (lo >= 28 && lo <= 31))
+            sub = lo;
+    }
+
     switch (sub) {
     case 72:  // fmr rD, rB  (copy FPR)
         emit_load_fpr(e, D0, rB);
@@ -2778,7 +2789,10 @@ static bool translate_op59(Arm64Emitter &e, uint32_t op)
     int rA  = (op >> 16) & 0x1F;
     int rB  = (op >> 11) & 0x1F;
     int rC  = (op >> 6)  & 0x1F;
-    int sub = (op >> 1) & 0x3FF;
+    // Opcode 59 is entirely A-form (single-precision arithmetic); every XO fits in 5 bits and
+    // there are no X-form ops here, so mask to 5 bits. A 10-bit mask would fold the frC field
+    // into the opcode and make fmuls (and the fmadds family) fall back for any frC != 0.
+    int sub = (op >> 1) & 0x1F;
 
 // Round to single precision, store, then update FPSCR[FPRF] — matches the interpreter, which
 // runs set_fprf after every single-precision arithmetic op. (op59 uses STORE_SP only for
