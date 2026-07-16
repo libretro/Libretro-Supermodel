@@ -65,6 +65,7 @@ CoreOptions g_options = {
                               false,
 #endif
    /* timing_overlay      */ false,
+   /* driving_layout      */ DrivingLayout::Default,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates

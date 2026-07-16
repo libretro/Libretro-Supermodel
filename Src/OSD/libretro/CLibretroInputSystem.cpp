@@ -117,8 +117,27 @@ bool CLibretroInputSystem::Poll()
                                    RETRO_DEVICE_INDEX_ANALOG_LEFT,
                                    RETRO_DEVICE_ID_ANALOG_Y);
 
-        m_joyAxes[joy][0] = x;
-        m_joyAxes[joy][1] = y;
+        m_joyAxes[joy][AXIS_X] = x;
+        m_joyAxes[joy][AXIS_Y] = y;
+
+        // Right stick -> RX/RY, which the analog driving layout uses as a gate shifter
+        // (JOY1_RYAXIS_NEG/POS = gears 1/2, JOY1_RXAXIS_NEG/POS = gears 3/4).
+        m_joyAxes[joy][AXIS_RX] = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+                                                 RETRO_DEVICE_INDEX_ANALOG_RIGHT,
+                                                 RETRO_DEVICE_ID_ANALOG_X);
+        m_joyAxes[joy][AXIS_RY] = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+                                                 RETRO_DEVICE_INDEX_ANALOG_RIGHT,
+                                                 RETRO_DEVICE_ID_ANALOG_Y);
+
+        // Triggers as analog axes (0..32767). Frontends with only digital L2/R2 report 0 or
+        // 32767 here, so this is safe either way. L2 -> ZAXIS, R2 -> RZAXIS, matching how
+        // Supermodel names trigger axes elsewhere.
+        m_joyAxes[joy][AXIS_Z]  = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+                                                 RETRO_DEVICE_INDEX_ANALOG_BUTTON,
+                                                 RETRO_DEVICE_ID_JOYPAD_L2);
+        m_joyAxes[joy][AXIS_RZ] = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+                                                 RETRO_DEVICE_INDEX_ANALOG_BUTTON,
+                                                 RETRO_DEVICE_ID_JOYPAD_R2);
 
         // ----- D-Pad -----
         bool d_up    = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
@@ -200,7 +219,7 @@ bool CLibretroInputSystem::IsJoyButPressed(int joyNum, int butNum) const
 int CLibretroInputSystem::GetJoyAxisValue(int joyNum, int axisNum) const
 {
     if (joyNum < 0 || joyNum >= 2) return 0;
-    if (axisNum < 0 || axisNum >= 2) return 0;
+    if (axisNum < 0 || axisNum >= NUM_JOY_AXES) return 0;
     return m_joyAxes[joyNum][axisNum];
 }
 
@@ -374,10 +393,14 @@ const JoyDetails *CLibretroInputSystem::GetJoyDetails(int joyNum)
             std::memset(&d[i], 0, sizeof(d[i]));
             std::strncpy(d[i].name, "Libretro Joypad", MAX_NAME_LENGTH);
             d[i].numButtons = 32;
-            d[i].numAxes = 2;
+            d[i].numAxes = 6;   // left stick, right stick, and the two triggers
             d[i].numPOVs = 1;
-            d[i].hasAxis[0] = true;
-            d[i].hasAxis[1] = true;
+            d[i].hasAxis[AXIS_X]  = true;   // left stick
+            d[i].hasAxis[AXIS_Y]  = true;
+            d[i].hasAxis[AXIS_Z]  = true;   // L2
+            d[i].hasAxis[AXIS_RX] = true;   // right stick
+            d[i].hasAxis[AXIS_RY] = true;
+            d[i].hasAxis[AXIS_RZ] = true;   // R2
             d[i].hasFFeedback = true;
             for (int a = 0; a < NUM_JOY_AXES; a++)
                 d[i].axisHasFF[a] = true;

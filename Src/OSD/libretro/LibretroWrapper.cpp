@@ -769,7 +769,10 @@ int LibretroWrapper::Emulate(const char* romPath)
         else
             config4 = config3;
             
-        Util::Config::MergeINISections(&s_runtime_config, config4, cmd_line.config);  
+        Util::Config::MergeINISections(&s_runtime_config, config4, cmd_line.config);
+
+        // After the merge, so an explicit core option beats the on-disk Supermodel.ini
+        LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
     }
 
     int exitCode = 0;

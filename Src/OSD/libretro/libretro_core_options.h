@@ -120,6 +120,21 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "shoulders"
    },
    {
+      "supermodel_driving_layout",
+      "Driving Controls Layout",
+      NULL,
+      "Pad layout for driving games. Default: pedals on the D-pad, gears 1-4 on L/R/L2/R2. Both other layouts put the analog brake on L2 and the analog accelerator on R2, and differ in what the right stick does: a 4-gear gate (up/down/left/right = 1/2/3/4), or a sequential lever (up = shift up, down = shift down, which disables the 4-gear gate). L/R always shift sequentially in both. Takes effect when the game is reloaded.",
+      NULL,
+      "input",
+      {
+         { "default",      "Default (pedals on D-pad, gears on L/R/L2/R2)" },
+         { "triggers",     "Analog Triggers + 4-gear gate on right stick" },
+         { "triggers_seq", "Analog Triggers + sequential on right stick" },
+         { NULL, NULL },
+      },
+      "default"
+   },
+   {
       "supermodel_force_feedback",
       "Force Feedback",
       NULL,
@@ -292,6 +307,12 @@ void update_core_options(void)
    g_options.music_volume = atoi(option_get("supermodel_music_volume", "100"));
 
    g_options.service_on_sticks = strcmp(option_get("supermodel_service_buttons", "shoulders"), "sticks") == 0;
+   {
+      const char *layout = option_get("supermodel_driving_layout", "default");
+      g_options.driving_layout = strcmp(layout, "triggers") == 0     ? DrivingLayout::TriggersGate
+                               : strcmp(layout, "triggers_seq") == 0 ? DrivingLayout::TriggersSequential
+                               : DrivingLayout::Default;
+   }
    g_options.force_feedback = strcmp(option_get("supermodel_force_feedback", "disabled"), "enabled") == 0;
    g_options.analog_sensitivity = atoi(option_get("supermodel_analog_sensitivity", "100"));
 
