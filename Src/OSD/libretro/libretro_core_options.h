@@ -52,7 +52,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_timing_overlay",
       "Frame Timing Overlay",
       NULL,
-      "Show the per-frame timing overlay (PPC/Render/GPU/Total). Costs an extra draw pass every frame, so leave it off unless you are profiling.",
+      "Show the per-frame timing overlay (PPC/Render/GPU/Total) and log timing averages. Costs an extra draw pass every frame, so leave it off unless you are profiling.",
       NULL,
       "video",
       {

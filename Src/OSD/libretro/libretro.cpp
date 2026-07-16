@@ -548,13 +548,14 @@ void retro_run(void)
 
       if (++log_frames >= 61) {   // 61: coprime with every frameskip cycle (1..4)
          const float n = (float)log_frames;
-         log_cb(RETRO_LOG_INFO,
-                "[Timing] avg over %u frames | PPC:%4.1f  Render:%4.1f (%u drawn)  "
-                "emu+blit:%5.1f  present:%5.1f  retro_run:%5.1f  worst:%5.1f ms\n",
-                log_frames,
-                acc_ppc / n,
-                rendered ? acc_render / (float)rendered : 0.0f, rendered,
-                acc_emu / n, acc_present / n, acc_run / n, max_run);
+         if (g_options.timing_overlay)
+            log_cb(RETRO_LOG_INFO,
+                   "[Timing] avg over %u frames | PPC:%4.1f  Render:%4.1f (%u drawn)  "
+                   "emu+blit:%5.1f  present:%5.1f  retro_run:%5.1f  worst:%5.1f ms\n",
+                   log_frames,
+                   acc_ppc / n,
+                   rendered ? acc_render / (float)rendered : 0.0f, rendered,
+                   acc_emu / n, acc_present / n, acc_run / n, max_run);
          log_frames = 0; rendered = 0;
          acc_run = acc_emu = acc_present = max_run = 0.0f;
          acc_ppc = acc_render = 0;
