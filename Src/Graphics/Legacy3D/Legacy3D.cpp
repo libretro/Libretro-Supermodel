@@ -988,6 +988,13 @@ void CLegacy3D::RenderFrame(void)
   glDepthFunc(GL_LESS);
   glEnable(GL_DEPTH_TEST);
 
+  // Backface culling. Must be re-set per frame, not once at init: the libretro frontend
+  // shares our GL context and renders its own passes between frames, which leaves culling
+  // disabled. Without it back faces are drawn and win coplanar draws by pure ordering.
+  glFrontFace(GL_CW);   // polygons are uploaded w/ clockwise winding
+  glCullFace(GL_BACK);
+  glEnable(GL_CULL_FACE);
+
   // Stencil buffering
   glStencilFunc(GL_EQUAL, 0, 0xFF);       // stencil test passes if stencil buffer value is 0
   glStencilOp(GL_KEEP, GL_INCR, GL_INCR); // if the stencil test passes, increment value in stencil buffer
@@ -1305,9 +1312,8 @@ Result CLegacy3D::SetupGLObjects()
         glUniform1f(mapSizeLoc, (GLfloat)mapSize);
 
     // Additional OpenGL stuff
-    glFrontFace(GL_CW);   // polygons are uploaded w/ clockwise winding
-    glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
+    // (front face / cull face / GL_CULL_FACE are set per frame in RenderFrame(); setting
+    //  them here too would be dead state, as the frontend resets them between frames)
     glClearDepth(1.0);
     // glEnable(GL_TEXTURE_2D) was fixed-function texturing state; meaningless
     // once every draw goes through a shader, and invalid in GLES.
