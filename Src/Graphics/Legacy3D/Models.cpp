@@ -736,7 +736,12 @@ void CLegacy3D::InsertVertex(ModelCache *Cache, const Vertex *V, const Poly *P, 
   GLfloat translucence = (GLfloat) ((P->header[6]>>18)&0x1F) * (1.0f/31.0f);
   if ((P->header[6]&0x00800000))  // if set, polygon is opaque
     translucence = 1.0f;
-    
+  // ponytail: Sega Rally 2 smoke = dense overlapping RGBA4 (format 7) translucent polys whose
+  // alpha-blend accumulates into opaque cones in Legacy3D. New3D keeps them light. Cut per-poly
+  // alpha hard so the overlapping stack stays faint. Factor tuned to ~match New3D's light smoke.
+  if (texFormat == 7 && !(P->header[6] & 0x00800000) && (P->header[6] & 0x80000000))
+    translucence *= 0.2f;
+
   // Fog intensity (apparently used for both luminous and shaded polygons)
   GLfloat fogIntensity = (GLfloat) ((P->header[6]>>11)&0x1F) * (1.0f/15.0f);  // only 4 bits seem to actually be used?
 

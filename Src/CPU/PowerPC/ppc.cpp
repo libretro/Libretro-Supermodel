@@ -1183,4 +1183,9 @@ double jit_fres(double x)    { return (double)(1.0f / (float)x); }
 double jit_frsqrte(double x) { return 1.0 / sqrt(x); }
 double jit_frsp(double x)    { return (double)(float)x; }
 
+// The interpreter's FP arithmetic updates FPSCR[FPRF] (result class/sign) via set_fprf().
+// The JIT computes the correct result but omitted this flag; Daytona 2's opponent AI reads
+// it back (mffs/mcrfs) and misbehaves without it. Call after a JIT FP op stores FPR[rD].
+void jit_set_fprf(UINT32 rD) { set_fprf(FPR(rD)); }
+
 } // extern "C"

@@ -2564,6 +2564,17 @@ static bool translate_stfd(Arm64Emitter &e, uint32_t op, bool update)
     return true;
 }
 
+// Emit a call to jit_set_fprf(rD), replicating the interpreter's set_fprf() side-effect after
+// an FP *arithmetic* result is stored. Every interpreter FP arithmetic op updates FPSCR[FPRF];
+// the JIT computed the right value but omitted the flag, which broke Daytona 2's opponent AI
+// (it reads FPRF back via mffs/mcrfs). Call ONLY after ops the interpreter runs set_fprf for —
+// never after moves (fmr/fneg/fabs), compares (fcmp) or fsel, which leave FPRF untouched.
+static void emit_set_fprf(Arm64Emitter &e, int rD)
+{
+    e.MOV_W32(W0, rD);
+    emit_call(e, (uint64_t)(void *)&jit_set_fprf);
+}
+
 // ---------------------------------------------------------------------------
 // Opcode 63: floating-point double-precision arithmetic
 // ---------------------------------------------------------------------------
@@ -2575,6 +2586,17 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
     int rC  = (op >> 6)  & 0x1F;  // used by fmadd/fmsub family
     int sub = (op >> 1) & 0x3FF;
     (void)rA;  // some sub-ops don't use rA
+
+    // The A-form ops fsel/fmul/fmsub/fmadd/fnmsub/fnmadd encode frC in bits 6-10, which overlap
+    // the 10-bit `sub`. Without collapsing it, only their frC==0 forms matched and every real
+    // fmul/fmadd fell back to the interpreter. Reduce these to their 5-bit opcode so they match
+    // for any frC; the codes {23,25,28..31} collide with no X-form op in the switch below (the
+    // interpreter fills all 32 frC slots for exactly these — see optable63 in ppc.cpp).
+    {
+        int lo = sub & 0x1F;
+        if (lo == 23 || lo == 25 || (lo >= 28 && lo <= 31))
+            sub = lo;
+    }
 
     switch (sub) {
     case 72:  // fmr rD, rB  (copy FPR)
@@ -2619,6 +2641,7 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
         emit_load_fpr(e, D1, rB);
         e.FADD_D(D0, D0, D1);
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
 
     case 20:  // fsub rD, rA, rB
@@ -2626,6 +2649,7 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
         emit_load_fpr(e, D1, rB);
         e.FSUB_D(D0, D0, D1);
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
 
     case 25:  // fmul rD, rA, rC  (note: uses rC not rB!)
@@ -2633,6 +2657,7 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
         emit_load_fpr(e, D1, rC);
         e.FMUL_D(D0, D0, D1);
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
 
     case 18:  // fdiv rD, rA, rB
@@ -2640,12 +2665,14 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
         emit_load_fpr(e, D1, rB);
         e.FDIV_D(D0, D0, D1);
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
 
     case 22:  // fsqrt rD, rB
         emit_load_fpr(e, D0, rB);
         e.FSQRT_D(D0, D0);
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
 
     case 29:  // fmadd rD, rA, rC, rB  (rD = rA*rC + rB)
@@ -2654,6 +2681,7 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
         emit_load_fpr(e, D2, rB);
         e.FMADD_D(D0, D0, D1, D2);   // D0 = D2 + D0*D1 = rB + rA*rC
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
 
     case 28:  // fmsub rD, rA, rC, rB  (rD = rA*rC - rB)
@@ -2663,6 +2691,7 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
         emit_load_fpr(e, D2, rB);
         e.FNMSUB_D(D0, D0, D1, D2);  // D0*D1 - D2 = rA*rC - rB
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
 
     case 31:  // fnmadd rD, rA, rC, rB  (rD = -(rA*rC + rB))
@@ -2671,6 +2700,7 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
         emit_load_fpr(e, D2, rB);
         e.FNMADD_D(D0, D0, D1, D2);  // -(D2 + D0*D1) = -(rB + rA*rC) ✓
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
 
     case 30:  // fnmsub rD, rA, rC, rB  (rD = -(rA*rC - rB) = rB - rA*rC)
@@ -2680,6 +2710,7 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
         emit_load_fpr(e, D2, rB);
         e.FMSUB_D(D0, D0, D1, D2);   // D2 - D0*D1 = rB - rA*rC
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
 
     case 23: {// fsel frD, frA, frC, frB  (frD = frA >= 0.0 ? frC : frB; NaN → frB)
@@ -2697,6 +2728,7 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
         emit_load_fpr(e, D0, rB);
         emit_call(e, (uint64_t)(void *)&jit_frsqrte);
         emit_store_fpr(e, D0, rD);
+        emit_set_fprf(e, rD);
         return true;
     }
 
@@ -2757,9 +2789,15 @@ static bool translate_op59(Arm64Emitter &e, uint32_t op)
     int rA  = (op >> 16) & 0x1F;
     int rB  = (op >> 11) & 0x1F;
     int rC  = (op >> 6)  & 0x1F;
-    int sub = (op >> 1) & 0x3FF;
+    // Opcode 59 is entirely A-form (single-precision arithmetic); every XO fits in 5 bits and
+    // there are no X-form ops here, so mask to 5 bits. A 10-bit mask would fold the frC field
+    // into the opcode and make fmuls (and the fmadds family) fall back for any frC != 0.
+    int sub = (op >> 1) & 0x1F;
 
-#define STORE_SP(Dd, ppc_fpr) do { e.FCVT_S_D(Dd, Dd); e.FCVT_D_S(Dd, Dd); emit_store_fpr(e, Dd, ppc_fpr); } while(0)
+// Round to single precision, store, then update FPSCR[FPRF] — matches the interpreter, which
+// runs set_fprf after every single-precision arithmetic op. (op59 uses STORE_SP only for
+// arithmetic ops, so baking the FPRF update in here is correct for all of them.)
+#define STORE_SP(Dd, ppc_fpr) do { e.FCVT_S_D(Dd, Dd); e.FCVT_D_S(Dd, Dd); emit_store_fpr(e, Dd, ppc_fpr); emit_set_fprf(e, ppc_fpr); } while(0)
 
     switch (sub) {
     case 20:  // fsubs rD, rA, rB — interpreter: block-extension causes visual corruption

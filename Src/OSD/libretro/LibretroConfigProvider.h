@@ -2,6 +2,7 @@
 #include <Inputs/InputSystem.h>
 #include "Util/NewConfig.h"
 #include "LibretroWrapper.h"
+#include "CoreOptionsTypes.h"
 #include <algorithm>
 namespace LibretroConfigProvider {
      inline Util::Config::Node DefaultConfig(const std::string& gameXmlPath)
@@ -591,5 +592,54 @@ namespace LibretroConfigProvider {
         cmd_line.rom_files.emplace_back(arg);
     }
     return cmd_line;
+    }
+
+    /*
+     * Applies the driving control layout chosen in the core options.
+     *
+     * Must run on the *merged* runtime config, not in DefaultConfig(): the on-disk
+     * Supermodel.ini is merged over the defaults and carries a full set of Input* mappings,
+     * so anything DefaultConfig() sets is overwritten by the file. Does nothing on the default
+     * layout, so a hand-edited ini keeps its mappings unless a layout is explicitly chosen.
+     *
+     * Both analog layouts put the pedals on the triggers and shift sequentially with L/R;
+     * they differ in what the right stick is. It cannot be both a gate and a lever, so the
+     * sequential layout drops the 4 direct gears from the pad (keyboard keeps them). Either
+     * way the same gearbox is driven: CGearShift4Input takes the direct gears *and* up/down.
+     *
+     * The d-pad pedal source is dropped rather than kept beside the axis: CMultiInputSource
+     * (OR) answers with the first *active* source, and a digital source read as an analog one
+     * decays over several frames after release (CJoyPOVInputSource), during which it would
+     * keep overriding the trigger. Gears are switch inputs, so mixing button and axis sources
+     * there is free (CJoyAxisInputSource::GetValueAsSwitch trips past ~2/3 of travel).
+     */
+    inline void ApplyDrivingLayout(Util::Config::Node &config)
+    {
+        if (g_options.driving_layout == DrivingLayout::Default)
+            return;
+
+        config.Set<std::string>("InputAccelerator", "KEY_UP,JOY1_RZAXIS_POS");   // R2
+        config.Set<std::string>("InputBrake", "KEY_DOWN,JOY1_ZAXIS_POS");        // L2
+
+        if (g_options.driving_layout == DrivingLayout::TriggersSequential)
+        {
+            // Right stick = sequential lever; no 4-gear gate on the pad
+            config.Set<std::string>("InputGearShiftUp", "KEY_Y,JOY1_BUTTON6,JOY1_RYAXIS_NEG");
+            config.Set<std::string>("InputGearShiftDown", "KEY_H,JOY1_BUTTON5,JOY1_RYAXIS_POS");
+            config.Set<std::string>("InputGearShift1", "KEY_Q");
+            config.Set<std::string>("InputGearShift2", "KEY_W");
+            config.Set<std::string>("InputGearShift3", "KEY_E");
+            config.Set<std::string>("InputGearShift4", "KEY_R");
+        }
+        else
+        {
+            // Right stick = 4-gear gate
+            config.Set<std::string>("InputGearShiftUp", "KEY_Y,JOY1_BUTTON6");       // R
+            config.Set<std::string>("InputGearShiftDown", "KEY_H,JOY1_BUTTON5");     // L
+            config.Set<std::string>("InputGearShift1", "KEY_Q,JOY1_RYAXIS_NEG");     // stick up
+            config.Set<std::string>("InputGearShift2", "KEY_W,JOY1_RYAXIS_POS");     // stick down
+            config.Set<std::string>("InputGearShift3", "KEY_E,JOY1_RXAXIS_NEG");     // stick left
+            config.Set<std::string>("InputGearShift4", "KEY_R,JOY1_RXAXIS_POS");     // stick right
+        }
     }
 }

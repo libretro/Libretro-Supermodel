@@ -31,6 +31,7 @@ extern void      jit_write64(UINT32 addr, UINT64 data);
 extern double    jit_fres(double x);
 extern double    jit_frsqrte(double x);
 extern double    jit_frsp(double x);    // round double to single precision and back
+extern void      jit_set_fprf(UINT32 rD); // update FPSCR[FPRF] from FPR[rD] after a JIT FP op
 #ifdef __cplusplus
 }
 #endif

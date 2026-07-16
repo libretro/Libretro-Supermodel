@@ -65,6 +65,7 @@ CoreOptions g_options = {
                               false,
 #endif
    /* timing_overlay      */ false,
+   /* driving_layout      */ DrivingLayout::Default,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates
@@ -548,13 +549,14 @@ void retro_run(void)
 
       if (++log_frames >= 61) {   // 61: coprime with every frameskip cycle (1..4)
          const float n = (float)log_frames;
-         log_cb(RETRO_LOG_INFO,
-                "[Timing] avg over %u frames | PPC:%4.1f  Render:%4.1f (%u drawn)  "
-                "emu+blit:%5.1f  present:%5.1f  retro_run:%5.1f  worst:%5.1f ms\n",
-                log_frames,
-                acc_ppc / n,
-                rendered ? acc_render / (float)rendered : 0.0f, rendered,
-                acc_emu / n, acc_present / n, acc_run / n, max_run);
+         if (g_options.timing_overlay)
+            log_cb(RETRO_LOG_INFO,
+                   "[Timing] avg over %u frames | PPC:%4.1f  Render:%4.1f (%u drawn)  "
+                   "emu+blit:%5.1f  present:%5.1f  retro_run:%5.1f  worst:%5.1f ms\n",
+                   log_frames,
+                   acc_ppc / n,
+                   rendered ? acc_render / (float)rendered : 0.0f, rendered,
+                   acc_emu / n, acc_present / n, acc_run / n, max_run);
          log_frames = 0; rendered = 0;
          acc_run = acc_emu = acc_present = max_run = 0.0f;
          acc_ppc = acc_render = 0;
@@ -708,7 +710,7 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 // --- Stubs (Unused) ---
 
-void retro_reset(void) {}
+void retro_reset(void) { wrapper.Reset(); }
 bool retro_load_game_special(unsigned, const struct retro_game_info *, size_t) { return false; }
 void retro_cheat_reset(void) {}
 void retro_cheat_set(unsigned, bool, const char *) {}

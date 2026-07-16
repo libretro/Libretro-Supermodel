@@ -44,6 +44,7 @@ public:
     CRTcolor getCRTColors() const { return CRTcolors; }
     Game getGame() const { return game; }
     IEmulator* getEmulator() const { return Model3; }
+    void Reset();   // hard reset of the emulated machine (retro_reset)
     FrameTimings GetTimings() const;
     std::shared_ptr<CInputSystem> getInputSystem() const { return m_inputSystem; }
     retro_hw_render_callback getHwRender() const { return hw_render; }

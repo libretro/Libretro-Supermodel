@@ -548,10 +548,7 @@ int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
     }
     else if (Inputs->uiReset->Pressed())
     {
-      if (!paused) Model3->PauseThreads();
-      Model3->Reset();
-      if (!paused) Model3->ResumeThreads();
-      puts("Model 3 reset.");
+      Reset();
     }
     else if (Inputs->uiPause->Pressed())
     {
@@ -712,6 +709,18 @@ Result LibretroWrapper::ConfigureInputs(CInputs *Inputs, Util::Config::Node *fil
   return Result::OKAY;
 }
 
+// Same sequence as the uiReset hotkey handler: the render/sound threads must be parked
+// while the machine is reset, or they keep touching state that Reset() is tearing down.
+void LibretroWrapper::Reset()
+{
+    if (!Model3)
+        return;
+    if (!paused) Model3->PauseThreads();
+    Model3->Reset();
+    if (!paused) Model3->ResumeThreads();
+    InfoLog("Model 3 reset.");
+}
+
 int LibretroWrapper::Emulate(const char* romPath)
 {
     WriteDefaultConfigurationFileIfNotPresent();
@@ -760,7 +769,10 @@ int LibretroWrapper::Emulate(const char* romPath)
         else
             config4 = config3;
             
-        Util::Config::MergeINISections(&s_runtime_config, config4, cmd_line.config);  
+        Util::Config::MergeINISections(&s_runtime_config, config4, cmd_line.config);
+
+        // After the merge, so an explicit core option beats the on-disk Supermodel.ini
+        LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
     }
 
     int exitCode = 0;
