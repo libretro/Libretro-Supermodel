@@ -26,6 +26,8 @@
 #include "Util/ConfigBuilders.h"
 #include "OSD/FileSystemPath.h"
 #include "GameLoader.h"
+#include "libretro_cbs.h"
+#include "vfs_ioapi.h"
 #include "Debugger/SupermodelDebugger.h"
 #if !defined(ANDROID) && !defined(CORE_GLES) || defined(USE_LEGACY3D)
 #include "Graphics/Legacy3D/Legacy3D.h"
@@ -761,6 +763,11 @@ int LibretroWrapper::Emulate(const char* romPath)
         if (rom_specified || cmd_line.print_games)
         {
             std::string xml_file = config3["GameXMLFile"].ValueAs<std::string>();
+            if (g_vfs_interface) {
+                static zlib_filefunc64_def vfs_filefunc;
+                fill_retro_vfs_filefunc64(&vfs_filefunc, g_vfs_interface);
+                GameLoader::SetZipFilefunc(&vfs_filefunc);
+            }
             GameLoader loader(xml_file);
             if (loader.Load(&game, &rom_set, *cmd_line.rom_files.begin()))
                 return 1;

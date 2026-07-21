@@ -167,6 +167,7 @@ SOURCES_CXX := $(CORE_DIR)/Src/CPU/PowerPC/PPCDisasm.cpp \
                $(CORE_DIR)/Src/OSD/libretro/CLibretroInputSystem.cpp \
                $(CORE_DIR)/Src/OSD/libretro/CLibretroOutputSystem.cpp \
                $(CORE_DIR)/Src/OSD/libretro/LibretroWrapper.cpp \
+               $(CORE_DIR)/Src/OSD/libretro/vfs_ioapi.cpp \
                $(CORE_DIR)/Src/OSD/libretro/libretro.cpp
 
 # Platform-specific OSD FileSystemPath implementation

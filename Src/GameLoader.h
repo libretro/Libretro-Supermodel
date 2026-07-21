@@ -101,6 +101,11 @@ private:
   bool LoadROMs(ROMSet *rom_set, const std::string &game_name, const ZipArchive &zip) const;
 
 public:
+  // Override the ZIP I/O backend. When set, all ZIP archives are opened via
+  // unzOpen2_64 with the provided callbacks (e.g. libretro VFS) instead of
+  // the default fopen64 backend. Pass nullptr to revert to the default.
+  static void SetZipFilefunc(const zlib_filefunc64_def *filefunc);
+
   GameLoader(const std::string &xml_file);
   bool Load(Game *game, ROMSet *rom_set, const std::string &zipfilename) const;
   const std::map<std::string, Game> &GetGames() const

@@ -9,9 +9,18 @@
 #include <cstring>
 #include <iostream>
 
+static const zlib_filefunc64_def *s_zip_filefunc = nullptr;
+
+void GameLoader::SetZipFilefunc(const zlib_filefunc64_def *filefunc)
+{
+  s_zip_filefunc = filefunc;
+}
+
 bool GameLoader::LoadZipArchive(ZipArchive *zip, const std::string &zipfilename) const
 {
-  unzFile zf = unzOpen(zipfilename.c_str());
+  unzFile zf = s_zip_filefunc
+      ? unzOpen2_64(zipfilename.c_str(), const_cast<zlib_filefunc64_def *>(s_zip_filefunc))
+      : unzOpen(zipfilename.c_str());
   if (NULL == zf)
   {
     ErrorLog("Could not open '%s'.", zipfilename.c_str());

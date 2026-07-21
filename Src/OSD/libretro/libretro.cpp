@@ -33,6 +33,7 @@ retro_log_printf_t log_cb;
 
 struct retro_hw_render_callback hw_render;
 struct retro_rumble_interface rumble;
+struct retro_vfs_interface *g_vfs_interface = nullptr;
 static LibretroWrapper wrapper = LibretroWrapper();
 
 // GPU timer queries (double-buffered: write slot N, read slot N-1)
@@ -138,6 +139,11 @@ void retro_init(void)
 
    bool can_dupe = true;
    environ_cb(RETRO_ENVIRONMENT_GET_CAN_DUPE, &can_dupe);
+
+   // 3. Negotiate VFS — must happen before retro_load_game
+   struct retro_vfs_interface_info vfs_info = { 1, nullptr };
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &vfs_info))
+       g_vfs_interface = vfs_info.iface;
 }
 
 void retro_deinit(void)
