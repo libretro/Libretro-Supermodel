@@ -1,0 +1,86 @@
+# DESCRIPTION: GitLab CI/CD for libRetro (NOT FOR GitLab-proper)
+
+.core-defs:
+  variables:
+    JNI_PATH: .
+    CORENAME: supermodel
+    MAKEFILE: Makefile
+
+include:
+  ################################## DESKTOPS ################################
+  # Windows 64-bit
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/windows-x64-mingw.yml'
+
+  # Linux 64-bit
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/linux-x64.yml'
+
+  # Linux ARM64 (cross-compile; covers RPi4/5 via GLES3 + ARM64 JIT)
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/linux-aarch64.yml'
+
+  # macOS 64-bit
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/osx-x64.yml'
+
+  # macOS ARM 64-bit
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/osx-arm64.yml'
+
+  ################################## CELLULAR ################################
+  # Android (plain Makefile, not JNI)
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/android-make.yml'
+
+################################### DESKTOPS #################################
+# Linux 64-bit
+libretro-build-linux-x64:
+  extends:
+    - .libretro-linux-x64-make-default
+    - .core-defs
+
+# Linux ARM64 — uses platform=rpi64 to enable GLES3 + ARM64 JIT dynarec
+libretro-build-linux-aarch64:
+  extends:
+    - .libretro-linux-aarch64-make-default
+    - .core-defs
+  variables:
+    platform: rpi64
+
+# Windows 64-bit
+libretro-build-windows-x64:
+  extends:
+    - .libretro-windows-x64-mingw-make-default
+    - .core-defs
+
+# macOS 64-bit
+libretro-build-osx-x64:
+  extends:
+    - .libretro-osx-x64-make-default
+    - .core-defs
+
+# macOS ARM 64-bit
+libretro-build-osx-arm64:
+  extends:
+    - .libretro-osx-arm64-make-default
+    - .core-defs
+
+################################### CELLULAR #################################
+# Android ARMv7a
+android-armeabi-v7a:
+  extends:
+    - .libretro-android-make-armeabi-v7a
+    - .core-defs
+
+# Android ARMv8a (ARM64 + JIT dynarec)
+android-arm64-v8a:
+  extends:
+    - .libretro-android-make-arm64-v8a
+    - .core-defs
+
+# Android x86_64
+android-x86_64:
+  extends:
+    - .libretro-android-make-x86_64
+    - .core-defs

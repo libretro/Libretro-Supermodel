@@ -249,38 +249,46 @@ endif
 
 # ============ macOS / osxcross ============
 ifeq ($(platform),osx)
-    OSXCROSS_ROOT ?= /opt/osxcross
-    OSXCROSS_PATH := $(OSXCROSS_ROOT)/target/bin
-    
-    # Verify osxcross is installed
-    ifeq ($(wildcard $(OSXCROSS_PATH)/o64-clang++),)
-        $(error osxcross not found at $(OSXCROSS_ROOT). Please install with: cd /tmp && git clone https://github.com/tpoechtrager/osxcross.git && cd osxcross && wget -nc https://github.com/rtrussell/osxcross-build/releases/download/12.0/MacOSX12.0.sdk.tar.xz -O tarballs/MacOSX12.0.sdk.tar.xz && ./build.sh)
-    endif
-    
-    # Prepend osxcross bin to PATH so linker can find dependencies
-    export PATH := $(OSXCROSS_PATH):$(PATH)
-    
-    # Force osxcross compiler (override shell env)
-    override CC := o64-clang
-    override CXX := o64-clang++
-    override LD := o64-clang++
-    
     TARGET := $(TARGET_NAME)_libretro.dylib
     LDFLAGS += -dynamiclib -fPIC
     CFLAGS += -fPIC
     CXXFLAGS += -fPIC
-    ARCHFLAGS := -arch x86_64 -arch arm64
-    CFLAGS += $(ARCHFLAGS)
-    CXXFLAGS += $(ARCHFLAGS)
-    LDFLAGS += $(ARCHFLAGS)
-    
-    MACOSX_SDK ?= /opt/osxcross/target/SDK/MacOSX12.0.sdk
-    CFLAGS += -isysroot $(MACOSX_SDK)
-    CXXFLAGS += -isysroot $(MACOSX_SDK)
-    LDFLAGS += -isysroot $(MACOSX_SDK)
-    
-    LDFLAGS += -static-libstdc++
     LIBS += -lm -framework OpenGL -framework CoreFoundation -lz
+
+    ifeq ($(system_platform),osx)
+        # Native macOS build (CI macOS runner or local Mac developer build).
+        # Build for the host arch so the CI x64 job → x86_64, arm64 job → arm64.
+        NATIVE_ARCH := $(shell uname -m)
+        ARCHFLAGS := -arch $(NATIVE_ARCH)
+        CFLAGS += $(ARCHFLAGS)
+        CXXFLAGS += $(ARCHFLAGS)
+        LDFLAGS += $(ARCHFLAGS)
+    else
+        # Cross-compile from Linux via osxcross (universal x86_64 + arm64 dylib).
+        OSXCROSS_ROOT ?= /opt/osxcross
+        OSXCROSS_PATH := $(OSXCROSS_ROOT)/target/bin
+
+        ifeq ($(wildcard $(OSXCROSS_PATH)/o64-clang++),)
+            $(error osxcross not found at $(OSXCROSS_ROOT). Install: cd /tmp && git clone https://github.com/tpoechtrager/osxcross.git && cd osxcross && wget -nc https://github.com/rtrussell/osxcross-build/releases/download/12.0/MacOSX12.0.sdk.tar.xz -O tarballs/MacOSX12.0.sdk.tar.xz && ./build.sh)
+        endif
+
+        export PATH := $(OSXCROSS_PATH):$(PATH)
+        override CC  := o64-clang
+        override CXX := o64-clang++
+        override LD  := o64-clang++
+
+        ARCHFLAGS := -arch x86_64 -arch arm64
+        CFLAGS  += $(ARCHFLAGS)
+        CXXFLAGS += $(ARCHFLAGS)
+        LDFLAGS += $(ARCHFLAGS)
+
+        MACOSX_SDK ?= /opt/osxcross/target/SDK/MacOSX12.0.sdk
+        CFLAGS   += -isysroot $(MACOSX_SDK)
+        CXXFLAGS += -isysroot $(MACOSX_SDK)
+        LDFLAGS  += -isysroot $(MACOSX_SDK)
+
+        LDFLAGS += -static-libstdc++
+    endif
 endif
 
 # ============ ANDROID ============
