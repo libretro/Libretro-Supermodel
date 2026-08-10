@@ -536,7 +536,13 @@ void retro_run(void)
          g_nvram_initialized = import_native_nvram(native_nvram_path) &&
                unserialize_nvram("native .nv file", false);
          if (!g_nvram_initialized)
+         {
             memset(g_nvram_buffer, 0, sizeof(g_nvram_buffer));
+            log_cb(RETRO_LOG_WARN,
+                   "[Supermodel] Native .nv is invalid; ignoring it and initializing new .srm save RAM\n");
+            g_nvram_initialized = true;
+            serialize_nvram();
+         }
       }
       else
       {

@@ -36,7 +36,8 @@ NVRAM is normally persisted by the frontend as `<content>.srm`. To import a
 standalone Supermodel save, place `<rom-set>.nv` directly in the frontend save
 directory. The core reads `.nv` only when no `.srm` data was supplied. If both
 are present, `.srm` takes precedence and the ignored `.nv` path is reported in
-the log. The core never writes or overwrites the native `.nv` file.
+the log. An invalid `.nv` is ignored and replaced by default machine settings
+in a new `.srm`. The core never writes or overwrites the native `.nv` file.
 
 ## 🛠 Build Instructions
 
