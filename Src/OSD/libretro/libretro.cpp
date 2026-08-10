@@ -3,6 +3,7 @@
 #include <chrono>
 #include <rthreads/rthreads.h>
 #include <streams/file_stream.h>
+#include <file/file_path.h>
 #include <string/stdstring.h>
 #include <vector>
 #include <stdarg.h>
@@ -79,6 +80,7 @@ static constexpr const char* NVRAM_HEADER_BLOCK = "Supermodel NVRAM State";
 // Optimization: Cache save state size
 static size_t g_cached_serialize_size = 0;
 static bool g_first_run = true;
+static bool g_nvram_initialized = false;
 static int g_skip_counter = 0;
 
 static void serialize_nvram(void)
@@ -95,7 +97,7 @@ static void serialize_nvram(void)
    memFile.Finish();
 }
 
-static bool unserialize_nvram(void)
+static bool unserialize_nvram(const char* source, bool allow_legacy_layout)
 {
    CBlockFileMemory memFile(g_nvram_buffer, NVRAM_BUFFER_SIZE);
 
@@ -108,22 +110,68 @@ static bool unserialize_nvram(void)
       if (memFile.Read(&fileVersion, sizeof(fileVersion)) != sizeof(fileVersion) ||
           fileVersion != NVRAM_FILE_VERSION)
       {
-         log_cb(RETRO_LOG_ERROR, "[Supermodel] Incompatible NVRAM format in .srm file\n");
+         log_cb(RETRO_LOG_ERROR, "[Supermodel] Incompatible NVRAM format in %s\n", source);
          return false;
       }
-      log_cb(RETRO_LOG_INFO, "[Supermodel] Standalone-compatible NVRAM container found\n");
+      log_cb(RETRO_LOG_INFO, "[Supermodel] Standalone-compatible NVRAM container found in %s\n", source);
    }
-   else if (memFile.FindBlock("93C46") == Result::OKAY)
+   else if (allow_legacy_layout && memFile.FindBlock("93C46") == Result::OKAY)
    {
-      log_cb(RETRO_LOG_INFO, "[Supermodel] Legacy Libretro NVRAM container found\n");
+      log_cb(RETRO_LOG_INFO, "[Supermodel] Legacy Libretro NVRAM container found in %s\n", source);
    }
    else
    {
-      log_cb(RETRO_LOG_ERROR, "[Supermodel] Invalid NVRAM container in .srm file\n");
+      log_cb(RETRO_LOG_ERROR, "[Supermodel] Invalid NVRAM container in %s\n", source);
       return false;
    }
 
    wrapper.getEmulator()->LoadNVRAM(&memFile);
+   return true;
+}
+
+static void build_native_nvram_path(char* path, size_t path_size)
+{
+   char filename[1024];
+   snprintf(filename, sizeof(filename), "%s.nv", wrapper.getGame().name.c_str());
+   fill_pathname_join(path, retro_save_directory, filename, path_size);
+}
+
+static bool native_nvram_exists(char* path, size_t path_size)
+{
+   build_native_nvram_path(path, path_size);
+   RFILE* file = filestream_open(path, RETRO_VFS_FILE_ACCESS_READ, 0);
+   if (!file)
+      return false;
+   filestream_close(file);
+   return true;
+}
+
+static bool import_native_nvram(const char* path)
+{
+   RFILE* file = filestream_open(path, RETRO_VFS_FILE_ACCESS_READ, 0);
+   if (!file)
+      return false;
+
+   const int64_t size = filestream_get_size(file);
+   if (size <= 0 || size > static_cast<int64_t>(sizeof(g_nvram_buffer)))
+   {
+      log_cb(RETRO_LOG_ERROR,
+             "[Supermodel] Native NVRAM has invalid size (%lld bytes): %s\n",
+             static_cast<long long>(size), path);
+      filestream_close(file);
+      return false;
+   }
+
+   memset(g_nvram_buffer, 0, sizeof(g_nvram_buffer));
+   const int64_t bytes_read = filestream_read(file, g_nvram_buffer, size);
+   filestream_close(file);
+   if (bytes_read != size)
+   {
+      memset(g_nvram_buffer, 0, sizeof(g_nvram_buffer));
+      log_cb(RETRO_LOG_ERROR, "[Supermodel] Unable to read native NVRAM: %s\n", path);
+      return false;
+   }
+
    return true;
 }
 
@@ -298,6 +346,7 @@ bool retro_load_game(const struct retro_game_info *info)
    memset(g_nvram_buffer, 0, sizeof(g_nvram_buffer));
    g_cached_serialize_size = 0;
    g_first_run = true;
+   g_nvram_initialized = false;
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
@@ -369,7 +418,7 @@ bool retro_load_game(const struct retro_game_info *info)
 void retro_unload_game(void)
 {
    // Save NVRAM to buffer before shutdown (RetroArch will write it to .srm)
-   if (wrapper.getEmulator() != nullptr)
+   if (g_nvram_initialized && wrapper.getEmulator() != nullptr)
    {
        log_cb(RETRO_LOG_INFO, "[Supermodel] Saving NVRAM to .srm file\n");
        
@@ -379,6 +428,7 @@ void retro_unload_game(void)
    wrapper.ShutDownSupermodel();
    g_cached_serialize_size = 0;
    g_first_run = true;
+   g_nvram_initialized = false;
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
@@ -464,15 +514,34 @@ void retro_run(void)
       for (int i = 0; i < 16 && !has_nvram; i++)
          has_nvram = (g_nvram_buffer[i] != 0);
         
+      char native_nvram_path[4096];
+      const bool has_native_nvram = native_nvram_exists(
+            native_nvram_path, sizeof(native_nvram_path));
+
       if (has_nvram)
       {
-         log_cb(RETRO_LOG_INFO, "[Supermodel] Loading NVRAM from .srm file\n");
-            
-         unserialize_nvram();
+         log_cb(RETRO_LOG_INFO, "[Supermodel] Loading NVRAM from frontend .srm save RAM\n");
+         if (has_native_nvram)
+            log_cb(RETRO_LOG_WARN,
+                   "[Supermodel] Both .srm save RAM and native .nv found; using .srm and ignoring %s\n",
+                   native_nvram_path);
+
+         g_nvram_initialized = unserialize_nvram("frontend .srm save RAM", true);
+      }
+      else if (has_native_nvram)
+      {
+         log_cb(RETRO_LOG_INFO,
+                "[Supermodel] No frontend .srm data; importing native NVRAM from %s\n",
+                native_nvram_path);
+         g_nvram_initialized = import_native_nvram(native_nvram_path) &&
+               unserialize_nvram("native .nv file", false);
+         if (!g_nvram_initialized)
+            memset(g_nvram_buffer, 0, sizeof(g_nvram_buffer));
       }
       else
       {
          log_cb(RETRO_LOG_INFO, "[Supermodel] No NVRAM data found, using defaults\n");
+         g_nvram_initialized = true;
       }
    }
 
@@ -800,8 +869,9 @@ void* retro_get_memory_data(unsigned id)
 {
     if (id == RETRO_MEMORY_SAVE_RAM)
     {
-        // Serialize NVRAM to buffer on every access
-        if (wrapper.getEmulator() != nullptr)
+        // Before the first frame the frontend may be about to populate this
+        // buffer from .srm. Only export emulator state after initial import.
+        if (g_nvram_initialized && wrapper.getEmulator() != nullptr)
         {
             serialize_nvram();
         }
