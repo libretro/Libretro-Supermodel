@@ -15,7 +15,7 @@ size_t CBlockFileCounter::GetSize() const
     return m_size;
 }
 
-void CBlockFileCounter::Write(const void* data, uint32_t numBytes)
+void CBlockFileCounter::Write(const void* /*data*/, uint32_t numBytes)
 {
     m_size += numBytes;
 }
@@ -31,11 +31,6 @@ void CBlockFileCounter::Write(const std::string& str)
     m_size += str.size() + 1;
 }
 
-
-    // Read stubs for the counter
-unsigned Read(void *data, uint32_t numBytes)  { return 0; }
-unsigned Read(bool *value)  { return 0; }
-
 // ==============================
 // CBlockFileMemory
 // ==============================
@@ -44,6 +39,7 @@ CBlockFileMemory::CBlockFileMemory(void* data, size_t size)
     : m_ptr(static_cast<uint8_t*>(data))
     , m_offset(0)
     , m_capacity(size)
+    , m_currentBlockHeaderPos(0)
 {
 }
 
@@ -60,10 +56,21 @@ Result CBlockFileMemory::FindBlock(const std::string &name)
         std::memcpy(&nameLen, m_ptr + searchOffset, 4);          searchOffset += 4;
         std::memcpy(&commentLen, m_ptr + searchOffset, 4);       searchOffset += 4;
 
-        if (nameLen == 0 || nameLen > 2048 || searchOffset + nameLen > m_capacity)
+        if (totalBlockLength < 12 || totalBlockLength > m_capacity - blockStart)
             break;
 
-        std::string blockName(reinterpret_cast<char*>(m_ptr + searchOffset));
+        if (nameLen == 0 || nameLen > 1025 || commentLen == 0 || commentLen > 1025)
+            break;
+
+        const size_t headerStringsLength = static_cast<size_t>(nameLen) + commentLen;
+        if (headerStringsLength > totalBlockLength - 12 ||
+            headerStringsLength > m_capacity - searchOffset)
+            break;
+
+        const char* blockNameData = reinterpret_cast<const char*>(m_ptr + searchOffset);
+        if (blockNameData[nameLen - 1] != '\0')
+            break;
+        std::string blockName(blockNameData, nameLen - 1);
         
         // Is this our block?
         if (blockName == name)
@@ -74,17 +81,8 @@ Result CBlockFileMemory::FindBlock(const std::string &name)
             return Result::OKAY;
         }
 
-        // If not, we MUST skip to the next block correctly.
-        // Supermodel blocks are self-describing.
-        if (totalBlockLength > 0)
-            searchOffset = blockStart + totalBlockLength;
-        else {
-            // If totalBlockLength is 0 (which our Save currently writes), 
-            // we have a problem: we don't know where the data ends.
-            // But wait—Supermodel only writes ONE block usually! 
-            // If there are multiple, we MUST fix the Save to write the length.
-            break; 
-        }
+        // If not, skip to the next self-describing block.
+        searchOffset = blockStart + totalBlockLength;
     }
     return Result::FAIL;
 }
@@ -115,7 +113,10 @@ void CBlockFileCounter::NewBlock(const std::string& name, const std::string& com
 
 // --- READING (Crucial for retro_unserialize) ---
 unsigned CBlockFileMemory::Read(void *data, uint32_t numBytes)  {
-    if (m_offset + numBytes > m_capacity) numBytes = m_capacity - m_offset;
+    if (m_offset >= m_capacity)
+        return 0;
+    if (numBytes > m_capacity - m_offset)
+        numBytes = static_cast<uint32_t>(m_capacity - m_offset);
     std::memcpy(data, m_ptr + m_offset, numBytes);
     m_offset += numBytes;
     return numBytes;

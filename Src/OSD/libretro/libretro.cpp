@@ -74,10 +74,58 @@ static unsigned last_width = 0;
 static unsigned last_height = 0;
 #define NVRAM_BUFFER_SIZE (0x20000 + 2048) 
 static uint8_t g_nvram_buffer[NVRAM_BUFFER_SIZE];
+static constexpr int32_t NVRAM_FILE_VERSION = 0;
+static constexpr const char* NVRAM_HEADER_BLOCK = "Supermodel NVRAM State";
 // Optimization: Cache save state size
 static size_t g_cached_serialize_size = 0;
 static bool g_first_run = true;
 static int g_skip_counter = 0;
+
+static void serialize_nvram(void)
+{
+   if (wrapper.getEmulator() == nullptr)
+      return;
+
+   memset(g_nvram_buffer, 0, sizeof(g_nvram_buffer));
+   CBlockFileMemory memFile(g_nvram_buffer, NVRAM_BUFFER_SIZE);
+   memFile.NewBlock(NVRAM_HEADER_BLOCK, "Supermodel Version " SUPERMODEL_VERSION);
+   memFile.Write(&NVRAM_FILE_VERSION, sizeof(NVRAM_FILE_VERSION));
+   memFile.Write(wrapper.getGame().name);
+   wrapper.getEmulator()->SaveNVRAM(&memFile);
+   memFile.Finish();
+}
+
+static bool unserialize_nvram(void)
+{
+   CBlockFileMemory memFile(g_nvram_buffer, NVRAM_BUFFER_SIZE);
+
+   // Current .srm files preserve the standalone .nv container. Accept the
+   // older Libretro-only layout too, which began directly with the 93C46
+   // block, so existing users do not lose their machine settings.
+   if (memFile.FindBlock(NVRAM_HEADER_BLOCK) == Result::OKAY)
+   {
+      int32_t fileVersion = -1;
+      if (memFile.Read(&fileVersion, sizeof(fileVersion)) != sizeof(fileVersion) ||
+          fileVersion != NVRAM_FILE_VERSION)
+      {
+         log_cb(RETRO_LOG_ERROR, "[Supermodel] Incompatible NVRAM format in .srm file\n");
+         return false;
+      }
+      log_cb(RETRO_LOG_INFO, "[Supermodel] Standalone-compatible NVRAM container found\n");
+   }
+   else if (memFile.FindBlock("93C46") == Result::OKAY)
+   {
+      log_cb(RETRO_LOG_INFO, "[Supermodel] Legacy Libretro NVRAM container found\n");
+   }
+   else
+   {
+      log_cb(RETRO_LOG_ERROR, "[Supermodel] Invalid NVRAM container in .srm file\n");
+      return false;
+   }
+
+   wrapper.getEmulator()->LoadNVRAM(&memFile);
+   return true;
+}
 
 // PGO: defined only in -fprofile-generate builds (weak, so a normal build links
 // fine and these are no-ops). RetroArch can tear the core down without running
@@ -325,9 +373,7 @@ void retro_unload_game(void)
    {
        log_cb(RETRO_LOG_INFO, "[Supermodel] Saving NVRAM to .srm file\n");
        
-       CBlockFileMemory memFile(g_nvram_buffer, NVRAM_BUFFER_SIZE);
-       wrapper.getEmulator()->SaveNVRAM(&memFile);
-       memFile.Finish();
+       serialize_nvram();
    }
    
    wrapper.ShutDownSupermodel();
@@ -422,8 +468,7 @@ void retro_run(void)
       {
          log_cb(RETRO_LOG_INFO, "[Supermodel] Loading NVRAM from .srm file\n");
             
-         CBlockFileMemory memFile(g_nvram_buffer, NVRAM_BUFFER_SIZE);
-         wrapper.getEmulator()->LoadNVRAM(&memFile);
+         unserialize_nvram();
       }
       else
       {
@@ -758,9 +803,7 @@ void* retro_get_memory_data(unsigned id)
         // Serialize NVRAM to buffer on every access
         if (wrapper.getEmulator() != nullptr)
         {
-            CBlockFileMemory memFile(g_nvram_buffer, NVRAM_BUFFER_SIZE);
-            wrapper.getEmulator()->SaveNVRAM(&memFile);
-            memFile.Finish();
+            serialize_nvram();
         }
         return g_nvram_buffer;
     }
