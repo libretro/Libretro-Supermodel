@@ -82,6 +82,11 @@ Result R3DFrameBuffers::CreateFBODepthCopy(int width, int height)
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH32F_STENCIL8, width, height);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderBufferIDCopy);
 
+	// This framebuffer intentionally has no colour attachment. In a core
+	// profile its draw/read buffers must therefore be disabled while checking
+	// completeness.
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
 	auto copyStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
 	// Trans2 FBO — shares the copy depth so SetFBO(trans2) needs no RestoreDepth blit
@@ -89,6 +94,8 @@ Result R3DFrameBuffers::CreateFBODepthCopy(int width, int height)
 	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferIDTrans2);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texIDs[2], 0);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderBufferIDCopy);
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
 
 	auto trans2Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
