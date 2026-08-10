@@ -1021,13 +1021,13 @@ void set_input_descriptors(bool service_on_sticks)
 
       // Player 1 - Shoulder buttons (role depends on mapping option)
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,
-            service_on_sticks ? "Gear Shift 1" : "Service (Test Menu)" },
+            service_on_sticks ? "Gear Shift Down" : "Service (Test Menu)" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,
-            service_on_sticks ? "Gear Shift 2" : "Test Button" },
+            service_on_sticks ? "Gear Shift Up" : "Test Button" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,
-            service_on_sticks ? "Gear Shift 3" : "Service 2" },
+            service_on_sticks ? "Brake" : "Service 2" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,
-            service_on_sticks ? "Gear Shift 4" : "Test Button 2" },
+            service_on_sticks ? "Accelerator" : "Test Button 2" },
 
       // Player 1 - Stick clicks (role depends on mapping option)
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,
@@ -1037,8 +1037,9 @@ void set_input_descriptors(bool service_on_sticks)
 
       // Player 1 - Analog
       { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_X, "Steering / Move X" },
-      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_Y, "Accelerator / Move Y" },
-      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X, "Brake" },
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_Y, "Move Y" },
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X, "Right Stick X / Gear Gate" },
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y, "Right Stick Y / Gear Shift" },
 
       // Player 2 - D-Pad
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "P2 D-Pad Left" },

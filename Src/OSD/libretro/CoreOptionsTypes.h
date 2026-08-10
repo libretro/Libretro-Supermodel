@@ -1,12 +1,12 @@
 #ifndef SUPERMODEL_CORE_OPTIONS_TYPES_H
 #define SUPERMODEL_CORE_OPTIONS_TYPES_H
 
-// Pad layout for driving games. The two analog layouts differ only in what the right stick
-// does: a gate shifter (4 gears) or a sequential lever (up/down). It cannot be both.
+// Pad layout for driving games. L/R always shift sequentially and L2/R2 are the pedals.
+// The optional layouts only decide whether the right stick also acts as a shifter.
 enum class DrivingLayout {
-   Default,            // pedals on the d-pad, gears 1-4 on L/R/L2/R2
-   TriggersGate,       // pedals on the triggers, gears 1-4 on the right stick
-   TriggersSequential  // pedals on the triggers, sequential shift on the right stick
+   Default,            // right stick free
+   TriggersGate,       // gears 1-4 on the right stick
+   TriggersSequential  // sequential shift on the right stick
 };
 
 struct CoreOptions {
