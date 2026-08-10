@@ -24,11 +24,13 @@ A modernized fork of the Sega Model 3 (Supermodel) Libretro core, optimized for 
 To run the core, you must place the emulator's configuration files in your RetroArch system directory. The core follows standard Libretro conventions and will look for assets in the following location:
 
 * **Path:** `[RetroArch System Directory]/supermodel/Config/`
-* **Required Files:**
-    * `Games.xml`
-    * `Supermodel.ini`
+* **Files:**
+    * `Games.xml` is required to identify ROM sets.
+    * `Music.xml` is optional and enables the corresponding music metadata.
+    * `Supermodel.ini` is generated from the built-in defaults when the
+      directory exists and the file is absent; an existing file is preserved.
 
-*Note: If these files are missing, the core will fail to initialize the game list and settings.*
+*Note: Without `Games.xml`, the core cannot identify or load a game.*
 
 ## 🛠 Build Instructions
 

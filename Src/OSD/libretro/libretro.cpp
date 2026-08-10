@@ -173,8 +173,9 @@ void retro_get_system_info(struct retro_system_info *info)
    info->library_name     = "Supermodel";
    info->library_version  = "v0.3a-libretro";
    info->need_fullpath    = true;
-   // Explicitly removed 7z to avoid user confusion until solid archives are supported
-   info->valid_extensions = "zip|chd"; 
+   // GameLoader currently opens MAME-style ZIP sets. Do not advertise CHD or
+   // 7z until the content path can actually consume those formats.
+   info->valid_extensions = "zip";
    info->block_extract    = true;
 }
 
