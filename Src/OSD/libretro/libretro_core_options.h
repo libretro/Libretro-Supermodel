@@ -133,11 +133,11 @@ static struct retro_core_option_v2_definition option_defs[] = {
       NULL,
       "input",
       {
-         { "shoulders", "L/R + L2/R2 (Shoulders)" },
          { "sticks",    "L3/R3 (Stick Click)" },
+         { "shoulders", "L/R + L2/R2 (Shoulders)" },
          { NULL, NULL },
       },
-      "shoulders"
+      "sticks"
    },
    {
       "supermodel_driving_layout",
@@ -365,7 +365,7 @@ void update_core_options(void)
    g_options.sound_volume = atoi(option_get("supermodel_sound_volume", "100"));
    g_options.music_volume = atoi(option_get("supermodel_music_volume", "100"));
 
-   g_options.service_on_sticks = strcmp(option_get("supermodel_service_buttons", "shoulders"), "sticks") == 0;
+   g_options.service_on_sticks = strcmp(option_get("supermodel_service_buttons", "sticks"), "sticks") == 0;
    {
       const char *layout = option_get("supermodel_driving_layout", "default");
       g_options.driving_layout = strcmp(layout, "triggers") == 0     ? DrivingLayout::TriggersGate

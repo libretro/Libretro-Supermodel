@@ -39,6 +39,7 @@ struct retro_hw_render_callback hw_render;
 struct retro_rumble_interface rumble;
 struct retro_vfs_interface *g_vfs_interface = nullptr;
 static LibretroWrapper wrapper = LibretroWrapper();
+void set_input_descriptors(bool service_on_sticks);
 
 // GPU timer queries (double-buffered: write slot N, read slot N-1)
 static GLuint s_gpuQuery[2]  = {0, 0};
@@ -60,7 +61,7 @@ CoreOptions g_options = {
    /* analog_sensitivity   */ 100,
    /* sound_volume         */ 100,
    /* music_volume         */ 100,
-   /* service_on_sticks    */ false,
+   /* service_on_sticks    */ true,
    /* ppc_frequency        */ 0,
    /* frameskip            */ 0,
    /* sound_enable         */ true,
@@ -550,7 +551,10 @@ void retro_run(void)
       }
 
       if (g_options.service_on_sticks != old_service_on_sticks)
+      {
          wrapper.SetServiceOnSticks(g_options.service_on_sticks);
+         set_input_descriptors(g_options.service_on_sticks);
+      }
 
       if (g_options.sound_enable != old_sound_enable)
       {
