@@ -85,7 +85,7 @@ private:
     uint64_t m_lastFrameTime = 0;
     float m_currentFPS = 57.53f;
     static const char* s_outputNames[];
-    struct retro_hw_render_callback hw_render;
+    struct retro_hw_render_callback hw_render{};
     unsigned  xOffset, yOffset;                                         // offset of renderer output within OpenGL viewport
     unsigned  xRes, yRes;                                               // renderer output resolution (can be smaller than GL viewport)
     unsigned  totalXRes, totalYRes;                                     // total resolution (the whole GL viewport)
@@ -94,11 +94,11 @@ private:
 
     Game game;
     ROMSet rom_set;
-    IEmulator *Model3;
-    COutputs *Outputs;
-    SuperAA* superAA;
-    CRender2D *Render2D;
-    IRender3D *Render3D;
+    IEmulator *Model3 = nullptr;
+    COutputs *Outputs = nullptr;
+    SuperAA* superAA = nullptr;
+    CRender2D *Render2D = nullptr;
+    IRender3D *Render3D = nullptr;
     std::string initialState;
     uint64_t    prevFPSTicks;
     unsigned    fpsFramesElapsed;

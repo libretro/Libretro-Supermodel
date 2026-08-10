@@ -668,18 +668,55 @@ QuitError:
 
 void LibretroWrapper::ShutDownSupermodel()
 {
-  Model3->PauseThreads();
-  
+  if (Model3)
+    Model3->PauseThreads();
+
   // NOTE: NVRAM is now saved by retro_unload_game() to the libretro buffer
   // Don't call SaveNVRAM() here - it would save to a file, which we don't want
-  
+
   CloseAudio();
 
+  delete Model3;
+  Model3 = nullptr;
+
+  delete Inputs;
+  Inputs = nullptr;
+
+  delete Outputs;
+  Outputs = nullptr;
+
+  m_inputSystem.reset();
+  videoInputs = nullptr;
+  currentInputs = 0;
+
   delete Render2D;
+  Render2D = nullptr;
   delete Render3D;
+  Render3D = nullptr;
   delete superAA;
+  superAA = nullptr;
+
+  if (m_libretrFBO)
+  {
+    glDeleteFramebuffers(1, &m_libretrFBO);
+    m_libretrFBO = 0;
+  }
+  if (m_libretrTex)
+  {
+    glDeleteTextures(1, &m_libretrTex);
+    m_libretrTex = 0;
+  }
+  if (m_libretrDepth)
+  {
+    glDeleteRenderbuffers(1, &m_libretrDepth);
+    m_libretrDepth = 0;
+  }
+
   delete s_crosshair;
   s_crosshair = nullptr;
+
+  game = Game();
+  rom_set = ROMSet();
 }
 
 /******************************************************************************
@@ -825,45 +862,48 @@ int LibretroWrapper::Emulate(const char* romPath)
         LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
     }
 
-    int exitCode = 0;
-    IEmulator *Model3 = nullptr;
-    std::shared_ptr<CInputSystem> InputSystem;
-    Outputs = nullptr;
+    if (Model3 || Inputs || Outputs)
+    {
+        ErrorLog("A Supermodel session is already active.");
+        return 1;
+    }
 
     aaValue   = s_runtime_config["Supersampling"].ValueAs<int>();
     CRTcolors = (CRTcolor)s_runtime_config["CRTcolors"].ValueAs<int>();   // 0 = None; was never read, left indeterminate
 
-    m_inputSystem = std::make_shared<CLibretroInputSystem>();
-    InputSystem = m_inputSystem;
+    auto inputSystem = std::make_shared<CLibretroInputSystem>();
+    auto inputs = std::make_unique<CInputs>(inputSystem);
 
-    Inputs = new CInputs(m_inputSystem);
-    if (!Inputs->Initialize())
+    if (!inputs->Initialize())
     {
-      fprintf(stderr, "Failed to initialize Input System!\n");
-      return 0; 
+      ErrorLog("Failed to initialize input system.");
+      return 1;
     }
 
     // Allocate crosshair object (Initialization deferred to InitRenderers)
     if (s_crosshair) delete s_crosshair;
     s_crosshair = new CCrosshair(s_runtime_config);
 
-    Model3 = new CModel3(s_runtime_config);
-    if (ConfigureInputs(Inputs, &fileConfig, &s_runtime_config, game, cmd_line.config_inputs) != Result::OKAY)
+    auto model3 = std::make_unique<CModel3>(s_runtime_config);
+    if (ConfigureInputs(inputs.get(), &fileConfig, &s_runtime_config, game, cmd_line.config_inputs) != Result::OKAY)
     {
-        exitCode = 1;
-        goto Exit;
+        delete s_crosshair;
+        s_crosshair = nullptr;
+        return 1;
     }
 
-    if (!rom_specified) goto Exit;
+    if (!rom_specified)
+    {
+        delete s_crosshair;
+        s_crosshair = nullptr;
+        return 1;
+    }
 
     // Fire up Supermodel
-     this->rom_set = rom_set;
-     this->Model3 = Model3;
-     this->Inputs = Inputs;
-     this->Outputs = Outputs;
-
-Exit:
-    return exitCode;
+    m_inputSystem = std::move(inputSystem);
+    Model3 = model3.release();
+    Inputs = inputs.release();
+    return 0;
 }
 
 void LibretroWrapper::InitGL()

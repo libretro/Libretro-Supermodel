@@ -76,6 +76,8 @@ static unsigned last_height = 0;
 static uint8_t g_nvram_buffer[NVRAM_BUFFER_SIZE];
 // Optimization: Cache save state size
 static size_t g_cached_serialize_size = 0;
+static bool g_first_run = true;
+static int g_skip_counter = 0;
 
 // PGO: defined only in -fprofile-generate builds (weak, so a normal build links
 // fine and these are no-ops). RetroArch can tear the core down without running
@@ -235,6 +237,22 @@ void context_destroy(void)
 // --- Game Loading ---
 bool retro_load_game(const struct retro_game_info *info)
 {
+   if (!info || !info->path || !info->path[0])
+   {
+      log_cb(RETRO_LOG_ERROR, "[Supermodel] A full content path is required.\n");
+      return false;
+   }
+
+   // Reset all per-content state before the frontend loads save RAM for the
+   // new game. Without this, a second game can inherit NVRAM and cached sizes
+   // from the previous session when the core stays loaded.
+   memset(g_nvram_buffer, 0, sizeof(g_nvram_buffer));
+   g_cached_serialize_size = 0;
+   g_first_run = true;
+   g_skip_counter = 0;
+   last_width = 0;
+   last_height = 0;
+
    hw_render.context_reset   = context_reset;
    hw_render.context_destroy = context_destroy;
    hw_render.depth           = true;
@@ -283,7 +301,12 @@ bool retro_load_game(const struct retro_game_info *info)
    if (emulation != 0) return false;
    wrapper.SetWidescreen(g_options.widescreen);
    wrapper.SetServiceOnSticks(g_options.service_on_sticks);
-   wrapper.SuperModelInit(wrapper.getGame());
+   if (wrapper.SuperModelInit(wrapper.getGame()) != 0)
+   {
+      log_cb(RETRO_LOG_ERROR, "[Supermodel] Emulator initialization failed.\n");
+      wrapper.ShutDownSupermodel();
+      return false;
+   }
 
    // Re-apply FFB state after full DriveBoard initialization
    auto libretroInput2 = std::static_pointer_cast<CLibretroInputSystem>(wrapper.getInputSystem());
@@ -307,6 +330,11 @@ void retro_unload_game(void)
    }
    
    wrapper.ShutDownSupermodel();
+   g_cached_serialize_size = 0;
+   g_first_run = true;
+   g_skip_counter = 0;
+   last_width = 0;
+   last_height = 0;
    pgo_flush();   // RetroArch may never call retro_deinit before exiting
 }
 void retro_run(void)
@@ -366,7 +394,7 @@ void retro_run(void)
          libretroInput->SetFFBEnabled(g_options.force_feedback);
          
          // If we just disabled it, kill any active vibration immediately
-         if (!g_options.force_feedback) {
+         if (!g_options.force_feedback && rumble.set_rumble_state) {
             rumble.set_rumble_state(0, RETRO_RUMBLE_STRONG, 0);
             rumble.set_rumble_state(0, RETRO_RUMBLE_WEAK, 0);
          }
@@ -374,10 +402,9 @@ void retro_run(void)
    }
 
    // NVRAM Loading: Do this on first frame, AFTER RetroArch has loaded .srm
-   static bool first_run = true;
-   if (first_run)
+   if (g_first_run)
    {
-      first_run = false;
+      g_first_run = false;
 
       // Apply initial volume settings now that the emulator is fully initialized
       wrapper.SetSoundVolume(g_options.sound_volume);
@@ -410,12 +437,11 @@ void retro_run(void)
    // frameskip=1: S,R,S,R... (render 1 per 2 frames)
    // frameskip=2: S,S,R,S,S,R... (render 1 per 3 frames)
    // frameskip=3: S,S,S,R,S,S,S,R... (render 1 per 4 frames)
-   static int s_skipCounter = 0;
    bool skipRender = false;
    if (g_options.frameskip > 0)
    {
-      s_skipCounter = (s_skipCounter + 1) % (g_options.frameskip + 1);
-      skipRender = (s_skipCounter != 0);  // Render only when counter == 0
+      g_skip_counter = (g_skip_counter + 1) % (g_options.frameskip + 1);
+      skipRender = (g_skip_counter != 0);  // Render only when counter == 0
    }
 
    // Apply resolution multiplier from core options - always use NATIVE resolution as base
