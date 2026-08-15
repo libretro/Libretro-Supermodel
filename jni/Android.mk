@@ -10,6 +10,7 @@ COREFLAGS := \
     -DANDROID -D__LIBRETRO__ -DPSS_STYLE=1 \
     -D_FILE_OFFSET_BITS=64 -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE \
     -DEGL_EGLEXT_PROTOTYPES \
+    -DGLES -Dgles -DHAVE_OPENGLES=1 -DHAVE_OPENGLES3=1 -DCORE_GLES -D__glext_h_ -D__GLEXT_H_ \
     -DGIT_VERSION=\"$(GIT_VERSION)\" \
     -O3 -DNDEBUG \
     -ffunction-sections -fdata-sections \
@@ -134,22 +135,23 @@ LOCAL_MODULE := retro
 
 LOCAL_SRC_FILES := $(SOURCES_C) $(SOURCES_CXX)
 
+LOCAL_CFLAGS   := $(COREFLAGS)
+LOCAL_CXXFLAGS := $(COREFLAGS) -std=c++17
+LOCAL_LDFLAGS  := -Wl,--no-undefined -Wl,-version-script,$(CORE_DIR)/link.T
+LOCAL_LDLIBS   := -lGLESv3 -llog -lz
+
 # arm64-v8a: JIT dynarec + NEON
 ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
     LOCAL_SRC_FILES += $(CORE_DIR)/Src/CPU/PowerPC/Jit/JitArm64.cpp
-    ARCH_FLAGS := -DHAVE_PPC_JIT -DHAVE_NEON -D__ARM_NEON__
+    LOCAL_CFLAGS   += -DHAVE_PPC_JIT -DHAVE_NEON -D__ARM_NEON__
+    LOCAL_CXXFLAGS += -DHAVE_PPC_JIT -DHAVE_NEON -D__ARM_NEON__
 endif
 
 # armeabi-v7a: NEON
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
     LOCAL_ARM_NEON  := true
-    ARCH_FLAGS      := -DHAVE_NEON -D__ARM_NEON__ \
-                       -march=armv7-a -mfloat-abi=softfp -mfpu=neon
+    LOCAL_CFLAGS   += -DHAVE_NEON -D__ARM_NEON__ -march=armv7-a -mfloat-abi=softfp -mfpu=neon
+    LOCAL_CXXFLAGS += -DHAVE_NEON -D__ARM_NEON__ -march=armv7-a -mfloat-abi=softfp -mfpu=neon
 endif
-
-LOCAL_CFLAGS   := $(COREFLAGS) $(ARCH_FLAGS)
-LOCAL_CXXFLAGS := $(COREFLAGS) $(ARCH_FLAGS) -std=c++17
-LOCAL_LDFLAGS  := -Wl,--no-undefined -Wl,-version-script,$(CORE_DIR)/link.T
-LOCAL_LDLIBS   := -lGLESv3 -llog -lz
 
 include $(BUILD_SHARED_LIBRARY)
