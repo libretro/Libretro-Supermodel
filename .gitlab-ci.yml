@@ -29,9 +29,9 @@ include:
     file: '/osx-arm64.yml'
 
   ################################## CELLULAR ################################
-  # Android (plain Makefile, not JNI)
+  # Android
   - project: 'libretro-infrastructure/ci-templates'
-    file: '/android-make.yml'
+    file: '/android-jni.yml'
 
 ################################### DESKTOPS #################################
 # Linux 64-bit
@@ -70,17 +70,17 @@ libretro-build-osx-arm64:
 # Android ARMv7a
 android-armeabi-v7a:
   extends:
-    - .libretro-android-make-armeabi-v7a
+    - .libretro-android-jni-armeabi-v7a
     - .core-defs
 
 # Android ARMv8a (ARM64 + JIT dynarec)
 android-arm64-v8a:
   extends:
-    - .libretro-android-make-arm64-v8a
+    - .libretro-android-jni-arm64-v8a
     - .core-defs
 
 # Android x86_64
 android-x86_64:
   extends:
-    - .libretro-android-make-x86_64
+    - .libretro-android-jni-x86_64
     - .core-defs
