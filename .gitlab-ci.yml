@@ -46,13 +46,11 @@ libretro-build-linux-x64:
     - .libretro-linux-x64-make-default
     - .core-defs
 
-# Linux ARM64 — uses platform=rpi64 to enable GLES3 + ARM64 JIT dynarec
+# Linux ARM64
 libretro-build-linux-aarch64:
   extends:
     - .libretro-linux-aarch64-make-default
     - .core-defs
-  variables:
-    platform: rpi64
 
 # Windows 64-bit
 libretro-build-windows-x64:

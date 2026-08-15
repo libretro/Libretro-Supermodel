@@ -28,7 +28,6 @@
 #include <cstdio>
 #include <map>
 #include <memory>
-#include <filesystem>
 #include <tuple>
 
 
@@ -38,7 +37,7 @@
 
 struct CustomTrack
 {
-  std::shared_ptr<uint8_t[]> mpeg_data;
+  std::shared_ptr<uint8_t> mpeg_data;
   size_t mpeg_data_size;
   uint32_t mpeg_rom_start_offset;
   size_t file_start_offset;
@@ -51,7 +50,7 @@ struct CustomTrack
   {
   }
 
-  CustomTrack(const std::shared_ptr<uint8_t[]> &mpeg_data, size_t mpeg_data_size, uint32_t mpeg_rom_start_offset, size_t file_start_offset)
+  CustomTrack(const std::shared_ptr<uint8_t> &mpeg_data, size_t mpeg_data_size, uint32_t mpeg_rom_start_offset, size_t file_start_offset)
     : mpeg_data(mpeg_data),
       mpeg_data_size(mpeg_data_size),
       mpeg_rom_start_offset(mpeg_rom_start_offset),
@@ -62,7 +61,7 @@ struct CustomTrack
 
 struct FileContents
 {
-  std::shared_ptr<uint8_t[]> bytes;
+  std::shared_ptr<uint8_t> bytes;
   size_t size = 0;
 };
 
@@ -79,7 +78,7 @@ static FileContents LoadFile(const std::string &filepath)
   fseek(fp, 0, SEEK_END);
   long file_size = ftell(fp);
   fseek(fp, 0, SEEK_SET);
-  std::shared_ptr<uint8_t[]> mpeg_data(new uint8_t[file_size], std::default_delete<uint8_t[]>());
+  std::shared_ptr<uint8_t> mpeg_data(new uint8_t[file_size], std::default_delete<uint8_t[]>());
   fread(mpeg_data.get(), sizeof(uint8_t), file_size, fp);
   fclose(fp);
   return { mpeg_data, size_t(file_size) };
@@ -95,10 +94,14 @@ void MpegDec::LoadCustomTracks(const std::string &music_filepath, const Game &ga
     return;
   }
 
-  if (!std::filesystem::exists(music_filepath))
   {
-    // Custom music configuration file is optional
-    return;
+    FILE *cfg_fp = fopen(music_filepath.c_str(), "rb");
+    if (!cfg_fp)
+    {
+      // Custom music configuration file is optional
+      return;
+    }
+    fclose(cfg_fp);
   }
 
   Util::Config::Node xml("xml");
@@ -213,7 +216,7 @@ struct Decoder
 	int					pcmPos;
 	short				pcm[MINIMP3_MAX_SAMPLES_PER_FRAME];
 
-	std::shared_ptr<uint8_t[]>  custom_mpeg_data;
+	std::shared_ptr<uint8_t>  custom_mpeg_data;
 };
 
 static Decoder dec{};

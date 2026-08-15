@@ -81,7 +81,11 @@ static size_t g_cached_serialize_size = 0;
 // fine and these are no-ops). RetroArch can tear the core down without running
 // libgcov's destructors, which would silently drop the whole profile — so flush
 // it explicitly at the points we know are reached.
+#if defined(__APPLE__)
+extern "C" void __gcov_dump(void) __attribute__((weak_import));
+#else
 extern "C" void __gcov_dump(void) __attribute__((weak));
+#endif
 
 static void pgo_flush(void)
 {
