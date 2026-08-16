@@ -48,6 +48,9 @@
 #include "libretroGui.h"
 #include "LibretroConfigProvider.h"
 #include "CoreOptionsTypes.h"
+#include "BundledGamesXml.h"
+#include "BundledSupermodelIni.h"
+#include <file/file_path.h>
 
 // --- External Audio Hooks ---
 extern void PlayCallback(void *userdata, UINT8 *stream, int len);
@@ -161,13 +164,28 @@ FrameTimings LibretroWrapper::GetTimings() const
     return FrameTimings{};
 }
 
-void LibretroWrapper::InitializePaths(const std::string& baseConfigPath) 
+static void WriteIfMissing(const std::string& path, const unsigned char* data, unsigned int size)
+{
+    FILE* f = fopen(path.c_str(), "rb");
+    if (f) { fclose(f); return; }
+    f = fopen(path.c_str(), "wb");
+    if (!f) return;
+    fwrite(data, 1, size, f);
+    fclose(f);
+    log_cb(RETRO_LOG_INFO, "[Supermodel] Extracted bundled asset: %s\n", path.c_str());
+}
+
+void LibretroWrapper::InitializePaths(const std::string& baseConfigPath)
 {
     s_configFilePath   = baseConfigPath + "/Supermodel.ini";
     s_gameXMLFilePath  = baseConfigPath + "/Games.xml";
     s_musicXMLFilePath = baseConfigPath + "/Music.xml";
     s_logFilePath      = baseConfigPath + "/Supermodel.log";
-    s_analysisPath     = baseConfigPath + "/Analysis/"; 
+    s_analysisPath     = baseConfigPath + "/Analysis/";
+
+    path_mkdir(baseConfigPath.c_str());
+    WriteIfMissing(s_gameXMLFilePath,  bundled_games_xml,      bundled_games_xml_len);
+    WriteIfMissing(s_configFilePath,   bundled_supermodel_ini, bundled_supermodel_ini_len);
 
     std::cout << "[Supermodel] Paths remapped to: " << baseConfigPath << std::endl;
 }

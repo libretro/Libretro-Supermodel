@@ -550,9 +550,20 @@ endif
 # Build Rules
 # ============================================================
 
+BUNDLED_GAMES_XML_H  := $(CORE_DIR)/Src/OSD/libretro/BundledGamesXml.h
+BUNDLED_SUPERMODEL_H := $(CORE_DIR)/Src/OSD/libretro/BundledSupermodelIni.h
+
 .PHONY: all clean info
 $(info PLATFORM_DEFINES ARE: $(PLATFORM_DEFINES))
-all: $(TARGET)
+all: $(BUNDLED_GAMES_XML_H) $(BUNDLED_SUPERMODEL_H) $(TARGET)
+
+$(BUNDLED_GAMES_XML_H): $(CORE_DIR)/Config/Games.xml
+	xxd -i $< | sed 's/unsigned char.*\[\]/const unsigned char bundled_games_xml[]/' \
+	           | sed 's/unsigned int.*_len/const unsigned int bundled_games_xml_len/' > $@
+
+$(BUNDLED_SUPERMODEL_H): $(CORE_DIR)/Config/Supermodel.ini
+	xxd -i $< | sed 's/unsigned char.*\[\]/const unsigned char bundled_supermodel_ini[]/' \
+	           | sed 's/unsigned int.*_len/const unsigned int bundled_supermodel_ini_len/' > $@
 
 $(TARGET): $(OBJECTS)
 	@echo "Linking $(TARGET)..."
