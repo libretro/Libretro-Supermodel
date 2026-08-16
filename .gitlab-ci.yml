@@ -16,7 +16,7 @@ include:
   - project: 'libretro-infrastructure/ci-templates'
     file: '/linux-x64.yml'
 
-  # Linux ARM64 (cross-compile; covers RPi4/5 via GLES3 + ARM64 JIT)
+  # Linux ARM64 (native aarch64 runner; auto-detects linux-aarch64: GLES3 + JIT for RPi4/5)
   - project: 'libretro-infrastructure/ci-templates'
     file: '/linux-aarch64.yml'
 

@@ -24,6 +24,8 @@ ifeq ($(platform),)
         platform = osx
     else ifneq ($(findstring win,$(shell uname -a)),)
         platform = win
+    else ifeq ($(shell uname -m),aarch64)
+        platform = linux-aarch64
     endif
 endif
 
@@ -125,7 +127,7 @@ SOURCES_CXX := $(CORE_DIR)/Src/CPU/PowerPC/PPCDisasm.cpp \
                $(CORE_DIR)/Src/Model3/TileGen.cpp \
                $(CORE_DIR)/Src/Model3/Model3.cpp \
                $(CORE_DIR)/Src/CPU/PowerPC/ppc.cpp \
-               $(if $(filter android aarch64 rpi64,$(platform)),$(CORE_DIR)/Src/CPU/PowerPC/Jit/JitArm64.cpp,) \
+               $(if $(filter android aarch64 rpi64 linux-aarch64,$(platform)),$(CORE_DIR)/Src/CPU/PowerPC/Jit/JitArm64.cpp,) \
                $(CORE_DIR)/Src/Model3/SoundBoard.cpp \
                $(CORE_DIR)/Src/Sound/SCSP.cpp \
                $(CORE_DIR)/Src/Sound/SCSPDSP.cpp \
@@ -221,6 +223,13 @@ ifdef DROP_LEGACY3D
     SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
 endif
 endif
+ifeq ($(platform),linux-aarch64)
+    SOURCES_C := $(filter-out %/glsym/glsym_gl.c,$(SOURCES_C))
+    SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/glsym_es3.c
+ifdef DROP_LEGACY3D
+    SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
+endif
+endif
 
 # GIT version
 GIT_VERSION := " $(shell git rev-parse --short HEAD || echo unknown)"
@@ -247,10 +256,29 @@ ifeq ($(platform),unix)
     INCFLAGS += -I/usr/include
 endif
 
+# ============ Linux ARM64 (native — CI runner, RPi4/5, ARM64 SBCs) ============
+# Auto-selected when platform is unset and uname -m is aarch64.
+# Uses the native compiler; enables GLES3 + JIT (required for RetroArch on RPi).
+# For cross-compiling from x86 to RPi, use platform=rpi64 instead.
+ifeq ($(platform),linux-aarch64)
+    TARGET  := $(TARGET_NAME)_libretro.so
+    fpic    := -fPIC
+    SHARED  := -shared -Wl,--version-script=$(CORE_DIR)/link.T -Wl,-no-undefined
+    LDFLAGS += $(SHARED)
+    CFLAGS  += -fPIC
+    CXXFLAGS += -fPIC
+    LIBS    += -ldl -lm -lz
+
+    PLATFORM_DEFINES += -DARM -D__aarch64__ -DLSB_FIRST -DGL_GLEXT_PROTOTYPES -DHAVE_PPC_JIT
+    PLATFORM_DEFINES += -DGLES -Dgles -DHAVE_OPENGLES=1 -DHAVE_OPENGLES3=1 -DCORE_GLES -D__glext_h_ -D__GLEXT_H_
+
+    CXXFLAGS += -std=c++17
+endif
+
 # ============ macOS / osxcross ============
 ifeq ($(platform),osx)
     TARGET := $(TARGET_NAME)_libretro.dylib
-    LDFLAGS += -dynamiclib -fPIC
+    LDFLAGS += -dynamiclib -fPIC -undefined dynamic_lookup
     CFLAGS += -fPIC
     CXXFLAGS += -fPIC
     LIBS += -lm -framework OpenGL -framework CoreFoundation -lz
@@ -273,6 +301,7 @@ ifeq ($(platform),osx)
         endif
 
         export PATH := $(OSXCROSS_PATH):$(PATH)
+        export LD_LIBRARY_PATH := $(OSXCROSS_ROOT)/target/lib:$(LD_LIBRARY_PATH)
         override CC  := o64-clang
         override CXX := o64-clang++
         override LD  := o64-clang++
