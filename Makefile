@@ -287,7 +287,7 @@ ifeq ($(platform),osx)
         # Native macOS build (CI macOS runner or local Mac developer build).
         # Build for the host arch so the CI x64 job → x86_64, arm64 job → arm64.
         NATIVE_ARCH := $(shell uname -m)
-        ARCHFLAGS := -arch $(NATIVE_ARCH)
+        ARCHFLAGS := -arch $(NATIVE_ARCH) -mmacosx-version-min=10.15
         CFLAGS += $(ARCHFLAGS)
         CXXFLAGS += $(ARCHFLAGS)
         LDFLAGS += $(ARCHFLAGS)
