@@ -472,19 +472,19 @@ void Libretro_DrawTimingOverlay(const FrameTimings& t,
 
     ImGui::Separator();
     ImGui::Text("61-frame averages");
-    ImGui::Text("Engine   : %5.1f ms", frontend.engineMs);
-    ImGui::Text("Audio/pacing: %5.1f ms", frontend.audioSubmitMs);
-    ImGui::Text("Overlay  : %5.1f ms", frontend.overlayMs);
-    ImGui::Text("Blit     : %5.1f ms", frontend.blitMs);
-    ImGui::Text("Other    : %5.1f ms", frontend.otherMs);
-    ImGui::Text("Core+blit: %5.1f ms", frontend.coreAndBlitMs);
-    ImGui::Text("Present  : %5.1f ms", frontend.presentMs);
-    ImGui::Text("retro_run: %5.1f ms", frontend.retroRunMs);
-    ImGui::Text("Worst    : %5.1f ms", frontend.worstRetroRunMs);
-    ImGui::Text("Actual   : %5.1f FPS", frontend.actualFps);
-    ImGui::Text("Engine cap  : %5.1f FPS",
+    ImGui::Text("Engine       : %5.1f ms", frontend.engineMs);
+    ImGui::Text("Audio/pacing : %5.1f ms", frontend.audioSubmitMs);
+    ImGui::Text("Overlay      : %5.1f ms", frontend.overlayMs);
+    ImGui::Text("Blit         : %5.1f ms", frontend.blitMs);
+    ImGui::Text("Other        : %5.1f ms", frontend.otherMs);
+    ImGui::Text("Core+blit    : %5.1f ms", frontend.coreAndBlitMs);
+    ImGui::Text("Present      : %5.1f ms", frontend.presentMs);
+    ImGui::Text("retro_run    : %5.1f ms", frontend.retroRunMs);
+    ImGui::Text("Worst        : %5.1f ms", frontend.worstRetroRunMs);
+    ImGui::Text("Actual       : %5.1f FPS", frontend.actualFps);
+    ImGui::Text("Engine cap   : %5.1f FPS",
                 frontend.engineMs > 0.0f ? 1000.0f / frontend.engineMs : 0.0f);
-    ImGui::Text("Callback cap: %5.1f FPS",
+    ImGui::Text("Callback cap : %5.1f FPS",
                 frontend.retroRunMs > 0.0f ? 1000.0f / frontend.retroRunMs : 0.0f);
 
     ImGui::End();
