@@ -475,6 +475,11 @@ bool CLibretroInputSystem::Poll()
     // actually moved owns it. Mouse movement adjusts the current position;
     // moving the stick switches back to its absolute position, including its
     // stable centre when released. No values from the devices are mixed.
+    // The original cabinet duplicates Trigger and Event for the rider's other
+    // hand. Keep the primary pair on RetroMouse port 1 and source the mirror
+    // pair from the left/right buttons of RetroMouse port 2, once that port
+    // has proved to be a separate mouse. This leaves the first mouse's X1/X2
+    // buttons free for Start and Coin.
     constexpr int analogJoystickDev = 6;
     if (!m_analogJoystickCursorInitialized)
     {
@@ -553,11 +558,12 @@ bool CLibretroInputSystem::Poll()
     m_mouseButtons[analogJoystickDev][2] =
         (analogAllowMouse && m_mouseButtons[0][2]) ||
         (analogAllowStick && m_joyButtons[0][1]);
+    const bool secondMouse = analogAllowMouse && m_port2MouseDistinct;
     m_mouseButtons[analogJoystickDev][3] =
-        (analogAllowMouse && m_mouseButtons[0][3]) ||
+        (secondMouse && m_mouseButtons[1][0]) ||
         (analogAllowStick && m_joyButtons[0][2]);
     m_mouseButtons[analogJoystickDev][4] =
-        (analogAllowMouse && m_mouseButtons[0][4]) ||
+        (secondMouse && m_mouseButtons[1][2]) ||
         (analogAllowStick && m_joyButtons[0][3]);
 
     return true;

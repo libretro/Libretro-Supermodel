@@ -607,7 +607,8 @@ namespace LibretroConfigProvider {
      * Trilogy Input Mode core options. The options are read every frame, so changing them
      * never requires rebuilding the input configuration.
      */
-    inline void ApplyGunLayout(Util::Config::Node &config, bool analogGunGame)
+    inline void ApplyGunLayout(Util::Config::Node &config, bool analogGunGame,
+                               bool analogJoystickGame)
     {
         config.Set<std::string>("InputAnalogGunX", "MOUSE5_XAXIS");
         config.Set<std::string>("InputAnalogGunY", "MOUSE5_YAXIS");
@@ -633,6 +634,14 @@ namespace LibretroConfigProvider {
         config.Set<std::string>("InputAnalogJoyEvent", "MOUSE7_RIGHT_BUTTON");
         config.Set<std::string>("InputAnalogJoyTrigger2", "MOUSE7_BUTTON4");
         config.Set<std::string>("InputAnalogJoyEvent2", "MOUSE7_BUTTON5");
+
+        // Star Wars Trilogy: the yoke's second Trigger/Event pair comes from a
+        // second mouse, so the first mouse's X1/X2 buttons are free for Start/Coin.
+        if (analogJoystickGame)
+        {
+            config.Set<std::string>("InputStart1", "KEY_1,JOY1_BUTTON9,MOUSE1_BUTTON4");
+            config.Set<std::string>("InputCoin1", "KEY_3,JOY1_BUTTON10,MOUSE1_BUTTON5");
+        }
     }
 
     /*
