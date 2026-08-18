@@ -389,11 +389,6 @@ void update_core_options(void)
       int mhz = atoi(ppc_freq);
       g_options.ppc_frequency = (mhz > 0) ? mhz : 0;
    }
-   
-   // Adjust audio buffers if PPC frequency changed
-   // If frequency is "auto" (0), use default 66 MHz
-   float current_ppc_mhz = (g_options.ppc_frequency > 0) ? g_options.ppc_frequency : 66.0f;
-   AdjustAudioForCPUFrequency(current_ppc_mhz);
 
 #ifdef HAVE_PPC_JIT
    g_options.jit_enable = strcmp(option_get("supermodel_jit_enable", "disabled"), "enabled") == 0;
