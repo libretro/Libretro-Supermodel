@@ -283,7 +283,9 @@ endif
 # ============ macOS / osxcross ============
 ifeq ($(platform),osx)
     TARGET := $(TARGET_NAME)_libretro.dylib
-    LDFLAGS += -dynamiclib -fPIC -undefined dynamic_lookup
+    # __gcov_dump is an optional profiling hook. Keep only that symbol weakly
+    # importable so missing core dependencies still fail at link time.
+    LDFLAGS += -dynamiclib -fPIC -Wl,-U,___gcov_dump
     CFLAGS += -fPIC
     CXXFLAGS += -fPIC
     LIBS += -lm -framework OpenGL -framework CoreFoundation -lz

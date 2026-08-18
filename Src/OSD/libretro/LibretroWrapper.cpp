@@ -50,7 +50,6 @@
 #include "CoreOptionsTypes.h"
 #include "BundledGamesXml.h"
 #include "BundledSupermodelIni.h"
-#include <file/file_path.h>
 
 // --- External Audio Hooks ---
 extern void PlayCallback(void *userdata, UINT8 *stream, int len);
@@ -164,30 +163,68 @@ FrameTimings LibretroWrapper::GetTimings() const
     return FrameTimings{};
 }
 
-static void WriteIfMissing(const std::string& path, const unsigned char* data, unsigned int size)
+static bool FileExists(const std::string& path)
 {
-    FILE* f = fopen(path.c_str(), "rb");
-    if (f) { fclose(f); return; }
-    f = fopen(path.c_str(), "wb");
-    if (!f) return;
-    fwrite(data, 1, size, f);
-    fclose(f);
-    log_cb(RETRO_LOG_INFO, "[Supermodel] Extracted bundled asset: %s\n", path.c_str());
+    FILE* fp = fopen(path.c_str(), "rb");
+    if (!fp)
+        return false;
+    fclose(fp);
+    return true;
 }
 
-void LibretroWrapper::InitializePaths(const std::string& baseConfigPath)
+static bool WriteBundledAsset(const std::string& path, const unsigned char* data, unsigned int size)
 {
-    s_configFilePath   = baseConfigPath + "/Supermodel.ini";
-    s_gameXMLFilePath  = baseConfigPath + "/Games.xml";
-    s_musicXMLFilePath = baseConfigPath + "/Music.xml";
-    s_logFilePath      = baseConfigPath + "/Supermodel.log";
-    s_analysisPath     = baseConfigPath + "/Analysis/";
+    FILE* fp = fopen(path.c_str(), "wb");
+    if (!fp)
+        return false;
 
-    path_mkdir(baseConfigPath.c_str());
-    WriteIfMissing(s_gameXMLFilePath,  bundled_games_xml,      bundled_games_xml_len);
-    WriteIfMissing(s_configFilePath,   bundled_supermodel_ini, bundled_supermodel_ini_len);
+    const bool written = fwrite(data, 1, size, fp) == size;
+    fclose(fp);
+    if (written && log_cb)
+        log_cb(RETRO_LOG_INFO, "[Supermodel] Extracted bundled asset: %s\n", path.c_str());
+    return written;
+}
 
-    std::cout << "[Supermodel] Paths remapped to: " << baseConfigPath << std::endl;
+static std::string ResolveSystemAsset(const std::string& systemPath,
+                                      const char* fileName,
+                                      const unsigned char* bundledData = nullptr,
+                                      unsigned int bundledSize = 0)
+{
+    const std::string preferredPath = systemPath + "/" + fileName;
+    if (FileExists(preferredPath))
+        return preferredPath;
+
+    // Compatibility with the directory layout used by the initial port.
+    const std::string legacyPath = systemPath + "/Config/" + fileName;
+    if (FileExists(legacyPath))
+        return legacyPath;
+
+    if (bundledData && bundledSize && WriteBundledAsset(preferredPath, bundledData, bundledSize))
+        return preferredPath;
+
+    return preferredPath;
+}
+
+void LibretroWrapper::InitializePaths(const std::string& systemPath)
+{
+    // The Supermodel subdirectory is owned by the frontend's system path.
+    // Use the negotiated Libretro VFS instead of relying on filesystem helper
+    // symbols that are not part of the frontend ABI.
+    if (g_vfs_interface && g_vfs_interface->mkdir)
+        g_vfs_interface->mkdir(systemPath.c_str());
+
+    // External assets remain authoritative. The official embedded assets are
+    // retained as a first-run fallback when neither the native nor legacy
+    // system-directory layout provides a file.
+    s_configFilePath   = ResolveSystemAsset(systemPath, "Supermodel.ini",
+                                            bundled_supermodel_ini, bundled_supermodel_ini_len);
+    s_gameXMLFilePath  = ResolveSystemAsset(systemPath, "Games.xml",
+                                            bundled_games_xml, bundled_games_xml_len);
+    s_musicXMLFilePath = ResolveSystemAsset(systemPath, "Music.xml");
+    s_logFilePath      = systemPath + "/Supermodel.log";
+    s_analysisPath     = systemPath + "/Analysis/";
+
+    std::cout << "[Supermodel] System assets: " << systemPath << std::endl;
 }
 
 static void GLAPIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)

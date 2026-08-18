@@ -276,8 +276,10 @@ void retro_init(void)
    bool can_dupe = true;
    environ_cb(RETRO_ENVIRONMENT_GET_CAN_DUPE, &can_dupe);
 
-   // 3. Negotiate VFS — must happen before retro_load_game
-   struct retro_vfs_interface_info vfs_info = { 1, nullptr };
+   // 3. Negotiate VFS — version 3 provides mkdir(), used to create the
+   // core-specific system directory before extracting bundled assets.
+   // This must happen before retro_load_game.
+   struct retro_vfs_interface_info vfs_info = { 3, nullptr };
    if (environ_cb(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &vfs_info))
        g_vfs_interface = vfs_info.iface;
 }
