@@ -68,6 +68,7 @@ CoreOptions g_options = {
    /* wide_background      */ false,
    /* upscale_mode         */ 2,
    /* no_white_flash       */ false,
+   /* av_timing_mode       */ AVTimingMode::Default60Hz,
    /* crosshairs           */ 0,
    /* force_feedback       */ true,
    /* steering_progressive */ false,
@@ -517,7 +518,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    get_maximum_video_dimensions(info->geometry.max_width, info->geometry.max_height);
    info->geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
 
-   info->timing.fps         = 57.53;
+   info->timing.fps         = wrapper.GetFramesPerSecond();
    info->timing.sample_rate = 44100.0;
 }
 
@@ -667,6 +668,13 @@ bool retro_load_game(const struct retro_game_info *info)
    g_ffb_drive_board_enabled = g_options.force_feedback;
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
+   if (wrapper.NativeTimingUnavailable())
+   {
+      static const struct retro_message message = {
+         "Native Model 3 timing needs a multi-threaded Emulation Threading mode; using 60 Hz.", 300
+      };
+      environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+   }
    wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
    wrapper.SetCrosshairs(g_options.crosshairs);
    wrapper.SetServiceOnSticks(g_options.service_on_sticks);
@@ -747,6 +755,7 @@ void retro_run(void)
       int old_crt_colors = g_options.crt_colors;
       int old_supersampling = g_options.supersampling;
       bool old_no_white_flash = g_options.no_white_flash;
+      AVTimingMode old_av_timing_mode = g_options.av_timing_mode;
       bool old_force_feedback = g_options.force_feedback;
       bool old_network_board = g_options.network_board;
       unsigned old_network_cabinets = g_options.network_cabinets;
@@ -776,6 +785,14 @@ void retro_run(void)
       {
          static const struct retro_message message = {
             "Renderer/audio engine changes will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+      }
+
+      if (g_options.av_timing_mode != old_av_timing_mode)
+      {
+         static const struct retro_message message = {
+            "Model 3 Timing Mode will apply after restarting the content.", 180
          };
          environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
@@ -1038,7 +1055,8 @@ void retro_run(void)
       {
          glBindFramebuffer(GL_FRAMEBUFFER, sm_fbo);
          Libretro_DrawTimingOverlay(t, s_frontendTimings,
-                                    target_w, target_h, s_gpuMs);
+                                    target_w, target_h,
+                                    wrapper.GetFramesPerSecond(), s_gpuMs);
       }
       const auto t_overlay_end = std::chrono::steady_clock::now();
 

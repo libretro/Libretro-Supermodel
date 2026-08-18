@@ -244,6 +244,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "disabled"
    },
    {
+      "supermodel_av_timing",
+      "Model 3 Timing Mode",
+      NULL,
+      "60 Hz, the default of standalone Supermodel, runs smoothly with correct audio pitch on ordinary 60 Hz and 120 Hz displays; the game runs about 4% faster than the arcade. Native reports the real Model 3 refresh rate (57.524160 Hz) for displays that can follow it (VRR/FreeSync/G-Sync); on a fixed 60 Hz display RetroArch then speeds up and re-pitches the audio, or the picture judders. Native needs a multi-threaded Emulation Threading mode, otherwise 60 Hz is used. Requires restarting the content.",
+      NULL,
+      "video",
+      {
+         { "60hz",   "60 Hz (Default)" },
+         { "native", "57.524160 Hz (Native Model 3)" },
+         { NULL, NULL },
+      },
+      "60hz"
+   },
+   {
       "supermodel_crosshairs",
       "Show Crosshairs",
       NULL,
@@ -672,6 +686,9 @@ void update_core_options(void)
 
    g_options.no_white_flash =
       strcmp(option_get("supermodel_no_white_flash", "disabled"), "enabled") == 0;
+   g_options.av_timing_mode =
+      strcmp(option_get("supermodel_av_timing", "60hz"), "native") == 0
+         ? AVTimingMode::Native57524Hz : AVTimingMode::Default60Hz;
 
    g_options.upscale_mode = atoi(option_get("supermodel_upscale_mode", "2"));
    if (g_options.upscale_mode < 0 || g_options.upscale_mode > 3)

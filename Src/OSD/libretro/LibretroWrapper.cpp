@@ -132,11 +132,6 @@ std::string LibretroWrapper::s_logFilePath;
 static Util::Config::Node s_runtime_config("Global");
 static LibretroWrapper* g_ctx = nullptr;
 
-// Constants for synchronous audio
-static const double MODEL3_FPS = 57.53;
-static const int AUDIO_SAMPLE_RATE = 44100;
-// Calculate bytes per frame once: (44100 / 57.53) * 4 bytes (stereo 16-bit)
-static const int BYTES_PER_FRAME_SYNC = (int)((AUDIO_SAMPLE_RATE / MODEL3_FPS) * 4);
 
 /*
  * Crosshair stuff
@@ -583,8 +578,9 @@ int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
         lastEngineMs = std::chrono::duration<float, std::milli>(
             audioStart - engineStart).count();
 
-        // One frame of emulated time is one frame's worth of audio, full stop:
-        // 44100 / 57.53 = 766 samples. This used to be computed from the MEASURED
+        // One video frame carries exactly 44.1 kHz worth of audio for the selected
+        // Model 3 Timing Mode: a fixed 735 samples at 60 Hz (the sound board's own
+        // chunk), a 766/767 cadence at native 57.524 Hz. This used to be computed from the MEASURED
         // framerate instead, which is a positive feedback loop under RetroArch's
         // synchronous audio driver: fps dips -> 44100/fps sends MORE samples than
         // real time -> the driver blocks in audio_batch_cb to absorb the excess ->
@@ -593,7 +589,10 @@ int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
         // per frame, producing exactly the recurring 30-50 ms frame spikes.
         // The frontend already resamples to keep audio and video in sync; the core
         // must simply hand it one frame of audio per frame.
-        PlayCallback(NULL, NULL, BYTES_PER_FRAME_SYNC);
+        const unsigned audioFrames = LibretroTiming::NextAudioFrames(
+            m_frameRateMicroHz, m_audioFrameRemainder);
+        PlayCallback(NULL, NULL,
+                     static_cast<int>(audioFrames * LibretroTiming::kStereoAudioBytesPerFrame));
         lastAudioSubmitMs = std::chrono::duration<float, std::milli>(
             std::chrono::steady_clock::now() - audioStart).count();
     }
@@ -924,6 +923,19 @@ int LibretroWrapper::Emulate(const char* romPath)
         InfoLog("Libretro emulation threading: MultiThreaded=%d, GPUMultiThreaded=%d",
                 s_runtime_config["MultiThreaded"].ValueAs<bool>(),
                 s_runtime_config["GPUMultiThreaded"].ValueAs<bool>());
+
+        // Native timing drains 766/767 samples per frame. Only the multi-threaded
+        // sound board produces audio on demand; single-threaded it runs one
+        // 735-sample chunk per frame, so native timing would underrun.
+        const bool wantNative = g_options.av_timing_mode == AVTimingMode::Native57524Hz;
+        const bool nativeTiming = wantNative &&
+            g_options.emulation_threading != EmulationThreading::SingleThread;
+        m_nativeTimingUnavailable = wantNative && !nativeTiming;
+        m_frameRateMicroHz = LibretroTiming::FrameRateMicroHz(nativeTiming);
+        m_audioFrameRemainder = 0;
+        InfoLog("Libretro timing: %.6f Hz video, %u Hz audio%s", GetFramesPerSecond(),
+                LibretroTiming::kAudioSampleRate,
+                m_nativeTimingUnavailable ? " (native needs multi-threading)" : "");
     }
 
     if (Model3 || Inputs || Outputs)

@@ -32,6 +32,12 @@ enum class GunInput {
    AnalogSticks   // RetroPad left stick moving a relative cursor
 };
 
+// Video cadence reported to the frontend (restart-dependent).
+enum class AVTimingMode {
+   Default60Hz,      // 60 Hz, as standalone Supermodel's default RefreshRate
+   Native57524Hz     // the real Model 3 refresh rate (standalone -true-hz)
+};
+
 // Source of the Star Wars Trilogy yoke (Supermodel MOUSE7).
 enum class StarWarsInput {
    Hybrid,        // light gun, mouse or absolute RetroPad stick, last moved wins
@@ -55,6 +61,7 @@ struct CoreOptions {
    bool wide_background;     // stretch the lower 2D layer too (needs widescreen)
    int upscale_mode;         // Supermodel UpscaleMode: 0=Nearest 1=Biquintic 2=Bilinear 3=Bicubic
    bool no_white_flash;      // Supermodel NoWhiteFlash: no white screen while 3D is disabled
+   AVTimingMode av_timing_mode;
    unsigned crosshairs;      // native Supermodel mask: 0=off, 1=P1, 2=P2, 3=both
    bool force_feedback;
    bool steering_progressive;             // driving: quadratic fine-center steering curve

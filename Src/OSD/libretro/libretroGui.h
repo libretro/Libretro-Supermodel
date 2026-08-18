@@ -41,6 +41,7 @@ struct LibretroFrontendTimings
 void Libretro_DrawTimingOverlay(const FrameTimings& t,
                                 const LibretroFrontendTimings& frontend,
                                 int displayW, int displayH,
+                                double framesPerSecond,
                                 float gpuMs = 0.0f);
 
 #endif

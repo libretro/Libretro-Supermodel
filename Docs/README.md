@@ -12,8 +12,11 @@ Raspberry Pi and other ARM64 Linux systems.
   New3D, a compatibility context for Legacy3D, or OpenGL ES 3.0 on mobile and
   ARM boards); GL entry points are resolved through
   libretro-common `glsym`, so no system GL extension library is needed.
-- **Model 3 timing:** the core runs at the Model 3 refresh rate of 57.53 Hz with
-  44.1 kHz stereo audio, delivered synchronously through `audio_batch_cb`.
+- **Timing:** `Model 3 Timing Mode` offers 60 Hz, the default of standalone
+  Supermodel, which runs smoothly with correct audio pitch on ordinary 60 Hz and
+  120 Hz displays, or the real Model 3 rate of 57.524 Hz for displays that can
+  follow it (VRR). Audio is always exactly 44.1 kHz stereo, delivered
+  synchronously through `audio_batch_cb`.
 - **Save states and NVRAM:** full save-state support (also used by RetroArch
   run-ahead and netplay) and persistent NVRAM in the frontend's `.srm` save.
 - **ARM64 JIT recompiler:** a PowerPC-to-ARM64 dynamic recompiler on Android
@@ -159,7 +162,7 @@ experimental. Changing the network options requires restarting the content.
 
 For demanding titles (e.g. Sega Rally 2, Daytona USA 2, Le Mans 24) use a
 release build. The core uses synchronous audio, so if the host cannot sustain
-the full 57.53 Hz the sound will stutter. On weaker hardware these options help
+full speed the sound will stutter. On weaker hardware these options help
 most, roughly in order:
 
 - `PowerPC CPU Frequency`: underclocking is the largest single saving, at the

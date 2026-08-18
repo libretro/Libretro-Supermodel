@@ -5,6 +5,7 @@
 #include "ROMSet.h"
 #include <Inputs/Input.h>
 #include <GL/glew.h>
+#include "LibretroTiming.h"
 
 #ifndef LIBRETRO_WRAPPER_H
 #define LIBRETRO_WRAPPER_H
@@ -46,6 +47,13 @@ public:
     IEmulator* getEmulator() const { return Model3; }
     void Reset();   // hard reset of the emulated machine (retro_reset)
     FrameTimings GetTimings() const;
+    // Video cadence chosen when the content was loaded (Model 3 Timing Mode).
+    double GetFramesPerSecond() const
+    {
+        return LibretroTiming::FramesPerSecond(m_frameRateMicroHz);
+    }
+    // Native timing was selected but Single Thread emulation forced 60 Hz.
+    bool NativeTimingUnavailable() const { return m_nativeTimingUnavailable; }
     float GetLastEngineMs() const { return lastEngineMs; }
     float GetLastAudioSubmitMs() const { return lastAudioSubmitMs; }
     std::shared_ptr<CInputSystem> getInputSystem() const { return m_inputSystem; }
@@ -90,7 +98,9 @@ public:
 
 private:
     uint64_t m_lastFrameTime = 0;
-    float m_currentFPS = 57.53f;
+    uint64_t m_frameRateMicroHz = LibretroTiming::kDefaultFrameRateMicroHz;
+    uint64_t m_audioFrameRemainder = 0;
+    bool m_nativeTimingUnavailable = false;
     static const char* s_outputNames[];
     struct retro_hw_render_callback hw_render{};
     unsigned  xOffset, yOffset;                                         // offset of renderer output within OpenGL viewport
