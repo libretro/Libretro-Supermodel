@@ -77,7 +77,7 @@ public:
     int SuperModelInit(const Game &game);
     void ShutDownSupermodel();
     bool InitRenderers();
-    void InitGL();
+    bool InitGL();
     // Returns the actual FBO Supermodel renders into (SuperAA's or our own)
     GLuint getSuperModelFBO() const;
 

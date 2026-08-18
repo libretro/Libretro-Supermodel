@@ -90,6 +90,7 @@ static size_t g_cached_serialize_size = 0;
 static bool g_first_run = true;
 static bool g_nvram_initialized = false;
 static int g_skip_counter = 0;
+static bool g_context_ready = false;
 
 static void serialize_nvram(void)
 {
@@ -332,7 +333,17 @@ void context_reset(void)
     if (!emu) return;
 
     emu->PauseThreads();
-    wrapper.InitGL();
+    g_context_ready = wrapper.InitGL();
+    if (!g_context_ready)
+        log_cb(RETRO_LOG_ERROR, "[Supermodel] OpenGL renderer initialization failed.\n");
+    else
+    {
+        // The initial renderer already uses the selected core-option
+        // resolution. Seed the cache so the first retro_run() does not send a
+        // redundant SET_GEOMETRY that makes some frontends recreate GL.
+        last_width = wrapper.getXRes();
+        last_height = wrapper.getYRes();
+    }
 
     // CRITICAL FIX: Force 1-byte alignment for textures.
     // This prevents the "split-screen" / ghosting on legacy drivers
@@ -361,6 +372,7 @@ void context_reset(void)
 
 void context_destroy(void)
 {
+    g_context_ready = false;
 #if defined(CORE_GLES)
     if (s_gpuQuery[0] && glDeleteQueriesEXT) { glDeleteQueriesEXT(2, s_gpuQuery); s_gpuQuery[0] = s_gpuQuery[1] = 0; }
 #endif
@@ -386,6 +398,7 @@ bool retro_load_game(const struct retro_game_info *info)
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
+   g_context_ready = false;
 
    hw_render.context_reset   = context_reset;
    hw_render.context_destroy = context_destroy;
@@ -395,8 +408,18 @@ bool retro_load_game(const struct retro_game_info *info)
 
 #if defined(ANDROID) || defined(CORE_GLES)
    hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES3;
-#else
+   hw_render.version_major = 3;
+   hw_render.version_minor = 0;
+#elif defined(USE_LEGACY3D)
+   // Legacy3D uses fixed-function entry points that a core profile removes.
    hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
+#else
+   // The New3D renderer requires a desktop OpenGL 4.1 core profile.
+   // RETRO_HW_CONTEXT_OPENGL requests a legacy
+   // compatibility context (2.1 on macOS), which cannot compile its shaders.
+   hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE;
+   hw_render.version_major = 4;
+   hw_render.version_minor = 1;
 #endif
    if (!environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
        log_cb(RETRO_LOG_ERROR, "[Supermodel] HW Render Context negotiation failed.\n");
@@ -468,11 +491,21 @@ void retro_unload_game(void)
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
+   g_context_ready = false;
    pgo_flush();   // RetroArch may never call retro_deinit before exiting
 }
 void retro_run(void)
 {
    const auto t_frame_start = std::chrono::steady_clock::now();
+
+   // SET_HW_RENDER has no synchronous error return for context_reset(). Avoid
+   // entering the engine with unattached renderers if GL/FBO setup failed.
+   if (!g_context_ready)
+   {
+      if (video_cb)
+         video_cb(nullptr, 0, 0, 0);
+      return;
+   }
 
    // Check if options were changed
    bool options_updated = false;
