@@ -313,3 +313,25 @@ the resulting `.so` in RetroArch with `Load Core > Install or Restore a Core`.
 Built on a Mac with Xcode. These builds use OpenGL ES 3 and the interpreter:
 the JIT needs an entitlement that a Libretro core cannot request on stock iOS
 or tvOS.
+
+## Smoke test
+
+`Scripts/libretro_smoke_test.py` boots every set in `Games.xml` (or the sets
+given with `--game`) in a throwaway RetroArch profile, runs a fixed number of
+frames and keeps the final frame, the RetroArch log, the generated `.srm` and
+a CSV/JSON summary per set. It needs Python 3.9 or later, RetroArch in `PATH`
+(or `--retroarch`) and a directory of `<set>.zip` ROMs. Sets whose ROM is
+missing are listed as such; crashes, non-zero exits and wall-clock timeouts
+fail the run.
+
+```bash
+python3 Scripts/libretro_smoke_test.py --rom-dir /path/to/roms --list   # sets and ROM availability
+python3 Scripts/libretro_smoke_test.py --rom-dir /path/to/roms          # all sets, 60 emulated seconds each
+python3 Scripts/libretro_smoke_test.py --rom-dir /path/to/roms --game scud --seconds 10 --output /tmp/smoke
+```
+
+It uses the repository's build and `Config/` files by default; `--core`,
+`--base-config` (a RetroArch config to start from, e.g. for the video driver)
+and `--no-fast-forward` (run in real time) change that. Results go to
+`~/Documents/RetroArch/supermodel-smoke/<timestamp>` unless `--output` is
+given.
