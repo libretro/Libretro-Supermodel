@@ -292,6 +292,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "cpu",
       {
          { "auto", "Auto (Default)" },
+         { "25",   "25 MHz" },
          { "33",   "33 MHz (Half Speed - Aggressive)" },
          { "50",   "50 MHz (0.75x Speed)" },
          { "66",   "66 MHz (Step 1.0 Default)" },
