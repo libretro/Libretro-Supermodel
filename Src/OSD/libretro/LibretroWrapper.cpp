@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <chrono>
 #include <GL/glew.h>
 #if !defined(ANDROID) && !defined(CORE_GLES)
 #include <glsym/rglgen.h>
@@ -594,13 +595,21 @@ QuitError:
 
 int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
 {
+    const auto engineStart = std::chrono::steady_clock::now();
     if (paused)
     {
         Model3->RenderFrame();
+        lastEngineMs = std::chrono::duration<float, std::milli>(
+            std::chrono::steady_clock::now() - engineStart).count();
+        lastAudioSubmitMs = 0.0f;
     }
     else
     {
         Model3->RunFrame(skipRender);
+
+        const auto audioStart = std::chrono::steady_clock::now();
+        lastEngineMs = std::chrono::duration<float, std::milli>(
+            audioStart - engineStart).count();
 
         // One frame of emulated time is one frame's worth of audio, full stop:
         // 44100 / 57.53 = 766 samples. This used to be computed from the MEASURED
@@ -613,6 +622,8 @@ int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
         // The frontend already resamples to keep audio and video in sync; the core
         // must simply hand it one frame of audio per frame.
         PlayCallback(NULL, NULL, BYTES_PER_FRAME_SYNC);
+        lastAudioSubmitMs = std::chrono::duration<float, std::milli>(
+            std::chrono::steady_clock::now() - audioStart).count();
     }
 
     if (Inputs->uiExit->Pressed())

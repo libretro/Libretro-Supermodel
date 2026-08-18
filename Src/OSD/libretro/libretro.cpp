@@ -100,6 +100,14 @@ static bool g_nvram_initialized = false;
 static int g_skip_counter = 0;
 static bool g_context_ready = false;
 
+// Rolling frontend-side timings. CModel3's FrameTimings stop before the final
+// blit, shader chain, frontend presentation and VSync wait.
+static LibretroFrontendTimings s_frontendTimings;
+static std::chrono::steady_clock::time_point s_previousFrameStart;
+static bool  s_havePreviousFrameStart = false;
+static float s_accFrameInterval = 0.0f;
+static unsigned s_frameIntervals = 0;
+
 // --- Driving analog output ranges ---
 // The emulated game reads the scaled values, but Supermodel's digital
 // (keyboard/D-pad) sources are incremental: each poll moves the previous
@@ -577,6 +585,14 @@ void retro_unload_game(void)
 void retro_run(void)
 {
    const auto t_frame_start = std::chrono::steady_clock::now();
+   if (s_havePreviousFrameStart)
+   {
+      s_accFrameInterval += std::chrono::duration<float, std::milli>(
+          t_frame_start - s_previousFrameStart).count();
+      ++s_frameIntervals;
+   }
+   s_previousFrameStart = t_frame_start;
+   s_havePreviousFrameStart = true;
 
    // SET_HW_RENDER has no synchronous error return for context_reset(). Avoid
    // entering the engine with unattached renderers if GL/FBO setup failed.
@@ -848,7 +864,23 @@ void retro_run(void)
       glViewport(0, 0, target_w, target_h);
       // REMOVED: glFlush() - not needed before glBlitFramebuffer and causes unnecessary GPU stall
 
+      // Draw diagnostics into Supermodel's own target. Drawing into the
+      // frontend FBO after the blit is not portable: some hardware frontends
+      // replace or resolve that target inside video_cb().
+      // The overlay is an ImGui NewFrame + Render + a draw call, so it only
+      // runs when enabled.
+      const FrameTimings t = wrapper.GetTimings();
+      const auto t_overlay_start = std::chrono::steady_clock::now();
+      if (g_options.timing_overlay)
+      {
+         glBindFramebuffer(GL_FRAMEBUFFER, sm_fbo);
+         Libretro_DrawTimingOverlay(t, s_frontendTimings,
+                                    target_w, target_h, s_gpuMs);
+      }
+      const auto t_overlay_end = std::chrono::steady_clock::now();
+
       // Blit from Supermodel FBO to RetroArch's framebuffer
+      const auto t_blit_start = std::chrono::steady_clock::now();
       GLuint ra_fbo = wrapper.getHwRender().get_current_framebuffer();
 
       glBindFramebuffer(GL_READ_FRAMEBUFFER, sm_fbo);
@@ -866,14 +898,9 @@ void retro_run(void)
       );
 
       glBindFramebuffer(GL_FRAMEBUFFER, ra_fbo);
+      const auto t_blit_end = std::chrono::steady_clock::now();
 
-      // Timing overlay: ImGui NewFrame + Render + a draw call. Was unconditional,
-      // i.e. every frame of every session paid for a debug overlay.
-      const FrameTimings t = wrapper.GetTimings();
-      if (g_options.timing_overlay)
-         Libretro_DrawTimingOverlay(t, target_w, target_h, s_gpuMs);
-
-      // Everything above (blit + overlay) plus video_cb below is invisible to
+      // Everything above (overlay + blit) plus video_cb below is invisible to
       // CModel3's own "Total" — and it is exactly what the standalone build does
       // not do. video_cb is where RetroArch runs its shader chain (a curved CRT
       // preset at display resolution is not free on V3D) and waits for vsync.
@@ -891,6 +918,7 @@ void retro_run(void)
       // renderTicks is also stale on skipped frames (Model3 only writes it when it
       // actually renders), so it is averaged over rendered frames only.
       static float    acc_run = 0.0f, acc_emu = 0.0f, acc_present = 0.0f, max_run = 0.0f;
+      static float    acc_engine = 0.0f, acc_audio = 0.0f, acc_overlay = 0.0f, acc_blit = 0.0f;
       static unsigned acc_ppc = 0, acc_render = 0, rendered = 0, log_frames = 0;
 
       const float emu     = ms(t_frame_start, t_post);
@@ -899,22 +927,48 @@ void retro_run(void)
       acc_emu     += emu;
       acc_present += present;
       acc_run     += emu + present;
+      acc_engine  += wrapper.GetLastEngineMs();
+      acc_audio   += wrapper.GetLastAudioSubmitMs();
+      acc_overlay += ms(t_overlay_start, t_overlay_end);
+      acc_blit    += ms(t_blit_start, t_blit_end);
       if (emu + present > max_run) max_run = emu + present;
       acc_ppc += t.ppcTicks;
       if (!skipRender) { acc_render += t.renderTicks; rendered++; }
 
       if (++log_frames >= 61) {   // 61: coprime with every frameskip cycle (1..4)
          const float n = (float)log_frames;
+         LibretroFrontendTimings &ft = s_frontendTimings;
+         ft.engineMs        = acc_engine / n;
+         ft.audioSubmitMs   = acc_audio / n;
+         ft.overlayMs       = acc_overlay / n;
+         ft.blitMs          = acc_blit / n;
+         ft.coreAndBlitMs   = acc_emu / n;
+         ft.otherMs         = std::max(0.0f, ft.coreAndBlitMs - ft.engineMs
+                                             - ft.audioSubmitMs - ft.overlayMs
+                                             - ft.blitMs);
+         ft.presentMs       = acc_present / n;
+         ft.retroRunMs      = acc_run / n;
+         ft.worstRetroRunMs = max_run;
+         ft.actualFps       = s_frameIntervals && s_accFrameInterval > 0.0f
+                                 ? 1000.0f / (s_accFrameInterval / (float)s_frameIntervals)
+                                 : 0.0f;
+         s_accFrameInterval = 0.0f;
+         s_frameIntervals = 0;
          if (g_options.timing_overlay)
             log_cb(RETRO_LOG_INFO,
                    "[Timing] avg over %u frames | PPC:%4.1f  Render:%4.1f (%u drawn)  "
-                   "emu+blit:%5.1f  present:%5.1f  retro_run:%5.1f  worst:%5.1f ms\n",
+                   "engine:%5.1f  audio:%4.1f  overlay:%4.1f  blit:%4.1f  other:%4.1f  "
+                   "core+blit:%5.1f  present:%5.1f  retro_run:%5.1f  worst:%5.1f ms  "
+                   "actual:%5.1f FPS\n",
                    log_frames,
                    acc_ppc / n,
                    rendered ? acc_render / (float)rendered : 0.0f, rendered,
-                   acc_emu / n, acc_present / n, acc_run / n, max_run);
+                   ft.engineMs, ft.audioSubmitMs, ft.overlayMs, ft.blitMs, ft.otherMs,
+                   ft.coreAndBlitMs, ft.presentMs, ft.retroRunMs, ft.worstRetroRunMs,
+                   ft.actualFps);
          log_frames = 0; rendered = 0;
          acc_run = acc_emu = acc_present = max_run = 0.0f;
+         acc_engine = acc_audio = acc_overlay = acc_blit = 0.0f;
          acc_ppc = acc_render = 0;
       }
    }

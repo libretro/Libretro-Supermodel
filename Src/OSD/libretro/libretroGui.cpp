@@ -438,7 +438,9 @@ void Libretro_ShutdownOverlay()
     s_overlayInitialized = false;
 }
 
-void Libretro_DrawTimingOverlay(const FrameTimings& t, int displayW, int displayH, float gpuMs)
+void Libretro_DrawTimingOverlay(const FrameTimings& t,
+                                const LibretroFrontendTimings& frontend,
+                                int displayW, int displayH, float gpuMs)
 {
     if (!s_overlayInitialized) return;
 
@@ -453,7 +455,7 @@ void Libretro_DrawTimingOverlay(const FrameTimings& t, int displayW, int display
     ImVec2 pos(PAD, PAD);
     ImGui::SetNextWindowPos(pos, ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.55f);
-    ImGui::SetNextWindowSize(ImVec2(220, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(260, 0), ImGuiCond_Always);
     ImGui::Begin("##timings", nullptr,
         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs |
         ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove |
@@ -475,6 +477,23 @@ void Libretro_DrawTimingOverlay(const FrameTimings& t, int displayW, int display
     coloured(t.syncTicks,    2,  5); ImGui::Text("Sync   : %3u ms", t.syncTicks);   ImGui::PopStyleColor();
     coloured(t.sndTicks,    10, 20); ImGui::Text("Sound  : %3u ms", t.sndTicks);    ImGui::PopStyleColor();
     coloured(t.frameTicks,  20, 34); ImGui::Text("Total  : %3u ms", t.frameTicks);  ImGui::PopStyleColor();
+
+    ImGui::Separator();
+    ImGui::Text("61-frame averages");
+    ImGui::Text("Engine   : %5.1f ms", frontend.engineMs);
+    ImGui::Text("Audio/pacing: %5.1f ms", frontend.audioSubmitMs);
+    ImGui::Text("Overlay  : %5.1f ms", frontend.overlayMs);
+    ImGui::Text("Blit     : %5.1f ms", frontend.blitMs);
+    ImGui::Text("Other    : %5.1f ms", frontend.otherMs);
+    ImGui::Text("Core+blit: %5.1f ms", frontend.coreAndBlitMs);
+    ImGui::Text("Present  : %5.1f ms", frontend.presentMs);
+    ImGui::Text("retro_run: %5.1f ms", frontend.retroRunMs);
+    ImGui::Text("Worst    : %5.1f ms", frontend.worstRetroRunMs);
+    ImGui::Text("Actual   : %5.1f FPS", frontend.actualFps);
+    ImGui::Text("Engine cap  : %5.1f FPS",
+                frontend.engineMs > 0.0f ? 1000.0f / frontend.engineMs : 0.0f);
+    ImGui::Text("Callback cap: %5.1f FPS",
+                frontend.retroRunMs > 0.0f ? 1000.0f / frontend.retroRunMs : 0.0f);
 
     ImGui::End();
     ImGui::Render();

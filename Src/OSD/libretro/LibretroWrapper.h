@@ -46,6 +46,8 @@ public:
     IEmulator* getEmulator() const { return Model3; }
     void Reset();   // hard reset of the emulated machine (retro_reset)
     FrameTimings GetTimings() const;
+    float GetLastEngineMs() const { return lastEngineMs; }
+    float GetLastAudioSubmitMs() const { return lastAudioSubmitMs; }
     std::shared_ptr<CInputSystem> getInputSystem() const { return m_inputSystem; }
     retro_hw_render_callback getHwRender() const { return hw_render; }
     static const std::string& GetGameXMLPath() { return s_gameXMLFilePath; }
@@ -110,6 +112,8 @@ private:
     char baseTitleStr[128];
     char titleStr[128];
     UpscaleMode upscaleMode;
+    float       lastEngineMs = 0.0f;       // RunFrame/RenderFrame time of the last frame
+    float       lastAudioSubmitMs = 0.0f;  // time spent handing that frame's audio over
     uint64_t perfCountPerFrame;
     uint64_t nextTime;
 
