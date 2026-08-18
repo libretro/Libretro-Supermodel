@@ -444,9 +444,9 @@ static struct retro_core_option_v2_definition option_defs[] = {
 #ifdef HAVE_PPC_JIT
    {
       "supermodel_jit_enable",
-      "ARM64 JIT Recompiler (Experimental)",
+      "JIT Recompiler (ARM64)",
       NULL,
-      "Enable the experimental ARM64 dynamic recompiler for the emulated PowerPC CPU. Disabled by default; the interpreter remains the correctness reference. Restart content to apply.",
+      "Enable the ARM64 JIT recompiler for the PowerPC CPU. Disable to use the interpreter, the reference for correctness and debugging.",
       NULL,
       "cpu",
       {
@@ -454,7 +454,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
          { "disabled", "Disabled (Interpreter)" },
          { NULL, NULL },
       },
-      "disabled"
+      "enabled"
    },
 #endif
    { NULL, NULL, NULL, NULL, NULL, NULL, {{NULL, NULL}}, NULL },
@@ -574,7 +574,7 @@ void update_core_options(void)
    }
 
 #ifdef HAVE_PPC_JIT
-   g_options.jit_enable = strcmp(option_get("supermodel_jit_enable", "disabled"), "enabled") == 0;
+   g_options.jit_enable = strcmp(option_get("supermodel_jit_enable", "enabled"), "enabled") == 0;
 #else
    g_options.jit_enable = false;
 #endif
