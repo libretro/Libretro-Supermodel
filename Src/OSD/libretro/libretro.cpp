@@ -64,8 +64,9 @@ CoreOptions g_options = {
    /* widescreen           */ false,
    /* wide_background      */ false,
    /* upscale_mode         */ 2,
+   /* no_white_flash       */ false,
    /* crosshairs           */ 0,
-   /* force_feedback       */ false,
+   /* force_feedback       */ true,
    /* steering_progressive */ false,
    /* steering_output_range */ 100,
    /* accelerator_output_range_per_mille */ 1000,
@@ -708,6 +709,7 @@ void retro_run(void)
       Renderer3D old_renderer_3d = g_options.renderer_3d;
       int old_crt_colors = g_options.crt_colors;
       int old_supersampling = g_options.supersampling;
+      bool old_no_white_flash = g_options.no_white_flash;
 
       update_core_options();
       ppc_set_jit_enabled(g_options.jit_enable);
@@ -728,6 +730,7 @@ void retro_run(void)
           g_options.renderer_3d != old_renderer_3d ||
           g_options.crt_colors != old_crt_colors ||
           g_options.supersampling != old_supersampling ||
+          g_options.no_white_flash != old_no_white_flash ||
           g_options.legacy_sound_dsp != old_legacy_sound_dsp)
       {
          static const struct retro_message message = {

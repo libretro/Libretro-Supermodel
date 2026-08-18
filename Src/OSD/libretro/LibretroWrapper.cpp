@@ -903,6 +903,7 @@ int LibretroWrapper::Emulate(const char* romPath)
         s_runtime_config.Get("UpscaleMode").SetValue(g_options.upscale_mode);
         s_runtime_config.Get("New3DEngine").SetValue(g_options.renderer_3d == Renderer3D::New3D);
         s_runtime_config.Get("Supersampling").SetValue(g_options.supersampling);
+        s_runtime_config.Get("NoWhiteFlash").SetValue(g_options.no_white_flash);
         s_runtime_config.Get("CRTcolors").SetValue(
             g_options.renderer_3d == Renderer3D::New3D ? g_options.crt_colors : 0);
         s_runtime_config.Get("LegacySoundDSP").SetValue(g_options.legacy_sound_dsp);

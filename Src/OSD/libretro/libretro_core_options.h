@@ -173,6 +173,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "disabled"
    },
    {
+      "supermodel_no_white_flash",
+      "Disable White Flash",
+      NULL,
+      "Suppress the white screen some games show while they disable 3D rendering, for example between scenes. Equivalent to standalone Supermodel's NoWhiteFlash setting. Requires restarting the content.",
+      NULL,
+      "video",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+   {
       "supermodel_crosshairs",
       "Show Crosshairs",
       NULL,
@@ -263,7 +277,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
          { "enabled",  NULL },
          { NULL, NULL },
       },
-      "disabled"
+      "enabled"
    },
    {
       "supermodel_steering_response",
@@ -582,6 +596,9 @@ void update_core_options(void)
    g_options.supersampling = 1;
 #endif
 
+   g_options.no_white_flash =
+      strcmp(option_get("supermodel_no_white_flash", "disabled"), "enabled") == 0;
+
    g_options.upscale_mode = atoi(option_get("supermodel_upscale_mode", "2"));
    if (g_options.upscale_mode < 0 || g_options.upscale_mode > 3)
       g_options.upscale_mode = 2;
@@ -620,7 +637,7 @@ void update_core_options(void)
                                 : strcmp(star_wars_input, "analog") == 0 ? StarWarsInput::AnalogSticks
                                 : StarWarsInput::Hybrid;
    }
-   g_options.force_feedback = strcmp(option_get("supermodel_force_feedback", "disabled"), "enabled") == 0;
+   g_options.force_feedback = strcmp(option_get("supermodel_force_feedback", "enabled"), "enabled") == 0;
    g_options.steering_progressive =
       strcmp(option_get("supermodel_steering_response", "linear"), "progressive") == 0;
    g_options.steering_output_range =

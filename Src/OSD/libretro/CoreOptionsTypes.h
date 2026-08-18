@@ -52,6 +52,7 @@ struct CoreOptions {
    bool widescreen;
    bool wide_background;     // stretch the lower 2D layer too (needs widescreen)
    int upscale_mode;         // Supermodel UpscaleMode: 0=Nearest 1=Biquintic 2=Bilinear 3=Bicubic
+   bool no_white_flash;      // Supermodel NoWhiteFlash: no white screen while 3D is disabled
    unsigned crosshairs;      // native Supermodel mask: 0=off, 1=P1, 2=P2, 3=both
    bool force_feedback;
    bool steering_progressive;             // driving: quadratic fine-center steering curve
