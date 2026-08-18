@@ -89,13 +89,16 @@ Result R3DFrameBuffers::CreateFBODepthCopy(int width, int height)
 	glReadBuffer(GL_NONE);
 	auto copyStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
-	// Trans2 FBO — shares the copy depth so SetFBO(trans2) needs no RestoreDepth blit
+	// Trans2 FBO — shares the copy depth so SetFBO(trans2) needs no RestoreDepth blit.
+	// The shader writes this layer at output location 2, so the texture must remain
+	// attached to GL_COLOR_ATTACHMENT2 even though this FBO contains only one colour texture.
 	glGenFramebuffers(1, &m_frameBufferIDTrans2);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferIDTrans2);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texIDs[2], 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_texIDs[2], 0);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_renderBufferIDCopy);
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	GLenum trans2Buffers[] = { GL_NONE, GL_NONE, GL_COLOR_ATTACHMENT2 };
+	glDrawBuffers((GLsizei)std::size(trans2Buffers), trans2Buffers);
+	glReadBuffer(GL_NONE);
 
 	auto trans2Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
@@ -187,9 +190,10 @@ void R3DFrameBuffers::SetFBO(Layer layer)
 	}
 	case Layer::trans2:
 	{
-		// m_frameBufferIDTrans2 has att2 color at slot 0 + copy depth (= opaque depth from StoreDepth)
+		// m_frameBufferIDTrans2 preserves shader output location 2 and shares the
+		// copy depth (= opaque depth from StoreDepth).
 		glBindFramebuffer(GL_FRAMEBUFFER, m_frameBufferIDTrans2);
-		GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
+		GLenum buffers[] = { GL_NONE, GL_NONE, GL_COLOR_ATTACHMENT2 };
 		glDrawBuffers((GLsizei)std::size(buffers), buffers);
 		break;
 	}
