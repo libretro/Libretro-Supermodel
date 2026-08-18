@@ -10,6 +10,7 @@
 extern retro_input_poll_t input_poll_cb;
 extern retro_input_state_t input_state_cb;
 extern retro_log_printf_t log_cb;  // defined in libretro.cpp
+extern bool g_star_wars_invert_x; // defined in libretro.cpp
 
 CLibretroInputSystem::CLibretroInputSystem()
     : CInputSystem("Libretro")
@@ -529,7 +530,12 @@ bool CLibretroInputSystem::Poll()
         m_analogJoystickCursorX, minX, maxX);
     m_analogJoystickCursorY = std::clamp(
         m_analogJoystickCursorY, minY, maxY);
-    m_mouseAxes[analogJoystickDev][AXIS_X] = m_analogJoystickCursorX;
+    // The Upright cabinet reverses the horizontal electrical range relative
+    // to Deluxe. Apply the cabinet-specific orientation to the shared virtual
+    // output so mouse and joypad modes remain consistent.
+    m_mouseAxes[analogJoystickDev][AXIS_X] = g_star_wars_invert_x
+        ? minX + (maxX - m_analogJoystickCursorX)
+        : m_analogJoystickCursorX;
     m_mouseAxes[analogJoystickDev][AXIS_Y] = m_analogJoystickCursorY;
     m_mouseAxes[analogJoystickDev][AXIS_Z] = 0;
     m_mouseWheelDir[analogJoystickDev] = 0;

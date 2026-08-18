@@ -41,6 +41,9 @@ struct retro_hw_render_callback hw_render;
 struct retro_rumble_interface rumble;
 struct retro_vfs_interface *g_vfs_interface = nullptr;
 static LibretroWrapper wrapper = LibretroWrapper();
+// Star Wars Trilogy Upright cabinets wire the yoke's horizontal axis the
+// opposite way to Deluxe. Set from the game's NVRAM on the first frame.
+bool g_star_wars_invert_x = false;
 void set_input_descriptors(bool service_on_sticks);
 
 // GPU timer queries (double-buffered: write slot N, read slot N-1)
@@ -291,6 +294,36 @@ static bool apply_initial_nvram_template(void)
    return true;
 }
 
+static void update_star_wars_cabinet_orientation(void)
+{
+   g_star_wars_invert_x = false;
+   const Game &game = wrapper.getGame();
+   if (wrapper.getEmulator() == nullptr ||
+       (game.name != "swtrilgy" && game.parent != "swtrilgy"))
+      return;
+
+   // The cabinet type is stored in the 93C46 EEPROM: Genibus header
+   // "M3 SEGA SWTA", word 12 bit 0x400 set for Deluxe, clear for Upright.
+   serialize_nvram();
+   CBlockFileMemory reader(g_nvram_buffer, NVRAM_BUFFER_SIZE);
+   uint16_t words[64];
+   if (reader.FindBlock("93C46") != Result::OKAY ||
+       reader.Read(words, sizeof(words)) != sizeof(words) ||
+       words[0] != 0x4d33 || words[1] != 0x5345 || words[2] != 0x4741 ||
+       words[3] != 0x5357 || words[4] != 0x5441)
+   {
+      log_cb(RETRO_LOG_WARN,
+             "[Supermodel] Unable to read Star Wars cabinet type\n");
+      return;
+   }
+
+   g_star_wars_invert_x = (words[12] & 0x0400) == 0;
+   log_cb(RETRO_LOG_INFO,
+          "[Supermodel] Star Wars cabinet: %s; analog X %s\n",
+          g_star_wars_invert_x ? "Upright" : "Deluxe",
+          g_star_wars_invert_x ? "inverted" : "normal");
+}
+
 static void build_native_nvram_path(char* path, size_t path_size)
 {
    char filename[1024];
@@ -523,6 +556,7 @@ bool retro_load_game(const struct retro_game_info *info)
    g_cached_serialize_size = 0;
    g_first_run = true;
    g_nvram_initialized = false;
+   g_star_wars_invert_x = false;
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
@@ -629,6 +663,7 @@ void retro_unload_game(void)
    g_cached_serialize_size = 0;
    g_first_run = true;
    g_nvram_initialized = false;
+   g_star_wars_invert_x = false;
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
@@ -821,6 +856,8 @@ void retro_run(void)
                    "[Supermodel] Unable to apply automatic initial NVRAM setup for %s\n",
                    wrapper.getGame().name.c_str());
       }
+
+      update_star_wars_cabinet_orientation();
    }
 
     if (input_poll_cb) input_poll_cb();
