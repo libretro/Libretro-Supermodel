@@ -931,6 +931,8 @@ int LibretroWrapper::Emulate(const char* romPath)
 
         // After the merge, so an explicit core option beats the on-disk Supermodel.ini
         LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
+        LibretroConfigProvider::ApplyGunLayout(s_runtime_config,
+            (game.inputs & (Game::INPUT_ANALOG_GUN1 | Game::INPUT_ANALOG_GUN2)) != 0);
         s_runtime_config.Get("UpscaleMode").SetValue(g_options.upscale_mode);
         s_runtime_config.Get("LegacySoundDSP").SetValue(g_options.legacy_sound_dsp);
     }

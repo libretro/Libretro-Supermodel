@@ -160,6 +160,37 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "default"
    },
    {
+      "supermodel_gun_input",
+      "Gun Input Mode",
+      NULL,
+      "Input source for the analog-gun games (The Lost World, Ocean Hunter, L.A. Machineguns). Hybrid accepts RetroArch Lightgun, Mouse and the left Analog Stick through one cursor per player, with the last moved source taking priority. The other modes accept only the selected source. Changes take effect immediately.",
+      NULL,
+      "input",
+      {
+         { "hybrid",   "Hybrid (Lightgun / Mouse / Analog)" },
+         { "lightgun", "Lightgun" },
+         { "mouse",    "Mouse" },
+         { "analog",   "Analog Stick Cursor" },
+         { NULL, NULL },
+      },
+      "hybrid"
+   },
+   {
+      "supermodel_star_wars_input",
+      "Star Wars Trilogy Input Mode",
+      NULL,
+      "Input source for the arcade yoke in Star Wars Trilogy Arcade. Hybrid accepts the Mouse and the left Analog Stick, with the last moved source taking priority, so the stick always returns to a stable centre. Changes take effect immediately.",
+      NULL,
+      "input",
+      {
+         { "hybrid", "Hybrid (Mouse / Analog Stick)" },
+         { "mouse",  "Mouse" },
+         { "analog", "Analog Stick" },
+         { NULL, NULL },
+      },
+      "hybrid"
+   },
+   {
       "supermodel_force_feedback",
       "Force Feedback",
       NULL,
@@ -474,6 +505,17 @@ void update_core_options(void)
       g_options.driving_layout = strcmp(layout, "triggers") == 0     ? DrivingLayout::TriggersGate
                                : strcmp(layout, "triggers_seq") == 0 ? DrivingLayout::TriggersSequential
                                : DrivingLayout::Default;
+   }
+   {
+      const char *gun_input = option_get("supermodel_gun_input", "hybrid");
+      g_options.gun_input = strcmp(gun_input, "lightgun") == 0 ? GunInput::Lightgun
+                          : strcmp(gun_input, "mouse") == 0    ? GunInput::Mouse
+                          : strcmp(gun_input, "analog") == 0   ? GunInput::AnalogSticks
+                          : GunInput::Hybrid;
+      const char *star_wars_input = option_get("supermodel_star_wars_input", "hybrid");
+      g_options.star_wars_input = strcmp(star_wars_input, "mouse") == 0  ? StarWarsInput::Mouse
+                                : strcmp(star_wars_input, "analog") == 0 ? StarWarsInput::AnalogSticks
+                                : StarWarsInput::Hybrid;
    }
    g_options.force_feedback = strcmp(option_get("supermodel_force_feedback", "disabled"), "enabled") == 0;
    g_options.steering_progressive =

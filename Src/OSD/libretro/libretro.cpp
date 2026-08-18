@@ -80,6 +80,8 @@ CoreOptions g_options = {
 #endif
    /* timing_overlay      */ false,
    /* driving_layout      */ DrivingLayout::Default,
+   /* gun_input           */ GunInput::Hybrid,
+   /* star_wars_input     */ StarWarsInput::Hybrid,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates

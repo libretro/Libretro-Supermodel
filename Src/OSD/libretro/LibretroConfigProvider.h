@@ -227,12 +227,12 @@ namespace LibretroConfigProvider {
         config.Set<std::string>("InputAnalogJoyRight", "KEY_RIGHT", "Input", "", "");
         config.Set<std::string>("InputAnalogJoyUp", "KEY_UP", "Input", "", "");
         config.Set<std::string>("InputAnalogJoyDown", "KEY_DOWN", "Input", "", "");
-        config.Set<std::string>("InputAnalogJoyX", "JOY_XAXIS,MOUSE_XAXIS", "Input", "", "");
-        config.Set<std::string>("InputAnalogJoyY", "JOY_YAXIS,MOUSE_YAXIS", "Input", "", "");
-        config.Set<std::string>("InputAnalogJoyTrigger", "KEY_A,JOY_BUTTON1,MOUSE_LEFT_BUTTON", "Input", "", "");
-        config.Set<std::string>("InputAnalogJoyEvent", "KEY_S,JOY_BUTTON2,MOUSE_RIGHT_BUTTON", "Input", "", "");
-        config.Set<std::string>("InputAnalogJoyTrigger2", "KEY_D,JOY_BUTTON2", "Input", "", "");
-        config.Set<std::string>("InputAnalogJoyEvent2", "NONE", "Input", "", "");
+        config.Set<std::string>("InputAnalogJoyX", "MOUSE7_XAXIS", "Input", "", "");
+        config.Set<std::string>("InputAnalogJoyY", "MOUSE7_YAXIS", "Input", "", "");
+        config.Set<std::string>("InputAnalogJoyTrigger", "KEY_A,MOUSE7_LEFT_BUTTON", "Input", "", "");
+        config.Set<std::string>("InputAnalogJoyEvent", "KEY_S,MOUSE7_RIGHT_BUTTON", "Input", "", "");
+        config.Set<std::string>("InputAnalogJoyTrigger2", "KEY_D,MOUSE7_BUTTON4", "Input", "", "");
+        config.Set<std::string>("InputAnalogJoyEvent2", "MOUSE7_BUTTON5", "Input", "", "");
 
         // Light guns (Lost World)
         config.Set<std::string>("InputGunLeft", "KEY_LEFT", "Input", "", "");
@@ -259,18 +259,18 @@ namespace LibretroConfigProvider {
         config.Set<std::string>("InputAnalogGunRight", "KEY_RIGHT", "Input", "", "");
         config.Set<std::string>("InputAnalogGunUp", "KEY_UP", "Input", "", "");
         config.Set<std::string>("InputAnalogGunDown", "KEY_DOWN", "Input", "", "");
-        config.Set<std::string>("InputAnalogGunX", "MOUSE_XAXIS,JOY1_XAXIS", "Input", "", "");
-        config.Set<std::string>("InputAnalogGunY", "MOUSE_YAXIS,JOY1_YAXIS", "Input", "", "");
-        config.Set<std::string>("InputAnalogTriggerLeft", "KEY_A,JOY1_BUTTON1,MOUSE_LEFT_BUTTON", "Input", "", "");
-        config.Set<std::string>("InputAnalogTriggerRight", "KEY_S,JOY1_BUTTON2,MOUSE_RIGHT_BUTTON", "Input", "", "");
+        config.Set<std::string>("InputAnalogGunX", "MOUSE5_XAXIS", "Input", "", "");
+        config.Set<std::string>("InputAnalogGunY", "MOUSE5_YAXIS", "Input", "", "");
+        config.Set<std::string>("InputAnalogTriggerLeft", "KEY_A,MOUSE5_LEFT_BUTTON", "Input", "", "");
+        config.Set<std::string>("InputAnalogTriggerRight", "KEY_S,MOUSE5_RIGHT_BUTTON", "Input", "", "");
         config.Set<std::string>("InputAnalogGunLeft2", "NONE", "Input", "", "");
         config.Set<std::string>("InputAnalogGunRight2", "NONE", "Input", "", "");
         config.Set<std::string>("InputAnalogGunUp2", "NONE", "Input", "", "");
         config.Set<std::string>("InputAnalogGunDown2", "NONE", "Input", "", "");
-        config.Set<std::string>("InputAnalogGunX2", "NONE", "Input", "", "");
-        config.Set<std::string>("InputAnalogGunY2", "NONE", "Input", "", "");
-        config.Set<std::string>("InputAnalogTriggerLeft2", "NONE", "Input", "", "");
-        config.Set<std::string>("InputAnalogTriggerRight2", "NONE", "Input", "", "");
+        config.Set<std::string>("InputAnalogGunX2", "MOUSE6_XAXIS", "Input", "", "");
+        config.Set<std::string>("InputAnalogGunY2", "MOUSE6_YAXIS", "Input", "", "");
+        config.Set<std::string>("InputAnalogTriggerLeft2", "MOUSE6_LEFT_BUTTON", "Input", "", "");
+        config.Set<std::string>("InputAnalogTriggerRight2", "MOUSE6_RIGHT_BUTTON", "Input", "", "");
 
         // Ski Champ controls
         config.Set<std::string>("InputSkiLeft", "KEY_LEFT", "Input", "", "");
@@ -592,6 +592,47 @@ namespace LibretroConfigProvider {
         cmd_line.rom_files.emplace_back(arg);
     }
     return cmd_line;
+    }
+
+    /*
+     * Gun and Star Wars yoke mappings, re-applied after the Supermodel.ini merge (like the
+     * driving layout) so an older on-disk Supermodel.ini cannot bring back the mixed
+     * MOUSE_XAXIS,JOY1_XAXIS sources. CMultiInputSource (OR) answers with the first
+     * *active* source, and an accumulated relative mouse is almost never exactly centred,
+     * so with the mixed mapping the mouse permanently shadowed the stick (guns) or
+     * became the stick's rest position (Star Wars).
+     *
+     * MOUSE5/MOUSE6 are the per-player gun cursors and MOUSE7 the yoke, built by
+     * CLibretroInputSystem from the sources selected by the Gun Input Mode and Star Wars
+     * Trilogy Input Mode core options. The options are read every frame, so changing them
+     * never requires rebuilding the input configuration.
+     */
+    inline void ApplyGunLayout(Util::Config::Node &config, bool analogGunGame)
+    {
+        config.Set<std::string>("InputAnalogGunX", "MOUSE5_XAXIS");
+        config.Set<std::string>("InputAnalogGunY", "MOUSE5_YAXIS");
+        config.Set<std::string>("InputAnalogTriggerLeft", "KEY_A,MOUSE5_LEFT_BUTTON");
+        config.Set<std::string>("InputAnalogTriggerRight", "KEY_S,MOUSE5_RIGHT_BUTTON");
+        config.Set<std::string>("InputAnalogGunX2", "MOUSE6_XAXIS");
+        config.Set<std::string>("InputAnalogGunY2", "MOUSE6_YAXIS");
+        config.Set<std::string>("InputAnalogTriggerLeft2", "MOUSE6_LEFT_BUTTON");
+        config.Set<std::string>("InputAnalogTriggerRight2", "MOUSE6_RIGHT_BUTTON");
+
+        // Light gun Start/Select (or mouse X1/X2) as Start/Coin, only in the gun games.
+        if (analogGunGame)
+        {
+            config.Set<std::string>("InputStart1", "KEY_1,JOY1_BUTTON9,MOUSE5_BUTTON4");
+            config.Set<std::string>("InputCoin1", "KEY_3,JOY1_BUTTON10,MOUSE5_BUTTON5");
+            config.Set<std::string>("InputStart2", "KEY_2,JOY2_BUTTON9,MOUSE6_BUTTON4");
+            config.Set<std::string>("InputCoin2", "KEY_4,JOY2_BUTTON10,MOUSE6_BUTTON5");
+        }
+
+        config.Set<std::string>("InputAnalogJoyX", "MOUSE7_XAXIS");
+        config.Set<std::string>("InputAnalogJoyY", "MOUSE7_YAXIS");
+        config.Set<std::string>("InputAnalogJoyTrigger", "KEY_A,MOUSE7_LEFT_BUTTON");
+        config.Set<std::string>("InputAnalogJoyEvent", "KEY_S,MOUSE7_RIGHT_BUTTON");
+        config.Set<std::string>("InputAnalogJoyTrigger2", "KEY_D,MOUSE7_BUTTON4");
+        config.Set<std::string>("InputAnalogJoyEvent2", "MOUSE7_BUTTON5");
     }
 
     /*

@@ -9,6 +9,21 @@ enum class DrivingLayout {
    TriggersSequential  // sequential shift on the right stick
 };
 
+// Source of the per-player virtual gun cursors (Supermodel MOUSE5/MOUSE6).
+enum class GunInput {
+   Hybrid,        // RetroLightgun, RetroMouse or left stick; the last one moved wins
+   Lightgun,      // RetroLightgun, absolute screen coordinates
+   Mouse,         // RetroMouse, relative movement
+   AnalogSticks   // RetroPad left stick moving a relative cursor
+};
+
+// Source of the Star Wars Trilogy yoke (Supermodel MOUSE7).
+enum class StarWarsInput {
+   Hybrid,        // mouse or absolute RetroPad stick, the last one moved wins
+   Mouse,         // RetroMouse relative movement
+   AnalogSticks   // RetroPad left stick as an absolute arcade yoke
+};
+
 struct CoreOptions {
    bool initial_nvram_setup;
    float resolution_multiplier;
@@ -31,6 +46,8 @@ struct CoreOptions {
    bool jit_enable;
    bool timing_overlay;      // draw the ImGui frame-timing overlay (costs a draw pass every frame)
    DrivingLayout driving_layout;
+   GunInput gun_input;
+   StarWarsInput star_wars_input;
 };
 
 extern CoreOptions g_options;

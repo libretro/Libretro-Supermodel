@@ -21,7 +21,7 @@ public:
     virtual const KeyDetails *GetKeyDetails(int kbdNum) override;
     bool Initialize();
 
-    virtual int GetNumMice() const override { return 3; }
+    virtual int GetNumMice() const override { return kMouseDeviceCount; }
     virtual int GetMouseAxisValue(int mseNum, int axisNum) const override;
     virtual int GetMouseWheelDir(int mseNum) const override;
     virtual bool IsMouseButPressed(int mseNum, int butNum) const override;
@@ -46,13 +46,31 @@ private:
     uint8_t m_joyPOV[2][4]; // Up, Down, Left, Right
     bool m_keyState[512];  // Add this for keyboard
     
-    // Mouse/Lightgun support (3 devices: 1 mouse, 2 lightguns)
-    int16_t m_mouseAxes[3][NUM_MOUSE_AXES];
-    bool m_mouseButtons[3][NUM_MOUSE_BUTTONS];
-    int m_mouseWheelDir[3];
-    bool m_mouseIsAbsolute[3];
-    int m_mouseX = 0;
-    int m_mouseY = 0;
+    // Supermodel mouse numbers:
+    //   MOUSE/MOUSE2 = RetroMouse ports 1/2
+    //   MOUSE3/MOUSE4 = RetroLightgun ports 1/2
+    //   MOUSE5/MOUSE6 = virtual gun cursors for players 1/2
+    //   MOUSE7 = virtual Star Wars analog joystick (stick or relative mouse)
+    static constexpr int kMouseDeviceCount = 7;
+    int16_t m_mouseAxes[kMouseDeviceCount][NUM_MOUSE_AXES];
+    bool m_mouseButtons[kMouseDeviceCount][NUM_MOUSE_BUTTONS];
+    int m_mouseWheelDir[kMouseDeviceCount];
+    bool m_mouseIsAbsolute[kMouseDeviceCount];
+    int m_mouseX[2];
+    int m_mouseY[2];
+    bool m_mousePositionInitialized[2];
+    int m_gunCursorX[2];
+    int m_gunCursorY[2];
+    int16_t m_previousLightgunX[2];
+    int16_t m_previousLightgunY[2];
+    bool m_gunCursorInitialized[2];
+    bool m_lightgunPositionInitialized[2];
+    int m_analogJoystickCursorX;
+    int m_analogJoystickCursorY;
+    bool m_analogJoystickCursorInitialized;
+    unsigned m_analogJoystickSource; // 0: stick, 1: mouse
+    bool m_port2MouseDistinct;       // port 2 mouse proved to be a separate device
+    bool m_port2LightgunDistinct;    // port 2 light gun proved to be a separate device
 
     bool m_serviceOnSticks = false;
     retro_rumble_interface m_rumbleInterface;
