@@ -665,6 +665,89 @@ namespace LibretroConfigProvider {
      * keep overriding the trigger. Gears are switch inputs, so mixing button and axis sources
      * there is free (CJoyAxisInputSource::GetValueAsSwitch trips past ~2/3 of travel).
      */
+    /*
+     * RetroPad layouts for cabinet controls other than the driving pedals and
+     * gears, matching the layouts users know from the previous release of this
+     * core. Applied on the merged runtime config, like the driving and gun
+     * layouts, so they also hold with an older Supermodel.ini on disk.
+     */
+    inline void ApplyCabinetLayout(Util::Config::Node &config, uint32_t inputs)
+    {
+        // L3 = Test, R3 = Service (or L/R with the shoulder option); the
+        // second pair is L2/R2 on that option and player 2's L3/R3.
+        config.Set<std::string>("InputTestA", "KEY_6,JOY1_BUTTON21");
+        config.Set<std::string>("InputServiceA", "KEY_5,JOY1_BUTTON22");
+        config.Set<std::string>("InputTestB", "KEY_8,JOY1_BUTTON23,JOY2_BUTTON21");
+        config.Set<std::string>("InputServiceB", "KEY_7,JOY1_BUTTON24,JOY2_BUTTON22");
+
+        // Driving views on the D-Pad alone (JOY1_BUTTON25-28 = up/down/left/right).
+        if (inputs & Game::INPUT_VR4)
+        {
+            config.Set<std::string>("InputVR1", "JOY1_BUTTON25");   // Red: D-Pad Up
+            config.Set<std::string>("InputVR2", "JOY1_BUTTON26");   // Blue: D-Pad Down
+            config.Set<std::string>("InputVR3", "JOY1_BUTTON27");   // Yellow: D-Pad Left
+            config.Set<std::string>("InputVR4", "JOY1_BUTTON28");   // Green: D-Pad Right
+        }
+        if (inputs & Game::INPUT_VIEWCHANGE)
+            config.Set<std::string>("InputViewChange", "JOY1_BUTTON25"); // D-Pad Up
+        if (inputs & Game::INPUT_SHIFT4)
+            config.Set<std::string>("InputGearShiftN", "JOY1_BUTTON3");  // Y: neutral
+        if (inputs & Game::INPUT_HANDBRAKE)
+            config.Set<std::string>("InputHandBrake", "JOY1_BUTTON1");   // B
+        if (inputs & Game::INPUT_HARLEY)
+        {
+            config.Set<std::string>("InputRearBrake", "JOY1_BUTTON1");   // B
+            config.Set<std::string>("InputMusicSelect", "JOY1_BUTTON2"); // A
+        }
+
+        // Virtual On 2: each analog stick drives one cabinet stick directly.
+        if (inputs & Game::INPUT_TWIN_JOYSTICKS)
+        {
+            config.Set<std::string>("InputTwinJoyTurnLeft", "NONE");
+            config.Set<std::string>("InputTwinJoyTurnRight", "NONE");
+            config.Set<std::string>("InputTwinJoyForward", "KEY_UP");
+            config.Set<std::string>("InputTwinJoyReverse", "KEY_DOWN");
+            config.Set<std::string>("InputTwinJoyStrafeLeft", "KEY_LEFT");
+            config.Set<std::string>("InputTwinJoyStrafeRight", "KEY_RIGHT");
+            config.Set<std::string>("InputTwinJoyJump", "NONE");
+            config.Set<std::string>("InputTwinJoyCrouch", "NONE");
+            config.Set<std::string>("InputTwinJoyLeft1", "JOY1_XAXIS_NEG");
+            config.Set<std::string>("InputTwinJoyRight1", "JOY1_XAXIS_POS");
+            config.Set<std::string>("InputTwinJoyUp1", "JOY1_YAXIS_NEG");
+            config.Set<std::string>("InputTwinJoyDown1", "JOY1_YAXIS_POS");
+            config.Set<std::string>("InputTwinJoyLeft2", "JOY1_RXAXIS_NEG");
+            config.Set<std::string>("InputTwinJoyRight2", "JOY1_RXAXIS_POS");
+            config.Set<std::string>("InputTwinJoyUp2", "JOY1_RYAXIS_NEG");
+            config.Set<std::string>("InputTwinJoyDown2", "JOY1_RYAXIS_POS");
+            config.Set<std::string>("InputTwinJoyShot1", "JOY1_BUTTON7");  // L2
+            config.Set<std::string>("InputTwinJoyShot2", "JOY1_BUTTON8");  // R2
+            config.Set<std::string>("InputTwinJoyTurbo1", "JOY1_BUTTON5"); // L
+            config.Set<std::string>("InputTwinJoyTurbo2", "JOY1_BUTTON6"); // R
+        }
+
+        // Fishing: reel on R2, line tension on L2, cast on B or Start.
+        if (inputs & Game::INPUT_FISHING)
+        {
+            config.Set<std::string>("InputFishingReel", "JOY1_RZAXIS_POS");
+            config.Set<std::string>("InputFishingTension", "JOY1_ZAXIS_POS");
+            config.Set<std::string>("InputFishingCast", "JOY1_BUTTON1,JOY1_BUTTON9");
+            config.Set<std::string>("InputFishingSelect", "JOY1_BUTTON2");
+        }
+
+        // Ski Champ: poles on L/R, the three selections on Y, B/Start and A.
+        // The generic Start 1 shares the Model 3 input bit with Select 3, so
+        // it is unbound and Start reaches only the centre selection.
+        if (inputs & Game::INPUT_SKI)
+        {
+            config.Set<std::string>("InputSkiPollLeft", "JOY1_BUTTON5");
+            config.Set<std::string>("InputSkiPollRight", "JOY1_BUTTON6");
+            config.Set<std::string>("InputSkiSelect1", "JOY1_BUTTON3");
+            config.Set<std::string>("InputSkiSelect2", "JOY1_BUTTON1,JOY1_BUTTON9");
+            config.Set<std::string>("InputSkiSelect3", "JOY1_BUTTON2");
+            config.Set<std::string>("InputStart1", "NONE");
+        }
+    }
+
     inline void ApplyDrivingLayout(Util::Config::Node &config)
     {
         config.Set<std::string>("InputAccelerator", "KEY_UP,JOY1_RZAXIS_POS");   // R2

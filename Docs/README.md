@@ -71,16 +71,31 @@ are never modified; delete a game's `.srm` to regenerate them.
 
 ## Controls
 
-The Service and Test buttons are on L3/R3 by default, or on the shoulder
-buttons through `Service / Test Button Mapping`.
+Test is on L3 and Service on R3 (player 2: its own L3/R3), or Test on L and
+Service on R through `Service / Test Button Mapping`.
 
 ### Driving games
 
 Steering is on the left analog stick and the pedals on the analog triggers;
-L/R shift gears sequentially. `Driving Controls Layout` can add a four-gear
-gate, a sequential lever or an H-pattern gearbox on the right stick. The
-steering response and the steering, accelerator and brake output ranges can be
-adjusted. The four view-change buttons (VR1-VR4) are on B, A, Y and X.
+L/R shift gears sequentially. By default the right stick is also an H-pattern
+gearbox (up-left, down-left, up-right and down-right select gears 1-4) and Y
+selects neutral; `Driving Controls Layout` can instead use the right stick as
+a four-gear gate or a sequential lever, or leave it unused. The view buttons
+are on the D-Pad (VR1-VR4 on up, down, left and right; single view change on
+up). The handbrake (Sega Rally 2) and the rear brake (Harley-Davidson) are on B.
+The steering response and the steering, accelerator and brake output ranges
+can be adjusted.
+
+### Other cabinets
+
+- **Virtual On 2:** each analog stick drives one of the cabinet's two sticks;
+  L2/R2 fire and L/R are the turbo buttons.
+- **Sega Bass Fishing / Get Bass:** the left stick is the rod, the right stick
+  the rod's stick, R2 reels and L2 sets the line tension (Get Bass); B or Start
+  casts.
+- **Ski Champ:** the left stick moves the skis, L/R are the poles, and Y, B
+  (or Start) and A are the three select buttons.
+- **Fighting games:** the D-Pad and the left stick both move.
 
 ### Gun games
 

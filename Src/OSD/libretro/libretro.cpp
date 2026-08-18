@@ -89,7 +89,7 @@ CoreOptions g_options = {
                               false,
 #endif
    /* timing_overlay      */ false,
-   /* driving_layout      */ DrivingLayout::Default,
+   /* driving_layout      */ DrivingLayout::TriggersHGate,
    /* gun_input           */ GunInput::Hybrid,
    /* star_wars_input     */ StarWarsInput::Hybrid,
    /* renderer_3d         */ Renderer3D::New3D,
@@ -1323,16 +1323,16 @@ void set_input_descriptors(bool service_on_sticks)
 {
    struct retro_input_descriptor desc[] = {
       // Player 1 - D-Pad
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left / View 3" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up / View 1 / View Change" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right / View 4" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down / View 2" },
 
       // Player 1 - Face buttons
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "Punch / Accelerate" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "Kick / Brake" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Guard / View Change" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "Escape / Shift Up" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "Punch / Handbrake / Rear Brake" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "Kick / Music Select" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Guard / Neutral Gear" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "Escape" },
 
       // Player 1 - Start / Coin
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
@@ -1340,19 +1340,19 @@ void set_input_descriptors(bool service_on_sticks)
 
       // Player 1 - Shoulder buttons (role depends on mapping option)
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,
-            service_on_sticks ? "Gear Shift Down" : "Service (Test Menu)" },
+            service_on_sticks ? "Gear Shift Down" : "Test (Test Menu)" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,
-            service_on_sticks ? "Gear Shift Up" : "Test Button" },
+            service_on_sticks ? "Gear Shift Up" : "Service" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,
-            service_on_sticks ? "Brake" : "Service 2" },
+            service_on_sticks ? "Brake" : "Test 2" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,
-            service_on_sticks ? "Accelerator" : "Test Button 2" },
+            service_on_sticks ? "Accelerator" : "Service 2" },
 
       // Player 1 - Stick clicks (role depends on mapping option)
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,
-            service_on_sticks ? "Service (Test Menu)" : "L3" },
+            service_on_sticks ? "Test (Test Menu)" : "L3" },
       { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,
-            service_on_sticks ? "Test Button" : "R3" },
+            service_on_sticks ? "Service" : "R3" },
 
       // Player 1 - Analog
       { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_X, "Steering / Move X" },
@@ -1367,14 +1367,16 @@ void set_input_descriptors(bool service_on_sticks)
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "P2 D-Pad Down" },
 
       // Player 2 - Face buttons
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "P2 Punch / Accelerate" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "P2 Kick / Brake" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "P2 Guard / View Change" },
-      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "P2 Escape / Shift Up" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "P2 Punch" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "P2 Kick" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "P2 Guard" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "P2 Escape" },
 
       // Player 2 - Start / Coin
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "P2 Start" },
       { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "P2 Coin" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,     "P2 Test" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,     "P2 Service" },
 
       { 0, 0, 0, 0, NULL },
    };

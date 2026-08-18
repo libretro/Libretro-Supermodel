@@ -273,9 +273,18 @@ bool CLibretroInputSystem::Poll()
         m_joyButtons[joy][12] = (x < -THRESHOLD) || d_left;    // Left - ANALOG + DIGITAL
         m_joyButtons[joy][13] = (x >  THRESHOLD) || d_right;   // Right - ANALOG + DIGITAL
 
-        // Service/Test buttons (20-23) - BUTTON21-24 in Supermodel numbering
-        // Service/Test buttons (20-23) - mapping depends on user preference
-        if (m_serviceOnSticks)
+        // D-Pad alone (24-27, BUTTON25-28): the driving view buttons, which must
+        // not follow the left stick the way POV and buttons 10-13 do, since the
+        // left stick steers.
+        m_joyButtons[joy][24] = d_up;
+        m_joyButtons[joy][25] = d_down;
+        m_joyButtons[joy][26] = d_left;
+        m_joyButtons[joy][27] = d_right;
+
+        // Service/Test buttons (20-23) - BUTTON21-24 in Supermodel numbering.
+        // Player 1 follows the Service / Test Button Mapping option; player 2
+        // always uses its own stick clicks, since its shoulders are game controls.
+        if (m_serviceOnSticks || joy == 1)
         {
             m_joyButtons[joy][20] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3);
             m_joyButtons[joy][21] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3);

@@ -278,17 +278,17 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_driving_layout",
       "Driving Controls Layout",
       NULL,
-      "Pad layout for driving games. L/R shift down/up and L2/R2 are analog brake/accelerator in every layout. The optional layouts also use the right stick as a 4-gear gate (up/down/left/right select gears 1-4), a sequential lever, or an H-pattern gearbox (the diagonals up-left/down-left/up-right/down-right select gears 1-4). Changes apply immediately.",
+      "Pad layout for driving games. L/R shift down/up and L2/R2 are analog brake/accelerator in every layout; in 4-speed games Y selects neutral and the D-Pad changes the view. The default layout also uses the right stick as an H-pattern gearbox (the diagonals up-left/down-left/up-right/down-right select gears 1-4); the others use it as a 4-gear gate (up/down/left/right select gears 1-4), as a sequential lever, or not at all. Changes apply immediately.",
       NULL,
       "input",
       {
+         { "triggers_hgate", "Standard + H-pattern gearbox on right stick (Default)" },
          { "default",      "Standard (L/R shift, triggers as pedals)" },
          { "triggers",     "Standard + 4-gear gate on right stick" },
          { "triggers_seq", "Standard + sequential on right stick" },
-         { "triggers_hgate", "Standard + H-pattern gearbox on right stick" },
          { NULL, NULL },
       },
-      "default"
+      "triggers_hgate"
    },
    {
       "supermodel_gun_input",
@@ -693,11 +693,11 @@ void update_core_options(void)
 
    g_options.service_on_sticks = strcmp(option_get("supermodel_service_buttons", "sticks"), "sticks") == 0;
    {
-      const char *layout = option_get("supermodel_driving_layout", "default");
+      const char *layout = option_get("supermodel_driving_layout", "triggers_hgate");
       g_options.driving_layout = strcmp(layout, "triggers") == 0     ? DrivingLayout::TriggersGate
                                : strcmp(layout, "triggers_seq") == 0 ? DrivingLayout::TriggersSequential
-                               : strcmp(layout, "triggers_hgate") == 0 ? DrivingLayout::TriggersHGate
-                               : DrivingLayout::Default;
+                               : strcmp(layout, "default") == 0      ? DrivingLayout::Default
+                               : DrivingLayout::TriggersHGate;
    }
    {
       const char *gun_input = option_get("supermodel_gun_input", "hybrid");
