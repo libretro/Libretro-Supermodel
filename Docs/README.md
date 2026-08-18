@@ -91,6 +91,26 @@ Dirt Devils, ECA, Fighting Vipers 2, Harley-Davidson, LA Machineguns, Le Mans
 Champ, Spikeout, Sega Rally 2, Star Wars Trilogy, Virtua Fighter 3, Virtual
 On 2 and Virtua Striker 2 (all versions).
 
+## Video and audio options
+
+`Widescreen Hack` expands the 3D camera's horizontal field of view into a 16:9
+frame (683x384 at native resolution) instead of stretching the 4:3 image. Only
+full-screen 3D views are widened and the 2D layers keep their geometry; some
+games show glitches at the sides. `Widescreen + Wide Background`
+also stretches the lower 2D background layer to fill the sides; HUD and upper
+overlays keep their aspect ratio. Plain 4:3-to-16:9 stretching is left to
+RetroArch's aspect-ratio settings. The change applies immediately; the wider
+frame has about 38% more pixels, so judge performance separately.
+
+`2D Layer Upscaling Filter` (Nearest, Biquintic, Bilinear or Bicubic) is
+Supermodel's own filter for the 2D tile layers at internal resolutions above
+native; at 496x384 Nearest is always used. `CRT Colour` applies Supermodel's
+colour and gamma adaptation for the original arcade monitors (D93 and D65
+profiles) and is ignored by Legacy3D. `SCSP DSP Engine` selects the
+MAME-derived sound DSP (default) or the legacy ElSemi engine for games with
+audio problems on the new one, such as Fighting Vipers 2. These three take
+effect after restarting the content.
+
 ## Controls
 
 Test is on L3 and Service on R3 (player 2: its own L3/R3), or Test on L and
@@ -103,10 +123,13 @@ L/R shift gears sequentially. By default the right stick is also an H-pattern
 gearbox (up-left, down-left, up-right and down-right select gears 1-4) and Y
 selects neutral; `Driving Controls Layout` can instead use the right stick as
 a four-gear gate or a sequential lever, or leave it unused. The view buttons
-are on the D-Pad (VR1-VR4 on up, down, left and right; single view change on
-up). The handbrake (Sega Rally 2) and the rear brake (Harley-Davidson) are on B.
-The steering response and the steering, accelerator and brake output ranges
-can be adjusted.
+are on the D-Pad (VR1 red, VR2 blue, VR3 yellow and VR4 green on up, down,
+left and right; single view change on up). The handbrake (Sega Rally 2) and
+the rear brake (Harley-Davidson) are on B; Harley-Davidson's music select is
+on A. The steering response (linear or progressive) and the steering,
+accelerator and brake output ranges can be adjusted; these options apply only
+to driving games. The 63% steering and 75.3% pedal presets map the full stick
+and trigger travel to the 30-80-D0 and 00-C0 ranges of the original controls.
 
 ### Other cabinets
 
@@ -117,7 +140,11 @@ can be adjusted.
   casts.
 - **Ski Champ:** the left stick moves the skis, L/R are the poles, and Y, B
   (or Start) and A are the three select buttons.
-- **Fighting games:** the D-Pad and the left stick both move.
+- **Magical Truck Adventure:** each player's lever is the vertical axis of
+  their own pad's left stick and the pedal is B.
+- **Fighting games:** the D-Pad and the left stick both move; B, A, Y and X
+  are Punch, Kick, Guard and Escape (Spikeout: Shift, Beat, Charge and Jump;
+  Virtua Striker: Short Pass, Long Pass and Shoot on B, A and Y).
 
 ### Gun games
 
@@ -196,8 +223,11 @@ most, roughly in order:
 - `Internal Resolution`: Half or Native;
 - `Frame Skip`.
 
-`Frame Timing Overlay` shows per-frame PowerPC, render, GPU and total timings
-for profiling.
+`Frame Timing Overlay` shows the per-frame PowerPC, render, GPU, sync, sound
+and total times, colour-coded against the frame budget, plus 61-frame averages
+of the engine, audio pacing, blit and present times, the total and worst
+`retro_run` time, the actual frontend frame rate and the rates the engine
+alone and the whole callback could sustain.
 
 ## Build instructions
 
