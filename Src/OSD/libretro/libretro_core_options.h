@@ -83,15 +83,32 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "disabled"
    },
    {
-      "supermodel_wide_screen",
-      "Widescreen Hack",
+      "supermodel_upscale_mode",
+      "2D Layer Upscaling Filter",
       NULL,
-      "Enable widescreen rendering for supported games. May cause graphical glitches.",
+      "Select the native Supermodel filter used to upscale internal 2D tile layers before they are composited with 3D. At native resolution Supermodel always uses Nearest. Takes effect after restarting content.",
       NULL,
       "video",
       {
-         { "disabled", NULL },
-         { "enabled",  NULL },
+         { "0", "Nearest" },
+         { "1", "Biquintic" },
+         { "2", "Bilinear (Default)" },
+         { "3", "Bicubic" },
+         { NULL, NULL },
+      },
+      "2"
+   },
+   {
+      "supermodel_wide_screen",
+      "Widescreen Hack",
+      NULL,
+      "Enable widescreen rendering for supported games. May cause graphical glitches. 'Widescreen + Wide Background' also stretches the lower 2D background layer to fill the sides; HUD and upper overlays keep their original aspect ratio.",
+      NULL,
+      "video",
+      {
+         { "disabled",        "Disabled" },
+         { "enabled",         "Widescreen" },
+         { "wide_background", "Widescreen + Wide Background" },
          { NULL, NULL },
       },
       "disabled"
@@ -254,6 +271,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "enabled"
    },
+   {
+      "supermodel_scsp_dsp",
+      "SCSP DSP Engine",
+      NULL,
+      "Select the Sega Custom Sound Processor DSP implementation. The modern MAME-derived engine is recommended; use Legacy ElSemi for games with audio compatibility issues such as Fighting Vipers 2. Takes effect after restarting content.",
+      NULL,
+      "audio",
+      {
+         { "new",    "New (MAME, Default)" },
+         { "legacy", "Legacy (ElSemi)" },
+         { NULL, NULL },
+      },
+      "new"
+   },
    // CPU
    {
       "supermodel_frameskip",
@@ -345,7 +376,14 @@ void update_core_options(void)
 
    g_options.timing_overlay = strcmp(option_get("supermodel_timing_overlay", "disabled"), "enabled") == 0;
 
-   g_options.widescreen = strcmp(option_get("supermodel_wide_screen", "disabled"), "enabled") == 0;
+   {
+      const char *widescreen = option_get("supermodel_wide_screen", "disabled");
+      g_options.widescreen = strcmp(widescreen, "disabled") != 0;
+      g_options.wide_background = strcmp(widescreen, "wide_background") == 0;
+   }
+   g_options.upscale_mode = atoi(option_get("supermodel_upscale_mode", "2"));
+   if (g_options.upscale_mode < 0 || g_options.upscale_mode > 3)
+      g_options.upscale_mode = 2;
    {
       const char *crosshairs = option_get("supermodel_crosshairs", "0");
       // Accept the values used by earlier builds so an existing .opt file
@@ -358,6 +396,8 @@ void update_core_options(void)
    g_options.sound_enable = strcmp(option_get("supermodel_sound_enable", "enabled"), "enabled") == 0;
    g_options.sound_volume = atoi(option_get("supermodel_sound_volume", "100"));
    g_options.music_volume = atoi(option_get("supermodel_music_volume", "100"));
+   g_options.legacy_sound_dsp =
+      strcmp(option_get("supermodel_scsp_dsp", "new"), "legacy") == 0;
 
    g_options.service_on_sticks = strcmp(option_get("supermodel_service_buttons", "sticks"), "sticks") == 0;
    {

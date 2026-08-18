@@ -150,7 +150,8 @@ static CCrosshair* s_crosshair = nullptr;
 
 LibretroWrapper::LibretroWrapper() :
     xRes(800), yRes(600), xOffset(0), yOffset(0),
-    totalXRes(800), totalYRes(600), aaValue(0), CRTcolors(CRTcolor::None)
+    totalXRes(800), totalYRes(600), aaValue(0), CRTcolors(CRTcolor::None),
+    upscaleMode(UpscaleMode::Bilinear)
 {
       g_ctx = this;
 }
@@ -919,6 +920,8 @@ int LibretroWrapper::Emulate(const char* romPath)
 
         // After the merge, so an explicit core option beats the on-disk Supermodel.ini
         LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
+        s_runtime_config.Get("UpscaleMode").SetValue(g_options.upscale_mode);
+        s_runtime_config.Get("LegacySoundDSP").SetValue(g_options.legacy_sound_dsp);
     }
 
     if (Model3 || Inputs || Outputs)
@@ -929,6 +932,7 @@ int LibretroWrapper::Emulate(const char* romPath)
 
     aaValue   = s_runtime_config["Supersampling"].ValueAs<int>();
     CRTcolors = (CRTcolor)s_runtime_config["CRTcolors"].ValueAs<int>();   // 0 = None; was never read, left indeterminate
+    upscaleMode = static_cast<UpscaleMode>(s_runtime_config["UpscaleMode"].ValueAs<int>());
 
     auto inputSystem = std::make_shared<CLibretroInputSystem>();
     auto inputs = std::make_unique<CInputs>(inputSystem);
@@ -994,8 +998,16 @@ GLuint LibretroWrapper::getSuperModelFBO() const
     return (saaFBO != 0) ? saaFBO : m_libretrFBO;
 }
 
-void LibretroWrapper::SetWidescreen(bool enabled)
+void LibretroWrapper::SetWidescreen(bool enabled, bool wideBackground)
 {
+    // WideBackground is read by Render2D every frame, so it applies live.
+    try {
+        s_runtime_config.Get("WideBackground").SetValue(enabled && wideBackground);
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("WideBackground").SetValue(enabled && wideBackground);
+    }
+
     // Check if the value actually changed
     bool current_value = s_runtime_config["WideScreen"].ValueAsDefault<bool>(false);
     if (current_value == enabled) {

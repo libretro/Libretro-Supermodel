@@ -55,11 +55,14 @@ CoreOptions g_options = {
    /* initial_nvram_setup */ true,
    /* resolution_multiplier */ 1,
    /* widescreen           */ false,
+   /* wide_background      */ false,
+   /* upscale_mode         */ 2,
    /* crosshairs           */ 0,
    /* force_feedback       */ false,
    /* analog_sensitivity   */ 100,
    /* sound_volume         */ 100,
    /* music_volume         */ 100,
+   /* legacy_sound_dsp     */ false,
    /* service_on_sticks    */ true,
    /* ppc_frequency        */ 0,
    /* frameskip            */ 0,
@@ -456,7 +459,7 @@ bool retro_load_game(const struct retro_game_info *info)
       
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
-   wrapper.SetWidescreen(g_options.widescreen);
+   wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
    wrapper.SetCrosshairs(g_options.crosshairs);
    wrapper.SetServiceOnSticks(g_options.service_on_sticks);
    if (wrapper.SuperModelInit(wrapper.getGame()) != 0)
@@ -514,6 +517,9 @@ void retro_run(void)
    {
       float old_multiplier = g_options.resolution_multiplier;
       bool old_widescreen = g_options.widescreen;
+      bool old_wide_background = g_options.wide_background;
+      int old_upscale_mode = g_options.upscale_mode;
+      bool old_legacy_sound_dsp = g_options.legacy_sound_dsp;
       bool old_service_on_sticks = g_options.service_on_sticks;
       bool old_sound_enable = g_options.sound_enable;
       unsigned old_crosshairs = g_options.crosshairs;
@@ -523,7 +529,7 @@ void retro_run(void)
 
       if (g_options.widescreen != old_widescreen)
       {
-         wrapper.SetWidescreen(g_options.widescreen);
+         wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
 
          // Tell RetroArch the aspect ratio changed
          struct retro_game_geometry geometry;
@@ -533,6 +539,20 @@ void retro_run(void)
          geometry.max_height   = 384 * 4;
          geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
          environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
+      }
+      else if (g_options.wide_background != old_wide_background)
+      {
+         // Render2D reads WideBackground every frame: no reinit needed.
+         wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
+      }
+
+      if (g_options.upscale_mode != old_upscale_mode ||
+          g_options.legacy_sound_dsp != old_legacy_sound_dsp)
+      {
+         static const struct retro_message message = {
+            "Renderer/audio engine changes will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
 
       if (g_options.resolution_multiplier != old_multiplier)
