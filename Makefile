@@ -203,6 +203,14 @@ RENDERER ?= new3d
 
 LEGACY3D_SOURCES := %/Legacy3D/Error.cpp %/Legacy3D/Legacy3D.cpp %/Legacy3D/Models.cpp %/Legacy3D/TextureRefs.cpp
 
+# These platforms always omit the Legacy3D sources (see below). Reject an
+# explicit legacy build up front instead of failing at link time on CLegacy3D.
+ifneq ($(filter $(platform),osx android ios-arm64 tvos-arm64),)
+ifeq ($(RENDERER),legacy)
+    $(error RENDERER=legacy is not supported for platform=$(platform))
+endif
+endif
+
 ifeq ($(RENDERER),legacy)
     RENDERER_DEFINES := -DUSE_LEGACY3D
     DROP_LEGACY3D :=
