@@ -174,18 +174,87 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "disabled"
    },
    {
-      "supermodel_analog_sensitivity",
-      "Analog Sensitivity",
+      "supermodel_steering_response",
+      "Driving Steering Response",
       NULL,
-      "Adjust sensitivity of analog controls (steering, etc.).",
+      "Applied only to driving games. Select the steering response curve; Progressive reduces sensitivity around the center while retaining the full output range.",
       NULL,
       "input",
       {
-         { "50",  "50%" },
-         { "75",  "75%" },
-         { "100", "100%" },
-         { "125", "125%" },
-         { "150", "150%" },
+         { "linear",      "Linear" },
+         { "progressive", "Progressive (Fine Center)" },
+         { NULL, NULL },
+      },
+      "linear"
+   },
+   {
+      "supermodel_steering_output_range",
+      "Driving Steering Output Range",
+      NULL,
+      "Applied only to driving games. Scale steering around its center. Values below 100% reduce the emulated wheel range; values above 100% reach full lock with less physical stick travel.",
+      NULL,
+      "input",
+      {
+         { "50",   "50%" },
+         { "60",   "60%" },
+         { "63",   "63% (30-80-D0)" },
+         { "70",   "70%" },
+         { "80",   "80%" },
+         { "90",   "90%" },
+         { "100",  "100%" },
+         { "110",  "110%" },
+         { "120",  "120%" },
+         { "130",  "130%" },
+         { "140",  "140%" },
+         { "150",  "150%" },
+         { NULL, NULL },
+      },
+      "100"
+   },
+   {
+      "supermodel_accelerator_output_range",
+      "Driving Accelerator Output Range",
+      NULL,
+      "Applied only to driving games. Scale the accelerator from its zero rest position. Values below 100% reduce the maximum emulated pedal output; values above 100% reach full output with less physical trigger travel.",
+      NULL,
+      "input",
+      {
+         { "50",   "50%" },
+         { "60",   "60%" },
+         { "70",   "70%" },
+         { "75.3", "75.3% (00-C0)" },
+         { "80",   "80%" },
+         { "90",   "90%" },
+         { "100",  "100%" },
+         { "110",  "110%" },
+         { "120",  "120%" },
+         { "130",  "130%" },
+         { "140",  "140%" },
+         { "150",  "150%" },
+         { NULL, NULL },
+      },
+      "100"
+   },
+   {
+      "supermodel_brake_output_range",
+      "Driving Brake Output Range",
+      NULL,
+      "Applied only to driving games. Scale the brake from its zero rest position. Values below 100% reduce the maximum emulated pedal output; values above 100% reach full output with less physical trigger travel.",
+      NULL,
+      "input",
+      {
+         { "50",   "50%" },
+         { "60",   "60%" },
+         { "70",   "70%" },
+         { "75.3", "75.3% (00-C0)" },
+         { "80",   "80%" },
+         { "90",   "90%" },
+         { "100",  "100%" },
+         { "110",  "110%" },
+         { "120",  "120%" },
+         { "130",  "130%" },
+         { "140",  "140%" },
+         { "150",  "150%" },
          { NULL, NULL },
       },
       "100"
@@ -407,7 +476,18 @@ void update_core_options(void)
                                : DrivingLayout::Default;
    }
    g_options.force_feedback = strcmp(option_get("supermodel_force_feedback", "disabled"), "enabled") == 0;
-   g_options.analog_sensitivity = atoi(option_get("supermodel_analog_sensitivity", "100"));
+   g_options.steering_progressive =
+      strcmp(option_get("supermodel_steering_response", "linear"), "progressive") == 0;
+   g_options.steering_output_range =
+      atoi(option_get("supermodel_steering_output_range", "100"));
+   {
+      const char *accelerator_range = option_get("supermodel_accelerator_output_range", "100");
+      const char *brake_range = option_get("supermodel_brake_output_range", "100");
+      g_options.accelerator_output_range_per_mille =
+         strcmp(accelerator_range, "75.3") == 0 ? 753 : atoi(accelerator_range) * 10;
+      g_options.brake_output_range_per_mille =
+         strcmp(brake_range, "75.3") == 0 ? 753 : atoi(brake_range) * 10;
+   }
 
    // Parse frame skip option
    g_options.frameskip = atoi(option_get("supermodel_frameskip", "0"));

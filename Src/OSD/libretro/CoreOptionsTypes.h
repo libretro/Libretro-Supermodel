@@ -17,7 +17,10 @@ struct CoreOptions {
    int upscale_mode;         // Supermodel UpscaleMode: 0=Nearest 1=Biquintic 2=Bilinear 3=Bicubic
    unsigned crosshairs;      // native Supermodel mask: 0=off, 1=P1, 2=P2, 3=both
    bool force_feedback;
-   int analog_sensitivity;
+   bool steering_progressive;             // driving: quadratic fine-center steering curve
+   int steering_output_range;             // driving: percent, 50..150
+   int accelerator_output_range_per_mille;
+   int brake_output_range_per_mille;
    int sound_volume;
    int music_volume;
    bool legacy_sound_dsp;    // SCSP DSP: false = MAME (default), true = Legacy ElSemi

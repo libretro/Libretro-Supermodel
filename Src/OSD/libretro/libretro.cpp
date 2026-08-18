@@ -6,6 +6,8 @@
 #include <file/file_path.h>
 #include <string/stdstring.h>
 #include <vector>
+#include <algorithm>
+#include <cstdlib>
 #include <stdarg.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -59,7 +61,10 @@ CoreOptions g_options = {
    /* upscale_mode         */ 2,
    /* crosshairs           */ 0,
    /* force_feedback       */ false,
-   /* analog_sensitivity   */ 100,
+   /* steering_progressive */ false,
+   /* steering_output_range */ 100,
+   /* accelerator_output_range_per_mille */ 1000,
+   /* brake_output_range_per_mille */ 1000,
    /* sound_volume         */ 100,
    /* music_volume         */ 100,
    /* legacy_sound_dsp     */ false,
@@ -94,6 +99,76 @@ static bool g_first_run = true;
 static bool g_nvram_initialized = false;
 static int g_skip_counter = 0;
 static bool g_context_ready = false;
+
+// --- Driving analog output ranges ---
+// The emulated game reads the scaled values, but Supermodel's digital
+// (keyboard/D-pad) sources are incremental: each poll moves the previous
+// value. Keep the unscaled values and restore them before every poll so the
+// scaling never compounds from frame to frame.
+static bool   s_driving_raw_valid = false;
+static UINT16 s_raw_steering = 0, s_raw_accelerator = 0, s_raw_brake = 0;
+
+static bool is_driving_game(const Game &game)
+{
+   return (game.inputs & Game::INPUT_VEHICLE) != 0;
+}
+
+static int scale_driving_pedal(UINT16 value, int output_range_per_mille)
+{
+   const int input = std::clamp(static_cast<int>(value), 0, 0xff);
+   const int output_range = std::clamp(output_range_per_mille, 500, 1500);
+   return std::clamp((input * output_range + 500) / 1000, 0, 0xff);
+}
+
+static void restore_driving_raw_inputs(const Game &game)
+{
+   if (!s_driving_raw_valid || !is_driving_game(game) || !wrapper.Inputs)
+      return;
+   if (wrapper.Inputs->steering)    wrapper.Inputs->steering->value = s_raw_steering;
+   if (wrapper.Inputs->accelerator) wrapper.Inputs->accelerator->value = s_raw_accelerator;
+   if (wrapper.Inputs->brake)       wrapper.Inputs->brake->value = s_raw_brake;
+}
+
+static void apply_driving_analog_ranges(const Game &game)
+{
+   if (!is_driving_game(game) || !wrapper.Inputs)
+      return;
+
+   if (wrapper.Inputs->steering)    s_raw_steering = wrapper.Inputs->steering->value;
+   if (wrapper.Inputs->accelerator) s_raw_accelerator = wrapper.Inputs->accelerator->value;
+   if (wrapper.Inputs->brake)       s_raw_brake = wrapper.Inputs->brake->value;
+   s_driving_raw_valid = true;
+
+   if (wrapper.Inputs->steering)
+   {
+      int target = std::clamp(static_cast<int>(wrapper.Inputs->steering->value), 0, 0xff);
+
+      if (g_options.steering_progressive)
+      {
+         const int offset = target - 0x80;
+         const int magnitude = std::abs(offset);
+         const int side_range = offset < 0 ? 0x80 : 0x7f;
+         const int curved = (magnitude * magnitude + side_range / 2) / side_range;
+         target = 0x80 + (offset < 0 ? -curved : curved);
+      }
+
+      // Below 100% this limits the emulated wheel range. Above 100% it acts as
+      // saturation: full lock is reached before the physical stick's end stop.
+      const int output_range = std::clamp(g_options.steering_output_range, 50, 150);
+      target = std::clamp(0x80 + ((target - 0x80) * output_range) / 100, 0, 0xff);
+
+      wrapper.Inputs->steering->value = static_cast<UINT16>(target);
+   }
+
+   if (wrapper.Inputs->accelerator)
+      wrapper.Inputs->accelerator->value = static_cast<UINT16>(
+         scale_driving_pedal(wrapper.Inputs->accelerator->value,
+                             g_options.accelerator_output_range_per_mille));
+   if (wrapper.Inputs->brake)
+      wrapper.Inputs->brake->value = static_cast<UINT16>(
+         scale_driving_pedal(wrapper.Inputs->brake->value,
+                             g_options.brake_output_range_per_mille));
+}
 
 static void serialize_nvram(void)
 {
@@ -385,6 +460,7 @@ void context_destroy(void)
 // --- Game Loading ---
 bool retro_load_game(const struct retro_game_info *info)
 {
+   s_driving_raw_valid = false;
    if (!info || !info->path || !info->path[0])
    {
       log_cb(RETRO_LOG_ERROR, "[Supermodel] A full content path is required.\n");
@@ -711,7 +787,9 @@ void retro_run(void)
    }
 
    Game game = wrapper.getGame();
+   restore_driving_raw_inputs(game);
    wrapper.Inputs->Poll(&game, 0, 0, target_w, target_h);
+   apply_driving_analog_ranges(game);
 
    GLuint sm_fbo = wrapper.getSuperModelFBO();
 
