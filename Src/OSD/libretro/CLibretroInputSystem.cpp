@@ -68,9 +68,10 @@ bool CLibretroInputSystem::Poll()
         m_mouseWheelDir[0] = -1;
     }
 
+    // CInputSystem mouse button order is Left, Middle, Right, X1, X2.
     m_mouseButtons[0][0] = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
-    m_mouseButtons[0][1] = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
-    m_mouseButtons[0][2] = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
+    m_mouseButtons[0][1] = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
+    m_mouseButtons[0][2] = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
     m_mouseButtons[0][3] = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_4);
     m_mouseButtons[0][4] = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_5);
     m_mouseIsAbsolute[0] = false;
@@ -154,11 +155,13 @@ bool CLibretroInputSystem::Poll()
         bool d_left  = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
         bool d_right = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
 
-        // Store in POV array (for IsJoyPOVInDir)
+        // CInputSystem POV directions are ordered Up, Down, Left, Right.
+        // Keep this array in the same order: IsJoyPOVInDir() indexes it with
+        // the POV_* constants declared by Supermodel.
         m_joyPOV[joy][0] = (y < -THRESHOLD) || d_up;    // Up
-        m_joyPOV[joy][1] = (x >  THRESHOLD) || d_right; // Right
-        m_joyPOV[joy][2] = (y >  THRESHOLD) || d_down;  // Down
-        m_joyPOV[joy][3] = (x < -THRESHOLD) || d_left;  // Left
+        m_joyPOV[joy][1] = (y >  THRESHOLD) || d_down;  // Down
+        m_joyPOV[joy][2] = (x < -THRESHOLD) || d_left;  // Left
+        m_joyPOV[joy][3] = (x >  THRESHOLD) || d_right; // Right
 
         // ----- Buttons -----
         // Standard game buttons (0-3: B, A, Y, X)
