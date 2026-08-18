@@ -394,20 +394,14 @@ UINT8 CJoyBoard::IORead8(UINT32 portNum)
 
 void CJoyBoard::IOWrite8(UINT32 portNum, UINT8 data)
 {
+  CDriveBoard::IOWrite8(portNum, data);
+
   switch (portNum)
   {
-  case 0x10: // Unsure? - single byte 0x03 sent at initialization, then occasionally writes 0x07 & 0xFA to port
-    return;
-  case 0x11: // Interrupt control
-    if (data == 0x57)
-      m_allowInterrupts = true;
-    else if (data == 0x53) // Strictly speaking 0x53 then 0x04
-      m_allowInterrupts = false;
-    return;
-  case 0x1c: // Unsure? - two bytes 0xFF, 0xFF sent at initialization only
-  case 0x1d: // Unsure? - two bytes 0x0F, 0x17 sent at initialization only
-  case 0x1e: // Unsure? - same as port 28
-  case 0x1f: // Unsure? - same as port 31
+  case 0x1c: // Parallel I/O A data
+  case 0x1d: // Parallel I/O A command
+  case 0x1e: // Parallel I/O B data
+  case 0x1f: // Parallel I/O B command
     return;
   case 0x20: // Left digit of 7-segment display 1
     m_seg1Digit1 = data;
@@ -443,10 +437,6 @@ void CJoyBoard::IOWrite8(UINT32 portNum, UINT8 data)
     return;
   case 0x2e: // Encoder motor control
     m_port46Out = data;
-    return;
-  case 0xf0: // Unsure? - single byte 0xBB sent at initialization only
-    return;
-  case 0xf1: // Unsure? - single byte 0x4E sent regularly - some sort of watchdog?
     return;
   default:
     DebugLog("Unhandled Z80 output on port %u (at PC = %04X)\n", portNum, m_z80.GetPC());

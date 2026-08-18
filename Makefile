@@ -144,6 +144,7 @@ SOURCES_CXX := $(CORE_DIR)/Src/CPU/PowerPC/PPCDisasm.cpp \
                $(CORE_DIR)/Src/Model3/DriveBoard/JoystickBoard.cpp \
                $(CORE_DIR)/Src/Model3/DriveBoard/SkiBoard.cpp \
                $(CORE_DIR)/Src/Model3/DriveBoard/BillBoard.cpp \
+               $(CORE_DIR)/Src/Model3/DriveBoard/Z80CTC.cpp \
                $(CORE_DIR)/Src/Model3/MPC10x.cpp \
                $(CORE_DIR)/Src/Inputs/Input.cpp \
                $(CORE_DIR)/Src/Inputs/Inputs.cpp \
