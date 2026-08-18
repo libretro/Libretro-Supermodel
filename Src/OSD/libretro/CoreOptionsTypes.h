@@ -14,6 +14,7 @@ enum class DrivingLayout {
 enum class GunInput {
    Hybrid,        // RetroLightgun, RetroMouse or left stick; the last one moved wins
    Lightgun,      // RetroLightgun, absolute screen coordinates
+   MouseAnalog,   // RetroMouse or left stick (Hybrid without RetroLightgun)
    Mouse,         // RetroMouse, relative movement
    AnalogSticks   // RetroPad left stick moving a relative cursor
 };

@@ -164,12 +164,13 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_gun_input",
       "Gun Input Mode",
       NULL,
-      "Input source for the analog-gun games (The Lost World, Ocean Hunter, L.A. Machineguns). Hybrid accepts RetroArch Lightgun, Mouse and the left Analog Stick through one cursor per player, with the last moved source taking priority. The other modes accept only the selected source. Changes take effect immediately.",
+      "Input source for the analog-gun games (The Lost World, Ocean Hunter, L.A. Machineguns). Hybrid accepts RetroArch Lightgun, Mouse and the left Analog Stick through one cursor per player, with the last moved source taking priority. Mouse + Analog Stick is the same without Lightgun, so the mouse moves the cursor relatively instead of following the system pointer. The other modes accept only the selected source. Changes take effect immediately.",
       NULL,
       "input",
       {
          { "hybrid",   "Hybrid (Lightgun / Mouse / Analog)" },
          { "lightgun", "Lightgun" },
+         { "mouse_analog", "Mouse + Analog Stick" },
          { "mouse",    "Mouse" },
          { "analog",   "Analog Stick Cursor" },
          { NULL, NULL },
@@ -527,6 +528,7 @@ void update_core_options(void)
       const char *gun_input = option_get("supermodel_gun_input", "hybrid");
       g_options.gun_input = strcmp(gun_input, "lightgun") == 0 ? GunInput::Lightgun
                           : strcmp(gun_input, "mouse") == 0    ? GunInput::Mouse
+                          : strcmp(gun_input, "mouse_analog") == 0 ? GunInput::MouseAnalog
                           : strcmp(gun_input, "analog") == 0   ? GunInput::AnalogSticks
                           : GunInput::Hybrid;
       const char *star_wars_input = option_get("supermodel_star_wars_input", "hybrid");
