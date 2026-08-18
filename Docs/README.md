@@ -146,7 +146,8 @@ port 2. The core uses port 2 only after it has proved to be a separate device,
 because some frontends report the same pointer on every port. Mouse buttons
 4/5 and the lightgun's Start/Select act as Start and Coin. The Upright
 cabinet's reversed horizontal axis is applied automatically from the cabinet
-type stored in NVRAM.
+type stored in NVRAM; `Star Wars Trilogy Upright X-Axis Inversion` turns that
+off when the frontend or the device already inverts the axis.
 
 ### Multiple mice and lightguns
 

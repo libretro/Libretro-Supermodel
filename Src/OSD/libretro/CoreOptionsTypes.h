@@ -82,6 +82,7 @@ struct CoreOptions {
    DrivingLayout driving_layout;
    GunInput gun_input;
    StarWarsInput star_wars_input;
+   bool star_wars_upright_x_inversion;
    Renderer3D renderer_3d;
    bool legacy_multi_texture; // Supermodel MultiTexture (Legacy3D only)
    int crt_colors;           // Supermodel CRTcolors: 0 = none, 1-5 = monitor profiles

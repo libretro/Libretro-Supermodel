@@ -596,7 +596,8 @@ bool CLibretroInputSystem::Poll()
     // The Upright cabinet reverses the horizontal electrical range relative
     // to Deluxe. Apply the cabinet-specific orientation to the shared virtual
     // output so mouse and joypad modes remain consistent.
-    m_mouseAxes[analogJoystickDev][AXIS_X] = g_star_wars_invert_x
+    m_mouseAxes[analogJoystickDev][AXIS_X] =
+        g_star_wars_invert_x && g_options.star_wars_upright_x_inversion
         ? minX + (maxX - m_analogJoystickCursorX)
         : m_analogJoystickCursorX;
     m_mouseAxes[analogJoystickDev][AXIS_Y] = m_analogJoystickCursorY;

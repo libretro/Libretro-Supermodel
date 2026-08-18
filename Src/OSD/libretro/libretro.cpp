@@ -287,6 +287,7 @@ CoreOptions g_options = {
    /* driving_layout      */ DrivingLayout::TriggersHGate,
    /* gun_input           */ GunInput::Hybrid,
    /* star_wars_input     */ StarWarsInput::Hybrid,
+   /* star_wars_upright_x_inversion */ true,
    /* renderer_3d         */ Renderer3D::New3D,
    /* legacy_multi_texture */ false,
    /* crt_colors          */ 0,
@@ -685,7 +686,8 @@ static void update_star_wars_cabinet_orientation(void)
    log_cb(RETRO_LOG_INFO,
           "[Supermodel] Star Wars cabinet: %s; analog X %s\n",
           g_star_wars_invert_x ? "Upright" : "Deluxe",
-          g_star_wars_invert_x ? "inverted" : "normal");
+          g_star_wars_invert_x && g_options.star_wars_upright_x_inversion
+             ? "inverted" : "normal");
 }
 
 static bool file_readable(const char* path)
@@ -1116,6 +1118,8 @@ void retro_run(void)
       int old_supersampling = g_options.supersampling;
       bool old_no_white_flash = g_options.no_white_flash;
       AVTimingMode old_av_timing_mode = g_options.av_timing_mode;
+      bool old_star_wars_upright_x_inversion =
+         g_options.star_wars_upright_x_inversion;
       bool old_force_feedback = g_options.force_feedback;
       bool old_network_board = g_options.network_board;
       unsigned old_network_cabinets = g_options.network_cabinets;
@@ -1156,6 +1160,15 @@ void retro_run(void)
             "Renderer/audio engine changes will apply after restarting the content.", 180
          };
          environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+      }
+
+      if (g_options.star_wars_upright_x_inversion !=
+          old_star_wars_upright_x_inversion && log_cb)
+      {
+         log_cb(RETRO_LOG_INFO,
+                "[Supermodel] Star Wars Upright X-axis inversion %s.\n",
+                g_options.star_wars_upright_x_inversion
+                   ? "enabled" : "disabled");
       }
 
       if (g_options.av_timing_mode != old_av_timing_mode)
