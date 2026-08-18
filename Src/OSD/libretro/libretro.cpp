@@ -81,7 +81,7 @@ static unsigned last_height = 0;
 static uint8_t g_nvram_buffer[NVRAM_BUFFER_SIZE];
 static constexpr int32_t NVRAM_FILE_VERSION = 0;
 static constexpr const char* NVRAM_HEADER_BLOCK = "Supermodel NVRAM State";
-static constexpr int32_t SAVE_STATE_FILE_VERSION = 5;
+static constexpr int32_t SAVE_STATE_FILE_VERSION = 6;
 static constexpr const char* SAVE_STATE_HEADER_BLOCK = "Supermodel Save State";
 static constexpr uint32_t SAVE_STATE_INTEGRITY_VERSION = 1;
 static constexpr const char* SAVE_STATE_INTEGRITY_BLOCK = "Libretro Save State Integrity";
