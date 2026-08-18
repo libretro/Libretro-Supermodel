@@ -63,6 +63,8 @@ bool CLibretroInputSystem::Poll()
     int16_t lightgunX[2] = {};
     int16_t lightgunY[2] = {};
     bool lightgunOffscreen[2] = {};
+    bool lightgunPositionValid[2] = {};
+    bool lightgunPositionMoved[2] = {};
 
     // ----- RetroMouse ports (Supermodel MOUSE and MOUSE2) -----
     for (int port = 0; port < 2; ++port)
@@ -157,6 +159,19 @@ bool CLibretroInputSystem::Poll()
         m_mouseButtons[dev][4] = input_state_cb(
             port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SELECT);
         m_mouseIsAbsolute[dev] = true;
+    }
+
+    // Evaluate the raw absolute coordinates once, before the gun cursors
+    // update the previous-position snapshot, so the gun cursors and the
+    // Star Wars yoke share the same validity and movement decision.
+    for (int port = 0; port < 2; ++port)
+    {
+        lightgunPositionValid[port] = !lightgunOffscreen[port] &&
+            lightgunX[port] != INT16_MIN && lightgunY[port] != INT16_MIN;
+        lightgunPositionMoved[port] = lightgunPositionValid[port] &&
+            (!m_lightgunPositionInitialized[port] ||
+             lightgunX[port] != m_previousLightgunX[port] ||
+             lightgunY[port] != m_previousLightgunY[port]);
     }
 
     const int16_t THRESHOLD = 8000;
@@ -377,13 +392,10 @@ bool CLibretroInputSystem::Poll()
             m_gunCursorInitialized[port] = true;
         }
 
-        const bool lightgunValid = allowLightgun &&
-            !lightgunOffscreen[port] &&
-            lightgunX[port] != INT16_MIN && lightgunY[port] != INT16_MIN;
-        const bool lightgunMoved = lightgunValid &&
-            (!m_lightgunPositionInitialized[port] ||
-             lightgunX[port] != m_previousLightgunX[port] ||
-             lightgunY[port] != m_previousLightgunY[port]);
+        const bool lightgunValid =
+            allowLightgun && lightgunPositionValid[port];
+        const bool lightgunMoved =
+            allowLightgun && lightgunPositionMoved[port];
         const bool lightgunAction = allowLightgun && lightgunValid &&
             (m_mouseButtons[lightgunDev][0] ||
              m_mouseButtons[lightgunDev][2] ||
@@ -471,16 +483,20 @@ bool CLibretroInputSystem::Poll()
     // to neutral and makes the game's calibration centre unstable.
     //
     // Present one absolute virtual axis to Supermodel instead. Star Wars
-    // Trilogy Input Mode selects the accepted sources and, in Hybrid mode, the last source
-    // actually moved owns it. Mouse movement adjusts the current position;
-    // moving the stick switches back to its absolute position, including its
-    // stable centre when released. No values from the devices are mixed.
+    // Trilogy Input Mode offers the same source choices as Gun Input Mode. In
+    // the Hybrid modes the last source actually moved owns the axis: light
+    // gun coordinates are absolute, mouse movement adjusts the current
+    // position, and moving the stick switches back to its absolute position,
+    // including its stable centre when released. No values are mixed.
     // The original cabinet duplicates Trigger and Event for the rider's other
-    // hand. Keep the primary pair on RetroMouse port 1 and source the mirror
-    // pair from the left/right buttons of RetroMouse port 2, once that port
-    // has proved to be a separate mouse. This leaves the first mouse's X1/X2
+    // hand. Keep the primary pair on port 1 and source the mirror pair from
+    // the RetroMouse or RetroLightgun on port 2, once that port has proved to
+    // be a separate device. This leaves each port-1 pointing device's extra
     // buttons free for Start and Coin.
     constexpr int analogJoystickDev = 6;
+    constexpr int analogSource = 0;
+    constexpr int mouseSource = 1;
+    constexpr int lightgunSource = 2;
     if (!m_analogJoystickCursorInitialized)
     {
         m_analogJoystickCursorX = minX + static_cast<int>(m_dispW) / 2;
@@ -493,23 +509,51 @@ bool CLibretroInputSystem::Poll()
     const bool analogStickMoved =
         std::abs(static_cast<int>(m_joyAxes[0][AXIS_X])) > analogSwitchDeadZone ||
         std::abs(static_cast<int>(m_joyAxes[0][AXIS_Y])) > analogSwitchDeadZone;
-    switch (g_options.star_wars_input)
+    const StarWarsInput swInput = g_options.star_wars_input;
+    const bool analogAllowLightgun =
+        swInput == StarWarsInput::Hybrid || swInput == StarWarsInput::Lightgun;
+    // As in Gun Input Mode, Lightgun Only still accepts RetroMouse movement
+    // when the frontend reports no valid light gun coordinates.
+    const bool analogAllowMouse = swInput != StarWarsInput::AnalogSticks;
+    const bool analogAllowStick =
+        swInput == StarWarsInput::Hybrid ||
+        swInput == StarWarsInput::MouseAnalog ||
+        swInput == StarWarsInput::AnalogSticks;
+    const bool analogLightgunValid =
+        analogAllowLightgun && lightgunPositionValid[0];
+    const bool analogLightgunMoved =
+        analogAllowLightgun && lightgunPositionMoved[0];
+    const bool analogLightgunAction = analogLightgunValid &&
+        (m_mouseButtons[2][0] || m_mouseButtons[2][2]);
+    switch (swInput)
     {
     case StarWarsInput::AnalogSticks:
-        m_analogJoystickSource = 0;
+        m_analogJoystickSource = analogSource;
         break;
     case StarWarsInput::Mouse:
-        m_analogJoystickSource = 1;
+        m_analogJoystickSource = mouseSource;
+        break;
+    case StarWarsInput::Lightgun:
+        m_analogJoystickSource =
+            analogLightgunValid ? lightgunSource : mouseSource;
+        break;
+    case StarWarsInput::MouseAnalog:
+        if (analogMouseMoved)
+            m_analogJoystickSource = mouseSource;
+        else if (analogStickMoved)
+            m_analogJoystickSource = analogSource;
         break;
     case StarWarsInput::Hybrid:
-        if (analogMouseMoved)
-            m_analogJoystickSource = 1;
+        if (analogLightgunMoved || analogLightgunAction)
+            m_analogJoystickSource = lightgunSource;
+        else if (analogMouseMoved)
+            m_analogJoystickSource = mouseSource;
         else if (analogStickMoved)
-            m_analogJoystickSource = 0;
+            m_analogJoystickSource = analogSource;
         break;
     }
 
-    if (m_analogJoystickSource == 0)
+    if (m_analogJoystickSource == analogSource)
     {
         const auto axisToDisplay = [](int16_t axis, int minimum,
                                       unsigned extent) -> int
@@ -526,10 +570,15 @@ bool CLibretroInputSystem::Poll()
         m_analogJoystickCursorY = axisToDisplay(
             m_joyAxes[0][AXIS_Y], minY, m_dispH);
     }
-    else if (m_analogJoystickSource == 1 && analogMouseMoved)
+    else if (m_analogJoystickSource == mouseSource && analogMouseMoved)
     {
         m_analogJoystickCursorX += mouseDeltaX[0];
         m_analogJoystickCursorY += mouseDeltaY[0];
+    }
+    else if (m_analogJoystickSource == lightgunSource && analogLightgunValid)
+    {
+        m_analogJoystickCursorX = m_mouseAxes[2][AXIS_X];
+        m_analogJoystickCursorY = m_mouseAxes[2][AXIS_Y];
     }
     m_analogJoystickCursorX = std::clamp(
         m_analogJoystickCursorX, minX, maxX);
@@ -545,24 +594,23 @@ bool CLibretroInputSystem::Poll()
     m_mouseAxes[analogJoystickDev][AXIS_Z] = 0;
     m_mouseWheelDir[analogJoystickDev] = 0;
     m_mouseIsAbsolute[analogJoystickDev] = true;
-    const bool analogAllowMouse =
-        g_options.star_wars_input == StarWarsInput::Hybrid ||
-        g_options.star_wars_input == StarWarsInput::Mouse;
-    const bool analogAllowStick =
-        g_options.star_wars_input == StarWarsInput::Hybrid ||
-        g_options.star_wars_input == StarWarsInput::AnalogSticks;
     m_mouseButtons[analogJoystickDev][0] =
+        (analogAllowLightgun && m_mouseButtons[2][0]) ||
         (analogAllowMouse && m_mouseButtons[0][0]) ||
         (analogAllowStick && m_joyButtons[0][0]);
     m_mouseButtons[analogJoystickDev][1] = false;
     m_mouseButtons[analogJoystickDev][2] =
+        (analogAllowLightgun && m_mouseButtons[2][2]) ||
         (analogAllowMouse && m_mouseButtons[0][2]) ||
         (analogAllowStick && m_joyButtons[0][1]);
     const bool secondMouse = analogAllowMouse && m_port2MouseDistinct;
+    const bool secondLightgun = analogAllowLightgun && m_port2LightgunDistinct;
     m_mouseButtons[analogJoystickDev][3] =
+        (secondLightgun && m_mouseButtons[3][0]) ||
         (secondMouse && m_mouseButtons[1][0]) ||
         (analogAllowStick && m_joyButtons[0][2]);
     m_mouseButtons[analogJoystickDev][4] =
+        (secondLightgun && m_mouseButtons[3][2]) ||
         (secondMouse && m_mouseButtons[1][2]) ||
         (analogAllowStick && m_joyButtons[0][3]);
 

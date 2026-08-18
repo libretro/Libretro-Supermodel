@@ -34,7 +34,9 @@ enum class GunInput {
 
 // Source of the Star Wars Trilogy yoke (Supermodel MOUSE7).
 enum class StarWarsInput {
-   Hybrid,        // mouse or absolute RetroPad stick, the last one moved wins
+   Hybrid,        // light gun, mouse or absolute RetroPad stick, last moved wins
+   Lightgun,      // RetroLightgun absolute coordinates (mouse as fallback)
+   MouseAnalog,   // mouse or absolute RetroPad stick (Hybrid without light gun)
    Mouse,         // RetroMouse relative movement
    AnalogSticks   // RetroPad left stick as an absolute arcade yoke
 };

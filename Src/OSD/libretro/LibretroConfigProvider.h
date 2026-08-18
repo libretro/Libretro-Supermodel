@@ -636,11 +636,14 @@ namespace LibretroConfigProvider {
         config.Set<std::string>("InputAnalogJoyEvent2", "MOUSE7_BUTTON5");
 
         // Star Wars Trilogy: the yoke's second Trigger/Event pair comes from a
-        // second mouse, so the first mouse's X1/X2 buttons are free for Start/Coin.
+        // second mouse or light gun, so the first mouse's X1/X2 buttons and the
+        // first light gun's Start/Select are free for Start/Coin.
         if (analogJoystickGame)
         {
-            config.Set<std::string>("InputStart1", "KEY_1,JOY1_BUTTON9,MOUSE1_BUTTON4");
-            config.Set<std::string>("InputCoin1", "KEY_3,JOY1_BUTTON10,MOUSE1_BUTTON5");
+            config.Set<std::string>("InputStart1",
+                                    "KEY_1,JOY1_BUTTON9,MOUSE1_BUTTON4,MOUSE3_BUTTON4");
+            config.Set<std::string>("InputCoin1",
+                                    "KEY_3,JOY1_BUTTON10,MOUSE1_BUTTON5,MOUSE3_BUTTON5");
         }
     }
 

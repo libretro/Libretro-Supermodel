@@ -50,7 +50,7 @@ private:
     //   MOUSE/MOUSE2 = RetroMouse ports 1/2
     //   MOUSE3/MOUSE4 = RetroLightgun ports 1/2
     //   MOUSE5/MOUSE6 = virtual gun cursors for players 1/2
-    //   MOUSE7 = virtual Star Wars analog joystick (stick or relative mouse)
+    //   MOUSE7 = virtual Star Wars analog joystick (light gun, mouse or stick)
     static constexpr int kMouseDeviceCount = 7;
     int16_t m_mouseAxes[kMouseDeviceCount][NUM_MOUSE_AXES];
     bool m_mouseButtons[kMouseDeviceCount][NUM_MOUSE_BUTTONS];

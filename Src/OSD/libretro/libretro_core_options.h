@@ -295,13 +295,15 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_star_wars_input",
       "Star Wars Trilogy Input Mode",
       NULL,
-      "Input source for the arcade yoke in Star Wars Trilogy Arcade. Hybrid accepts the Mouse and the left Analog Stick, with the last moved source taking priority, so the stick always returns to a stable centre. Changes take effect immediately.",
+      "Input source for the arcade yoke in Star Wars Trilogy Arcade. Hybrid accepts RetroArch Lightgun, Mouse and the left Analog Stick, with the last moved source taking priority, so the stick always returns to a stable centre. Mouse + Analog Stick is the same without Lightgun, so the mouse moves the yoke relatively instead of following the system pointer. The other modes accept only the selected source. Changes take effect immediately.",
       NULL,
       "input",
       {
-         { "hybrid", "Hybrid (Mouse / Analog Stick)" },
-         { "mouse",  "Mouse" },
-         { "analog", "Analog Stick" },
+         { "hybrid",       "Hybrid (Lightgun / Mouse / Analog)" },
+         { "lightgun",     "Lightgun" },
+         { "mouse_analog", "Mouse + Analog Stick" },
+         { "mouse",        "Mouse" },
+         { "analog",       "Analog Stick" },
          { NULL, NULL },
       },
       "hybrid"
@@ -683,7 +685,9 @@ void update_core_options(void)
                           : strcmp(gun_input, "analog") == 0   ? GunInput::AnalogSticks
                           : GunInput::Hybrid;
       const char *star_wars_input = option_get("supermodel_star_wars_input", "hybrid");
-      g_options.star_wars_input = strcmp(star_wars_input, "mouse") == 0  ? StarWarsInput::Mouse
+      g_options.star_wars_input = strcmp(star_wars_input, "lightgun") == 0 ? StarWarsInput::Lightgun
+                                : strcmp(star_wars_input, "mouse_analog") == 0 ? StarWarsInput::MouseAnalog
+                                : strcmp(star_wars_input, "mouse") == 0  ? StarWarsInput::Mouse
                                 : strcmp(star_wars_input, "analog") == 0 ? StarWarsInput::AnalogSticks
                                 : StarWarsInput::Hybrid;
    }
