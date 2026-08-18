@@ -10,11 +10,12 @@ enum class DrivingLayout {
    TriggersHGate       // gears 1-4 on the right stick diagonals (H-pattern)
 };
 
-// Renderer capabilities behind the 3D Renderer and CRT Colour options.
-// HAVE_LEGACY3D comes from the Makefile (Legacy3D sources in the build). The CRT
-// colour pass is only validated on desktop OpenGL.
+// Renderer capabilities behind the 3D Renderer, CRT Colour and Supersampling options.
+// HAVE_LEGACY3D comes from the Makefile (Legacy3D sources in the build). The SuperAA
+// pass (CRT colour, supersampling) is only validated on desktop OpenGL.
 #if !defined(ANDROID) && !defined(CORE_GLES) && !defined(HAVE_OPENGLES)
 #define HAVE_CRT_COLOURS
+#define HAVE_SUPERSAMPLING
 #endif
 
 enum class Renderer3D {
@@ -72,6 +73,7 @@ struct CoreOptions {
    StarWarsInput star_wars_input;
    Renderer3D renderer_3d;
    int crt_colors;           // Supermodel CRTcolors: 0 = none, 1-5 = monitor profiles
+   int supersampling;        // Supermodel Supersampling: 1 = off, 2-8 = N x N samples
 };
 
 extern CoreOptions g_options;

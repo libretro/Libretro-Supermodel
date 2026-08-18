@@ -85,7 +85,7 @@ public:
     void ShutDownSupermodel();
     bool InitRenderers();
     bool InitGL();
-    // Returns the actual FBO Supermodel renders into (SuperAA's or our own)
+    // Returns the base-resolution frame resolved for Libretro submission
     GLuint getSuperModelFBO() const;
 
 private:

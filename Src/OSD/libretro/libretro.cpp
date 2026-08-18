@@ -87,6 +87,7 @@ CoreOptions g_options = {
    /* star_wars_input     */ StarWarsInput::Hybrid,
    /* renderer_3d         */ Renderer3D::New3D,
    /* crt_colors          */ 0,
+   /* supersampling       */ 1,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates
@@ -671,6 +672,7 @@ void retro_run(void)
       DrivingLayout old_driving_layout = g_options.driving_layout;
       Renderer3D old_renderer_3d = g_options.renderer_3d;
       int old_crt_colors = g_options.crt_colors;
+      int old_supersampling = g_options.supersampling;
 
       update_core_options();
       ppc_set_jit_enabled(g_options.jit_enable);
@@ -690,6 +692,7 @@ void retro_run(void)
       if (g_options.upscale_mode != old_upscale_mode ||
           g_options.renderer_3d != old_renderer_3d ||
           g_options.crt_colors != old_crt_colors ||
+          g_options.supersampling != old_supersampling ||
           g_options.legacy_sound_dsp != old_legacy_sound_dsp)
       {
          static const struct retro_message message = {
@@ -884,7 +887,13 @@ void retro_run(void)
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
       glViewport(0, 0, target_w, target_h);
-      glScissor(0, 0, target_w, target_h);
+      // Render2D re-enables the scissor test after clearing its target. The box is
+      // global GL state and must cover the supersampled render FBO, as standalone
+      // scales its scissor by the supersampling factor. At base size a 2x source
+      // would be clipped to its lower-left quarter before SuperAA resolves it.
+      const unsigned render_scale =
+         static_cast<unsigned>(std::max(1, wrapper.getAaValue()));
+      glScissor(0, 0, target_w * render_scale, target_h * render_scale);
 
       glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
       glClearDepth(1.0);

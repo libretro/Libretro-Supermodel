@@ -6,6 +6,7 @@ SuperAA::SuperAA(int aaValue, CRTcolor CRTcolors) :
 	m_aa(aaValue),
 	m_crtcolors(CRTcolors),
 	m_vao(0),
+	m_outputTarget(0),
 	m_width(0),
 	m_height(0)
 {
@@ -206,6 +207,7 @@ void SuperAA::Init(int width, int height)
 void SuperAA::Draw()
 {
 	if ((m_aa > 1) || (m_crtcolors != CRTcolor::None)) {
+		glBindFramebuffer(GL_FRAMEBUFFER, m_outputTarget);
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_SCISSOR_TEST);
@@ -219,6 +221,11 @@ void SuperAA::Draw()
 		m_shader.DisableShader();
 		glBindVertexArray(0);
 	}
+}
+
+void SuperAA::SetOutputTarget(GLuint fbo)
+{
+	m_outputTarget = fbo;
 }
 
 GLuint SuperAA::GetTargetID()
