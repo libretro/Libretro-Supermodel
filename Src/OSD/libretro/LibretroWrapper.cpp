@@ -903,6 +903,8 @@ int LibretroWrapper::Emulate(const char* romPath)
             (game.inputs & Game::INPUT_ANALOG_JOYSTICK) != 0);
         s_runtime_config.Get("UpscaleMode").SetValue(g_options.upscale_mode);
         s_runtime_config.Get("New3DEngine").SetValue(g_options.renderer_3d == Renderer3D::New3D);
+        s_runtime_config.Get("MultiTexture").SetValue(
+            g_options.renderer_3d == Renderer3D::Legacy3D && g_options.legacy_multi_texture);
         s_runtime_config.Get("Supersampling").SetValue(g_options.supersampling);
         s_runtime_config.Get("NoWhiteFlash").SetValue(g_options.no_white_flash);
         // The drive board only generates force effects when Supermodel's

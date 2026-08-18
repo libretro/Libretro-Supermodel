@@ -75,6 +75,7 @@ struct CoreOptions {
    GunInput gun_input;
    StarWarsInput star_wars_input;
    Renderer3D renderer_3d;
+   bool legacy_multi_texture; // Supermodel MultiTexture (Legacy3D only)
    int crt_colors;           // Supermodel CRTcolors: 0 = none, 1-5 = monitor profiles
    int supersampling;        // Supermodel Supersampling: 1 = off, 2-8 = N x N samples
    bool network_board;       // Supermodel Network: connect the Model 3 network board

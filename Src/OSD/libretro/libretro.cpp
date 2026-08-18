@@ -93,6 +93,7 @@ CoreOptions g_options = {
    /* gun_input           */ GunInput::Hybrid,
    /* star_wars_input     */ StarWarsInput::Hybrid,
    /* renderer_3d         */ Renderer3D::New3D,
+   /* legacy_multi_texture */ false,
    /* crt_colors          */ 0,
    /* supersampling       */ 1,
    /* network_board       */ true,
@@ -721,6 +722,7 @@ void retro_run(void)
       unsigned old_crosshairs = g_options.crosshairs;
       DrivingLayout old_driving_layout = g_options.driving_layout;
       Renderer3D old_renderer_3d = g_options.renderer_3d;
+      bool old_legacy_multi_texture = g_options.legacy_multi_texture;
       int old_crt_colors = g_options.crt_colors;
       int old_supersampling = g_options.supersampling;
       bool old_no_white_flash = g_options.no_white_flash;
@@ -745,6 +747,7 @@ void retro_run(void)
 
       if (g_options.upscale_mode != old_upscale_mode ||
           g_options.renderer_3d != old_renderer_3d ||
+          g_options.legacy_multi_texture != old_legacy_multi_texture ||
           g_options.crt_colors != old_crt_colors ||
           g_options.supersampling != old_supersampling ||
           g_options.no_white_flash != old_no_white_flash ||

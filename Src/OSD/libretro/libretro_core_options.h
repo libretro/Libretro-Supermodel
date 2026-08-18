@@ -156,6 +156,22 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "new3d"
    },
 #endif
+#ifdef HAVE_LEGACY3D
+   {
+      "supermodel_legacy_multi_texture",
+      "Legacy3D Multi-Texture",
+      NULL,
+      "Legacy3D only. Decode textures into eight texture maps instead of one large texture, for GPUs or drivers that cannot handle the single large texture. Takes effect after restarting content.",
+      NULL,
+      "video",
+      {
+         { "disabled", "Single Texture (Default)" },
+         { "enabled",  "Eight Texture Maps" },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+#endif
 #ifdef HAVE_CRT_COLOURS
    {
       "supermodel_crt_colors",
@@ -631,6 +647,12 @@ void update_core_options(void)
          ? Renderer3D::Legacy3D : Renderer3D::New3D;
 #else
    g_options.renderer_3d = Renderer3D::New3D;
+#endif
+#ifdef HAVE_LEGACY3D
+   g_options.legacy_multi_texture =
+      strcmp(option_get("supermodel_legacy_multi_texture", "disabled"), "enabled") == 0;
+#else
+   g_options.legacy_multi_texture = false;
 #endif
 #ifdef HAVE_CRT_COLOURS
    g_options.crt_colors = atoi(option_get("supermodel_crt_colors", "0"));
