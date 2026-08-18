@@ -71,6 +71,7 @@ SOURCES_C := $(CORE_DIR)/Src/Pkgs/unzip.c \
              $(LIBRETRO_COMM_DIR)/streams/file_stream.c \
              $(LIBRETRO_COMM_DIR)/streams/file_stream_transforms.c \
              $(LIBRETRO_COMM_DIR)/file/file_path.c \
+             $(LIBRETRO_COMM_DIR)/file/file_path_io.c \
              $(LIBRETRO_COMM_DIR)/file/retro_dirent.c \
              $(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c \
              $(LIBRETRO_COMM_DIR)/lists/dir_list.c \
