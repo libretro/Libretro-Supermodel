@@ -85,6 +85,8 @@ CoreOptions g_options = {
    /* driving_layout      */ DrivingLayout::Default,
    /* gun_input           */ GunInput::Hybrid,
    /* star_wars_input     */ StarWarsInput::Hybrid,
+   /* renderer_3d         */ Renderer3D::New3D,
+   /* crt_colors          */ 0,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates
@@ -525,6 +527,10 @@ bool retro_load_game(const struct retro_game_info *info)
    last_height = 0;
    g_context_ready = false;
 
+   // The selected renderer decides which OpenGL context to ask for, so the options
+   // have to be read before SET_HW_RENDER.
+   update_core_options();
+
    hw_render.context_reset   = context_reset;
    hw_render.context_destroy = context_destroy;
    hw_render.depth           = true;
@@ -535,17 +541,27 @@ bool retro_load_game(const struct retro_game_info *info)
    hw_render.context_type = RETRO_HW_CONTEXT_OPENGLES3;
    hw_render.version_major = 3;
    hw_render.version_minor = 0;
-#elif defined(USE_LEGACY3D)
-   // Legacy3D uses fixed-function entry points that a core profile removes.
-   hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
 #else
-   // The New3D renderer requires a desktop OpenGL 4.1 core profile.
-   // RETRO_HW_CONTEXT_OPENGL requests a legacy
-   // compatibility context (2.1 on macOS), which cannot compile its shaders.
-   hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE;
-   hw_render.version_major = 4;
-   hw_render.version_minor = 1;
+   if (g_options.renderer_3d == Renderer3D::Legacy3D)
+   {
+      // Legacy3D uses fixed-function entry points that a core profile removes.
+      hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
+      hw_render.version_major = 0;
+      hw_render.version_minor = 0;
+   }
+   else
+   {
+      // The New3D renderer requires a desktop OpenGL 4.1 core profile.
+      // RETRO_HW_CONTEXT_OPENGL requests a legacy compatibility context
+      // (2.1 on macOS), which cannot compile its shaders.
+      hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE;
+      hw_render.version_major = 4;
+      hw_render.version_minor = 1;
+   }
 #endif
+   log_cb(RETRO_LOG_INFO, "[Supermodel] 3D renderer: %s, OpenGL context %u.%u\n",
+          g_options.renderer_3d == Renderer3D::Legacy3D ? "Legacy3D" : "New3D",
+          hw_render.version_major, hw_render.version_minor);
    if (!environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
        log_cb(RETRO_LOG_ERROR, "[Supermodel] HW Render Context negotiation failed.\n");
        return false;
@@ -567,8 +583,6 @@ bool retro_load_game(const struct retro_game_info *info)
         // Optional: Log that rumble is not supported by this frontend/controller
    }
 
-   
-   update_core_options();
    ppc_set_jit_enabled(g_options.jit_enable);
    wrapper.InitializePaths(retro_base_directory);
    wrapper.setHwRender(hw_render); 
@@ -655,6 +669,8 @@ void retro_run(void)
       EmulationThreading old_emulation_threading = g_options.emulation_threading;
       unsigned old_crosshairs = g_options.crosshairs;
       DrivingLayout old_driving_layout = g_options.driving_layout;
+      Renderer3D old_renderer_3d = g_options.renderer_3d;
+      int old_crt_colors = g_options.crt_colors;
 
       update_core_options();
       ppc_set_jit_enabled(g_options.jit_enable);
@@ -672,6 +688,8 @@ void retro_run(void)
       }
 
       if (g_options.upscale_mode != old_upscale_mode ||
+          g_options.renderer_3d != old_renderer_3d ||
+          g_options.crt_colors != old_crt_colors ||
           g_options.legacy_sound_dsp != old_legacy_sound_dsp)
       {
          static const struct retro_message message = {

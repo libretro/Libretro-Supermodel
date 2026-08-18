@@ -10,6 +10,18 @@ enum class DrivingLayout {
    TriggersHGate       // gears 1-4 on the right stick diagonals (H-pattern)
 };
 
+// Renderer capabilities behind the 3D Renderer and CRT Colour options.
+// HAVE_LEGACY3D comes from the Makefile (Legacy3D sources in the build). The CRT
+// colour pass is only validated on desktop OpenGL.
+#if !defined(ANDROID) && !defined(CORE_GLES) && !defined(HAVE_OPENGLES)
+#define HAVE_CRT_COLOURS
+#endif
+
+enum class Renderer3D {
+   New3D,
+   Legacy3D
+};
+
 // Source of the per-player virtual gun cursors (Supermodel MOUSE5/MOUSE6).
 enum class GunInput {
    Hybrid,        // RetroLightgun, RetroMouse or left stick; the last one moved wins
@@ -58,6 +70,8 @@ struct CoreOptions {
    DrivingLayout driving_layout;
    GunInput gun_input;
    StarWarsInput star_wars_input;
+   Renderer3D renderer_3d;
+   int crt_colors;           // Supermodel CRTcolors: 0 = none, 1-5 = monitor profiles
 };
 
 extern CoreOptions g_options;

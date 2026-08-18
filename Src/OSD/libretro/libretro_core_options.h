@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <OSD/Audio.h>
+#include "CoreOptionsTypes.h"   // renderer capability flags used by option_defs
 
 // --- Core Options ---
 static struct retro_core_option_v2_category option_cats[] = {
@@ -98,6 +99,42 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "2"
    },
+#if defined(HAVE_LEGACY3D) && !defined(USE_LEGACY3D)
+   {
+      "supermodel_renderer_3d",
+      "3D Renderer",
+      NULL,
+      "Select Supermodel's 3D engine. New3D is the current, accurate renderer. Legacy3D is the older one: it uses an OpenGL compatibility context and may be faster on old or integrated GPUs, but it is experimental and may fail to start on some drivers. Takes effect after restarting content.",
+      NULL,
+      "video",
+      {
+         { "new3d",    "New3D (Default)" },
+         { "legacy3d", "Legacy3D (Experimental)" },
+         { NULL, NULL },
+      },
+      "new3d"
+   },
+#endif
+#ifdef HAVE_CRT_COLOURS
+   {
+      "supermodel_crt_colors",
+      "CRT Colour",
+      NULL,
+      "Apply Supermodel's colour and gamma adaptation for the original arcade monitors. This is separate from a frontend CRT shader. Ignored by Legacy3D. Takes effect after restarting content.",
+      NULL,
+      "video",
+      {
+         { "0", "None (Default)" },
+         { "1", "ARI/D93 (Japan)" },
+         { "2", "PVM-20M2U/D93" },
+         { "3", "BT.601 525/D93" },
+         { "4", "BT.601 525/D65 (USA)" },
+         { "5", "BT.601 625/D65 (Europe/Australia)" },
+         { NULL, NULL },
+      },
+      "0"
+   },
+#endif
    {
       "supermodel_wide_screen",
       "Widescreen Hack",
@@ -498,6 +535,23 @@ void update_core_options(void)
       g_options.widescreen = strcmp(widescreen, "disabled") != 0;
       g_options.wide_background = strcmp(widescreen, "wide_background") == 0;
    }
+#if defined(USE_LEGACY3D)
+   g_options.renderer_3d = Renderer3D::Legacy3D;
+#elif defined(HAVE_LEGACY3D)
+   g_options.renderer_3d =
+      strcmp(option_get("supermodel_renderer_3d", "new3d"), "legacy3d") == 0
+         ? Renderer3D::Legacy3D : Renderer3D::New3D;
+#else
+   g_options.renderer_3d = Renderer3D::New3D;
+#endif
+#ifdef HAVE_CRT_COLOURS
+   g_options.crt_colors = atoi(option_get("supermodel_crt_colors", "0"));
+   if (g_options.crt_colors < 0 || g_options.crt_colors > 5)
+      g_options.crt_colors = 0;
+#else
+   g_options.crt_colors = 0;
+#endif
+
    g_options.upscale_mode = atoi(option_get("supermodel_upscale_mode", "2"));
    if (g_options.upscale_mode < 0 || g_options.upscale_mode > 3)
       g_options.upscale_mode = 2;

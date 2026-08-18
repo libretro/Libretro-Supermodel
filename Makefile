@@ -249,6 +249,12 @@ ifneq ($(filter $(platform),ios-arm64 tvos-arm64),)
     SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
 endif
 
+# Tell the Libretro option layer whether Legacy3D is in this build, after all the
+# platform filtering above, so the 3D Renderer option only appears where it works.
+ifneq ($(filter %/Legacy3D/Legacy3D.cpp,$(SOURCES_CXX)),)
+    RENDERER_DEFINES += -DHAVE_LEGACY3D
+endif
+
 # GIT version
 GIT_VERSION := " $(shell git rev-parse --short HEAD || echo unknown)"
 ifneq ($(GIT_VERSION)," unknown")

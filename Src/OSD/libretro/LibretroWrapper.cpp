@@ -440,18 +440,18 @@ bool LibretroWrapper::InitRenderers()
     }
 
     Render2D = new CRender2D(s_runtime_config);
-    // Legacy3D is only linked in when built with RENDERER=legacy (see Makefile).
-    // On GLES platforms it is otherwise absent from the binary entirely, hence
-    // the compile-time switch rather than a runtime config check.
+    // Builds that include both renderers (HAVE_LEGACY3D, from the Makefile) select
+    // one at runtime through the 3D Renderer option. Where Legacy3D is not built in,
+    // New3D is the only choice; RENDERER=legacy builds are fixed to Legacy3D.
     Render3D =
 #if defined(USE_LEGACY3D)
         (IRender3D*)new Legacy3D::CLegacy3D(s_runtime_config);
-#elif defined(ANDROID) || defined(CORE_GLES) || defined(__APPLE__)
-        (IRender3D*)new New3D::CNew3D(s_runtime_config, Model3->GetGame().name);
-#else
+#elif defined(HAVE_LEGACY3D)
         s_runtime_config["New3DEngine"].ValueAs<bool>()
         ? (IRender3D*)new New3D::CNew3D(s_runtime_config, Model3->GetGame().name)
         : (IRender3D*)new Legacy3D::CLegacy3D(s_runtime_config);
+#else
+        (IRender3D*)new New3D::CNew3D(s_runtime_config, Model3->GetGame().name);
 #endif
 
      unsigned render_xRes = xRes;
@@ -899,6 +899,9 @@ int LibretroWrapper::Emulate(const char* romPath)
         LibretroConfigProvider::ApplyGunLayout(s_runtime_config,
             (game.inputs & (Game::INPUT_ANALOG_GUN1 | Game::INPUT_ANALOG_GUN2)) != 0);
         s_runtime_config.Get("UpscaleMode").SetValue(g_options.upscale_mode);
+        s_runtime_config.Get("New3DEngine").SetValue(g_options.renderer_3d == Renderer3D::New3D);
+        s_runtime_config.Get("CRTcolors").SetValue(
+            g_options.renderer_3d == Renderer3D::New3D ? g_options.crt_colors : 0);
         s_runtime_config.Get("LegacySoundDSP").SetValue(g_options.legacy_sound_dsp);
         s_runtime_config.Get("MultiThreaded").SetValue(
             g_options.emulation_threading != EmulationThreading::SingleThread);
