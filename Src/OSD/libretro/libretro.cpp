@@ -331,21 +331,38 @@ static void update_star_wars_cabinet_orientation(void)
           g_star_wars_invert_x ? "inverted" : "normal");
 }
 
-static void build_native_nvram_path(char* path, size_t path_size)
+static bool file_readable(const char* path)
 {
-   char filename[1024];
-   snprintf(filename, sizeof(filename), "%s.nv", wrapper.getGame().name.c_str());
-   fill_pathname_join(path, retro_save_directory, filename, path_size);
-}
-
-static bool native_nvram_exists(char* path, size_t path_size)
-{
-   build_native_nvram_path(path, path_size);
    RFILE* file = filestream_open(path, RETRO_VFS_FILE_ACCESS_READ, 0);
    if (!file)
       return false;
    filestream_close(file);
    return true;
+}
+
+// A standalone <game>.nv is imported from the frontend save directory. Earlier
+// builds of this core looked in <save>/supermodel/Saves, which is still read.
+static bool native_nvram_exists(char* path, size_t path_size)
+{
+   char filename[1024];
+   snprintf(filename, sizeof(filename), "%s.nv", wrapper.getGame().name.c_str());
+   fill_pathname_join(path, retro_save_directory, filename, path_size);
+   if (file_readable(path))
+      return true;
+
+   char legacy_dir[4096];
+   fill_pathname_join(legacy_dir, retro_save_directory, "supermodel/Saves", sizeof(legacy_dir));
+   char legacy_path[4096];
+   fill_pathname_join(legacy_path, legacy_dir, filename, sizeof(legacy_path));
+   if (file_readable(legacy_path))
+   {
+      strlcpy(path, legacy_path, path_size);
+      return true;
+   }
+
+   // Report the preferred location when nothing was found.
+   fill_pathname_join(path, retro_save_directory, filename, path_size);
+   return false;
 }
 
 static bool import_native_nvram(const char* path)
@@ -418,28 +435,32 @@ void retro_init(void)
 
    const char *dir = NULL;
 
-   // 1. Setup Config/System Directory
+   // 1. The core-specific system directory, [System]/supermodel, as other
+   // Libretro cores use. Games.xml, Supermodel.ini and Music.xml live here;
+   // the older [System]/supermodel/Config layout is still read as a fallback.
    if (environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir)
    {
-      snprintf(retro_base_directory, sizeof(retro_base_directory), "%s/supermodel/Config", dir);
+      snprintf(retro_base_directory, sizeof(retro_base_directory), "%s/supermodel", dir);
    }
    else
    {
-      snprintf(retro_base_directory, sizeof(retro_base_directory), "Config");
+      snprintf(retro_base_directory, sizeof(retro_base_directory), "supermodel");
    }
 
-   // 2. Setup Save Directory
+   // 2. The frontend save directory. RetroArch may already return a core- or
+   // content-specific path, so do not append another directory: the frontend
+   // owns the .srm file, and a standalone .nv to import is placed here.
    if (environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &dir) && dir)
    {
-      snprintf(retro_save_directory, sizeof(retro_save_directory), "%s/supermodel/Saves", dir);
+      snprintf(retro_save_directory, sizeof(retro_save_directory), "%s", dir);
    }
    else
    {
       snprintf(retro_save_directory, sizeof(retro_save_directory), "%s", retro_base_directory);
    }
 
-   log_cb(RETRO_LOG_INFO, "[Supermodel] Config Path: %s\n", retro_base_directory);
-   log_cb(RETRO_LOG_INFO, "[Supermodel] Save Path: %s\n", retro_save_directory);
+   log_cb(RETRO_LOG_INFO, "[Supermodel] System Path: %s\n", retro_base_directory);
+   log_cb(RETRO_LOG_INFO, "[Supermodel] Frontend Save Path: %s\n", retro_save_directory);
 
    if (CLibretroNetBoard::RegisterNetpacketInterface(environ_cb, log_cb))
       log_cb(RETRO_LOG_INFO,

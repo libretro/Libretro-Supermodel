@@ -42,7 +42,6 @@
 #include "Graphics/SuperAA.h"
 #include "Sound/MPEG/MpegAudio.h"
 #include "Util/BMPFile.h"
-#include "OSD/DefaultConfigFile.h"
 #include "libretroCrosshair.h"
 #include "LibretroWrapper.h"
 #include "CLibretroInputSystem.h"
@@ -233,7 +232,11 @@ void LibretroWrapper::InitializePaths(const std::string& systemPath)
     s_logFilePath      = systemPath + "/Supermodel.log";
     s_analysisPath     = systemPath + "/Analysis/";
 
-    std::cout << "[Supermodel] System assets: " << systemPath << std::endl;
+    if (log_cb)
+    {
+        log_cb(RETRO_LOG_INFO, "[Supermodel] Games.xml: %s\n", s_gameXMLFilePath.c_str());
+        log_cb(RETRO_LOG_INFO, "[Supermodel] Supermodel.ini: %s\n", s_configFilePath.c_str());
+    }
 }
 
 [[maybe_unused]] static void GLAPIENTRY DebugCallback(GLenum /*source*/, GLenum /*type*/, GLuint id,
@@ -761,21 +764,6 @@ void LibretroWrapper::ShutDownSupermodel()
  Entry Point and Command Line Processing
 ******************************************************************************/
 
-static void WriteDefaultConfigurationFileIfNotPresent()
-{
-    FILE* fp = fopen(LibretroWrapper::s_configFilePath.c_str(), "r");
-    if (fp) { fclose(fp); return; }
-
-    fp = fopen(LibretroWrapper::s_configFilePath.c_str(), "w");
-    if (!fp)
-    {
-        ErrorLog("Unable to write default configuration file to %s", LibretroWrapper::s_configFilePath.c_str());
-        return;
-    }
-    fputs(s_defaultConfigFileContents, fp);
-    fclose(fp);
-}
-
 // Create and configure inputs
 Result LibretroWrapper::ConfigureInputs(CInputs *Inputs, Util::Config::Node *fileConfig, Util::Config::Node *runtimeConfig, const Game &game, bool configure)
 {
@@ -818,8 +806,6 @@ void LibretroWrapper::Reset()
 
 int LibretroWrapper::Emulate(const char* romPath)
 {
-    WriteDefaultConfigurationFileIfNotPresent();
-
     // Route ALL of Supermodel's logging (InfoLog/DebugLog/ErrorLog, including the
     // DumpTimings profiler output) through the RetroArch log callback, on every
     // platform — not just Android. Previously non-Android builds used a file/console
@@ -848,7 +834,14 @@ int LibretroWrapper::Emulate(const char* romPath)
         Util::Config::Node fileConfigWithDefaults("Global");
         Util::Config::Node config3("Global");
         Util::Config::Node config4("Global");
-        Util::Config::FromINIFile(&fileConfig, s_configFilePath);
+        // Supermodel.ini is optional: InitializePaths() extracts the bundled
+        // copy on first run, and the core never writes it afterwards. Without
+        // a readable file the built-in defaults apply.
+        if (FileExists(s_configFilePath))
+        {
+            Util::Config::FromINIFile(&fileConfig, s_configFilePath);
+            InfoLog("Using configuration file: %s", s_configFilePath.c_str());
+        }
         Util::Config::MergeINISections(&fileConfigWithDefaults, LibretroConfigProvider::DefaultConfig(s_gameXMLFilePath), fileConfig); 
         Util::Config::MergeINISections(&config3, fileConfigWithDefaults, cmd_line.config);    
 

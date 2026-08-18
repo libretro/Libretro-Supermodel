@@ -37,16 +37,18 @@ Raspberry Pi and other ARM64 Linux systems.
 
 ## Required assets
 
-The core keeps its configuration in
-`[RetroArch System Directory]/supermodel/Config/`:
+Like other Libretro cores, the core keeps its files in its own folder in the
+RetroArch system directory, `[RetroArch System Directory]/supermodel/`:
 
 - `Games.xml` identifies the ROM sets.
 - `Supermodel.ini` holds Supermodel's own settings.
 - `Music.xml` is optional and enables the corresponding music metadata.
 
 Official copies of `Games.xml` and `Supermodel.ini` are built into the core and
-extracted to that directory on first use when the files are missing. Existing
-files are never overwritten, so they can be edited. The core options listed in
+extracted to that folder on first use when the files are missing. Existing
+files are never overwritten, so they can be edited. If the folder is not
+writable, the built-in copies are used directly. Files in the older
+`supermodel/Config/` folder are still found. The core options listed in
 RetroArch take precedence over the matching `Supermodel.ini` settings.
 
 ROMs are the standard MAME-style Model 3 ZIP sets named in `Games.xml`.
