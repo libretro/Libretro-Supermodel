@@ -681,5 +681,13 @@ namespace LibretroConfigProvider {
             config.Set<std::string>("InputGearShift3", "JOY1_RXAXIS_NEG");     // stick left
             config.Set<std::string>("InputGearShift4", "JOY1_RXAXIS_POS");     // stick right
         }
+        else if (g_options.driving_layout == DrivingLayout::TriggersHGate)
+        {
+            // Right stick diagonals = H-pattern, decoded by CLibretroInputSystem::Poll()
+            config.Set<std::string>("InputGearShift1", "JOY1_BUTTON17");      // up-left
+            config.Set<std::string>("InputGearShift2", "JOY1_BUTTON18");      // down-left
+            config.Set<std::string>("InputGearShift3", "JOY1_BUTTON19");      // up-right
+            config.Set<std::string>("InputGearShift4", "JOY1_BUTTON20");      // down-right
+        }
     }
 }

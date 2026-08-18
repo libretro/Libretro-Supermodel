@@ -275,6 +275,32 @@ bool CLibretroInputSystem::Poll()
         }
     }
 
+    // ----- H-pattern gearbox (JOY1_BUTTON17-20) -----
+    // In the H-pattern driving layout the right stick diagonals select gears 1-4 like a
+    // real 4-speed lever: up-left 1, down-left 2, up-right 3, down-right 4. A diagonal
+    // needs both axes past about half travel (about 69% of the stick radius at 45
+    // degrees). Supermodel latches the last gear selected, so releasing the stick keeps
+    // the gear engaged.
+    {
+        constexpr unsigned kGearButtonFirst = 16;   // JOY1_BUTTON17 -> array index 16
+        constexpr int kHGateThreshold = 16000;
+        int gear = 0;
+        if (g_options.driving_layout == DrivingLayout::TriggersHGate)
+        {
+            const int rx = m_joyAxes[0][AXIS_RX];
+            const int ry = m_joyAxes[0][AXIS_RY];
+            const bool left = rx < -kHGateThreshold, right = rx > kHGateThreshold;
+            const bool up = ry < -kHGateThreshold, down = ry > kHGateThreshold;
+            gear = left  && up   ? 1
+                 : left  && down ? 2
+                 : right && up   ? 3
+                 : right && down ? 4
+                 : 0;
+        }
+        for (int g = 1; g <= 4; g++)
+            m_joyButtons[0][kGearButtonFirst + g - 1] = (gear == g);
+    }
+
     // ----- Virtual gun cursors (Supermodel MOUSE5 and MOUSE6) -----
     // MOUSE5/MOUSE6 combine the sources selected by Gun Input Mode. Dedicated
     // Mouse mode consumes only RetroMouse relative movement and buttons;

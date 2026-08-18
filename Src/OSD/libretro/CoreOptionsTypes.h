@@ -6,7 +6,8 @@
 enum class DrivingLayout {
    Default,            // right stick free
    TriggersGate,       // gears 1-4 on the right stick
-   TriggersSequential  // sequential shift on the right stick
+   TriggersSequential, // sequential shift on the right stick
+   TriggersHGate       // gears 1-4 on the right stick diagonals (H-pattern)
 };
 
 // Source of the per-player virtual gun cursors (Supermodel MOUSE5/MOUSE6).

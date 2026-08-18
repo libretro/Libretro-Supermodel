@@ -148,13 +148,14 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_driving_layout",
       "Driving Controls Layout",
       NULL,
-      "Pad layout for driving games. L/R shift down/up and L2/R2 are analog brake/accelerator in every layout. The optional layouts also use the right stick as either a 4-gear gate or a sequential lever. Takes effect when the game is reloaded.",
+      "Pad layout for driving games. L/R shift down/up and L2/R2 are analog brake/accelerator in every layout. The optional layouts also use the right stick as a 4-gear gate (up/down/left/right select gears 1-4), a sequential lever, or an H-pattern gearbox (the diagonals up-left/down-left/up-right/down-right select gears 1-4). Takes effect when the game is reloaded.",
       NULL,
       "input",
       {
          { "default",      "Standard (L/R shift, triggers as pedals)" },
          { "triggers",     "Standard + 4-gear gate on right stick" },
          { "triggers_seq", "Standard + sequential on right stick" },
+         { "triggers_hgate", "Standard + H-pattern gearbox on right stick" },
          { NULL, NULL },
       },
       "default"
@@ -519,6 +520,7 @@ void update_core_options(void)
       const char *layout = option_get("supermodel_driving_layout", "default");
       g_options.driving_layout = strcmp(layout, "triggers") == 0     ? DrivingLayout::TriggersGate
                                : strcmp(layout, "triggers_seq") == 0 ? DrivingLayout::TriggersSequential
+                               : strcmp(layout, "triggers_hgate") == 0 ? DrivingLayout::TriggersHGate
                                : DrivingLayout::Default;
    }
    {
