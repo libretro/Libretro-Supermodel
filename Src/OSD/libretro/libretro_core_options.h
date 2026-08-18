@@ -41,7 +41,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_initial_nvram_setup",
       "Automatic Initial NVRAM Setup",
       NULL,
-      "When no frontend .srm or valid standalone .nv exists, initialize known games with the cabinet settings required to boot without unsupported linked cabinets or lever feedback. Existing saves are never modified. Delete the game's .srm to regenerate this initial setup. Restart content to apply.",
+      "When no frontend .srm or valid standalone .nv exists, initialize supported games with Single, Stand Alone, or No Link and set Star Wars Trilogy Arcade to the Upright cabinet. Other EEPROM fields keep the factory values for that ROM set. Existing saves are never modified. Delete the game's .srm to regenerate this initial setup. Restart content to apply.",
       NULL,
       "system",
       {
@@ -50,6 +50,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
          { NULL, NULL },
       },
       "enabled"
+   },
+   {
+      "supermodel_nvram_settings",
+      "NVRAM Settings",
+      NULL,
+      "Let RetroArch manage the supported NVRAM settings for each game. When enabled, every displayed value is applied at startup and overrides later Service Menu changes. When disabled, the core does not modify these fields. Settings saved for other games are never reused. Restart content to apply.",
+      NULL,
+      "system",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
    },
    {
       "supermodel_network_board",
@@ -623,6 +637,10 @@ void update_core_options(void)
 {
    g_options.initial_nvram_setup =
       strcmp(option_get("supermodel_initial_nvram_setup", "enabled"),
+             "enabled") == 0;
+
+   g_options.nvram_settings_enabled =
+      strcmp(option_get("supermodel_nvram_settings", "disabled"),
              "enabled") == 0;
 
    g_options.network_board =

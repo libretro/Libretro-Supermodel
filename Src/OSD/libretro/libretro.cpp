@@ -19,6 +19,7 @@
 #include "Game.h"
 #include "LibretroBlockFileMemory.h"
 #include "InitialNvramTemplates.h"
+#include "LibretroNvramSettings.h"
 #include "LibretroWrapper.h"
 #include "LibretroNetBoard.h"
 #include <GL/glew.h>
@@ -49,6 +50,198 @@ bool g_star_wars_invert_x = false;
 static bool g_ffb_drive_board_enabled = false;
 void set_input_descriptors(bool service_on_sticks);
 
+// Game-aware NVRAM settings: one hidden core option per supported ROM set and
+// setting, generated from LibretroNvramSettings.h and shown only for the loaded
+// game while "NVRAM Settings" is enabled.
+static constexpr unsigned kNvramSettingCount =
+   static_cast<unsigned>(LibretroNvramSettings::Setting::Count);
+struct NvramCoreOptionSet
+{
+   const char *game_name = nullptr;
+   size_t definition_indices[kNvramSettingCount];
+};
+
+static std::vector<struct retro_core_option_v2_definition>
+   g_registered_option_definitions;
+static std::vector<std::vector<char>> g_nvram_option_key_storage;
+static std::vector<std::vector<char>> g_nvram_default_label_storage;
+static std::vector<NvramCoreOptionSet> g_nvram_option_sets;
+static std::string g_nvram_game;            // loaded ROM set, empty when none
+static std::string g_visible_nvram_game;
+static int g_visible_nvram_enabled = -1;
+
+static void append_nvram_core_options(void)
+{
+   size_t game_count = 0;
+   const auto *games = LibretroNvramSettings::GetSupportedGames(game_count);
+   for (size_t game_index = 0; game_index < game_count; ++game_index)
+   {
+      Game game;
+      game.name = games[game_index].name;
+      if (games[game_index].parent)
+         game.parent = games[game_index].parent;
+
+      NvramCoreOptionSet option_set;
+      option_set.game_name = games[game_index].name;
+      std::fill_n(option_set.definition_indices, kNvramSettingCount,
+                  std::numeric_limits<size_t>::max());
+
+      for (unsigned i = 0; i < kNvramSettingCount; ++i)
+      {
+         const auto setting =
+            static_cast<LibretroNvramSettings::Setting>(i);
+         const auto *info = LibretroNvramSettings::GetSettingInfo(&game, setting);
+         if (!info)
+            continue;
+         const char *default_value =
+            LibretroNvramSettings::GetDefaultValue(&game, setting);
+         if (!default_value)
+            continue;
+
+         g_nvram_option_key_storage.emplace_back(128, '\0');
+         auto &key = g_nvram_option_key_storage.back();
+         snprintf(key.data(), key.size(), "supermodel_nvram_%s_%s",
+                  game.name.c_str(),
+                  LibretroNvramSettings::OptionSuffix(setting));
+
+         struct retro_core_option_v2_definition definition = {};
+         definition.key = key.data();
+         definition.desc = info->label;
+         definition.info = info->description;
+         definition.category_key = "system";
+         const size_t capacity = sizeof(definition.values) /
+                                 sizeof(definition.values[0]);
+         const size_t value_count = std::min(info->valueCount, capacity - 1);
+         for (size_t value = 0; value < value_count; ++value)
+         {
+            const char *label = info->values[value].label;
+            if (strcmp(info->values[value].key, default_value) == 0)
+            {
+               const size_t label_size = strlen(label) + strlen(" (Default)") + 1;
+               g_nvram_default_label_storage.emplace_back(label_size, '\0');
+               auto &default_label = g_nvram_default_label_storage.back();
+               snprintf(default_label.data(), default_label.size(),
+                        "%s (Default)", label);
+               label = default_label.data();
+            }
+            definition.values[value] = {
+               info->values[value].key, label
+            };
+         }
+         definition.default_value = default_value;
+         option_set.definition_indices[i] =
+            g_registered_option_definitions.size();
+         g_registered_option_definitions.push_back(definition);
+      }
+      g_nvram_option_sets.push_back(option_set);
+   }
+}
+
+static void build_core_option_definitions(void)
+{
+   if (!g_registered_option_definitions.empty())
+      return;
+
+   size_t game_count = 0;
+   const auto *games = LibretroNvramSettings::GetSupportedGames(game_count);
+   size_t nvram_option_count = 0;
+   for (size_t game_index = 0; game_index < game_count; ++game_index)
+   {
+      Game game;
+      game.name = games[game_index].name;
+      if (games[game_index].parent)
+         game.parent = games[game_index].parent;
+      for (unsigned i = 0; i < kNvramSettingCount; ++i)
+      {
+         if (LibretroNvramSettings::GetSettingInfo(&game,
+               static_cast<LibretroNvramSettings::Setting>(i)))
+            ++nvram_option_count;
+      }
+   }
+
+   size_t base_option_count = 0;
+   for (const auto &definition : option_defs)
+      if (definition.key)
+         ++base_option_count;
+   g_registered_option_definitions.reserve(
+      base_option_count + nvram_option_count + 1);
+   g_nvram_option_key_storage.reserve(nvram_option_count);
+   g_nvram_default_label_storage.reserve(nvram_option_count);
+   g_nvram_option_sets.reserve(game_count);
+
+   for (const auto &definition : option_defs)
+   {
+      if (!definition.key)
+         break;
+      g_registered_option_definitions.push_back(definition);
+      if (strcmp(definition.key, "supermodel_nvram_settings") == 0)
+         append_nvram_core_options();
+   }
+   g_registered_option_definitions.push_back({});
+}
+
+static const NvramCoreOptionSet *active_nvram_option_set(void)
+{
+   if (g_nvram_game.empty())
+      return nullptr;
+   for (const auto &option_set : g_nvram_option_sets)
+      if (g_nvram_game == option_set.game_name)
+         return &option_set;
+   return nullptr;
+}
+
+static const char *active_nvram_option_key(
+      LibretroNvramSettings::Setting setting)
+{
+   const auto *option_set = active_nvram_option_set();
+   if (!option_set)
+      return nullptr;
+   const size_t index =
+      option_set->definition_indices[static_cast<unsigned>(setting)];
+   return index == std::numeric_limits<size_t>::max()
+      ? nullptr : g_registered_option_definitions[index].key;
+}
+
+static void register_core_options(void)
+{
+   build_core_option_definitions();
+   struct retro_core_options_v2 options_v2 = {
+      option_cats, g_registered_option_definitions.data()
+   };
+   environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, &options_v2);
+}
+
+static void update_nvram_option_visibility(void)
+{
+   const bool enabled =
+      strcmp(option_get("supermodel_nvram_settings", "disabled"),
+             "enabled") == 0;
+   const auto *active_set = active_nvram_option_set();
+   const std::string active_game = active_set ? active_set->game_name : "";
+   if (g_visible_nvram_enabled == static_cast<int>(enabled) &&
+       g_visible_nvram_game == active_game)
+      return;
+
+   struct retro_core_option_display display = { nullptr, false };
+   for (const auto &option_set : g_nvram_option_sets)
+   {
+      const bool game_visible =
+         enabled && option_set.game_name == active_game;
+      for (unsigned i = 0; i < kNvramSettingCount; ++i)
+      {
+         const size_t index = option_set.definition_indices[i];
+         if (index == std::numeric_limits<size_t>::max())
+            continue;
+         display.key = g_registered_option_definitions[index].key;
+         display.visible = game_visible;
+         environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
+      }
+   }
+
+   g_visible_nvram_enabled = enabled;
+   g_visible_nvram_game = active_game;
+}
+
 // GPU timer queries (double-buffered: write slot N, read slot N-1)
 #if defined(CORE_GLES)
 static GLuint s_gpuQuery[2]  = {0, 0};
@@ -63,6 +256,7 @@ char retro_base_directory[4096];
 
 CoreOptions g_options = {
    /* initial_nvram_setup */ true,
+   /* nvram_settings_enabled */ false,
    /* resolution_multiplier */ 1,
    /* widescreen           */ false,
    /* wide_background      */ false,
@@ -276,30 +470,186 @@ static bool unserialize_nvram(const char* source, bool allow_legacy_layout)
    return true;
 }
 
-static bool apply_initial_nvram_template(void)
+enum class NvramPatchResult
 {
-   const LibretroInitialNvram::Template *initial =
-      LibretroInitialNvram::Find(wrapper.getGame().name);
-   if (!initial)
-      return false;
+   NotApplicable,
+   Unchanged,
+   Changed,
+   Error,
+};
 
-   // Build the normal, standalone-compatible container around the emulator's
-   // empty backup RAM, then replace only the 93C46 machine settings. Each
-   // template already contains the checksum written by the game's Service menu.
+static NvramPatchResult apply_nvram_selection(
+      const LibretroNvramSettings::Selection &selection, const char *source)
+{
+   if (!selection.HasAny() || wrapper.getEmulator() == nullptr)
+      return NvramPatchResult::NotApplicable;
+   const Game &game = wrapper.getGame();
+
+   // Use Supermodel's public NVRAM block interface so backup RAM and all
+   // EEPROM device state remain intact. The patcher changes only controlled
+   // fields and regenerates the game-specific checksum when required.
    serialize_nvram();
-   CBlockFileMemory memFile(g_nvram_buffer, NVRAM_BUFFER_SIZE);
-   if (memFile.FindBlock("93C46") != Result::OKAY)
+   CBlockFileMemory reader(g_nvram_buffer, NVRAM_BUFFER_SIZE);
+   uint16_t words[64];
+   if (reader.FindBlock("93C46") != Result::OKAY ||
+       reader.Read(words, sizeof(words)) != sizeof(words))
+   {
+      log_cb(RETRO_LOG_ERROR,
+             "[Supermodel] Unable to read EEPROM for %s\n", source);
+      return NvramPatchResult::Error;
+   }
+   std::vector<uint8_t> backup_ram(0x20000);
+   if (reader.FindBlock("Backup RAM") != Result::OKAY ||
+       reader.Read(backup_ram.data(),
+                   static_cast<uint32_t>(backup_ram.size())) != backup_ram.size())
+   {
+      log_cb(RETRO_LOG_ERROR,
+             "[Supermodel] Unable to read Backup RAM for %s\n", source);
+      return NvramPatchResult::Error;
+   }
+
+   const LibretroNvramSettings::ApplyResult result =
+      LibretroNvramSettings::Apply(game, words, backup_ram.data(),
+                                   backup_ram.size(), selection);
+   if (result == LibretroNvramSettings::ApplyResult::Unsupported)
+      return NvramPatchResult::NotApplicable;
+   if (result == LibretroNvramSettings::ApplyResult::InvalidLayout)
+   {
+      log_cb(RETRO_LOG_WARN,
+             "[Supermodel] %s skipped: unexpected NVRAM layout for %s\n",
+             source, game.name.c_str());
+      return NvramPatchResult::Error;
+   }
+   if (result == LibretroNvramSettings::ApplyResult::Unchanged)
+      return NvramPatchResult::Unchanged;
+
+   CBlockFileMemory writer(g_nvram_buffer, NVRAM_BUFFER_SIZE);
+   if (writer.FindBlock("93C46") != Result::OKAY)
+      return NvramPatchResult::Error;
+   writer.Write(words, sizeof(words));
+   if (writer.FindBlock("Backup RAM") != Result::OKAY)
+      return NvramPatchResult::Error;
+   writer.Write(backup_ram.data(), static_cast<uint32_t>(backup_ram.size()));
+   if (writer.HasError() || !unserialize_nvram(source, false))
+   {
+      log_cb(RETRO_LOG_ERROR,
+             "[Supermodel] Unable to apply %s for %s\n",
+             source, game.name.c_str());
+      return NvramPatchResult::Error;
+   }
+   return NvramPatchResult::Changed;
+}
+
+// First-boot settings for a seeded EEPROM: the single-cabinet link mode and the
+// Star Wars Trilogy Upright cabinet.
+static NvramPatchResult apply_initial_nvram_settings(void)
+{
+   if (wrapper.getEmulator() == nullptr)
+      return NvramPatchResult::NotApplicable;
+   const Game &game = wrapper.getGame();
+
+   LibretroNvramSettings::Selection selection;
+   const auto link_mode = LibretroNvramSettings::Setting::LinkMode;
+   if (LibretroNvramSettings::GetSettingInfo(&game, link_mode))
+      selection.values[static_cast<unsigned>(link_mode)] =
+         LibretroNvramSettings::GetDefaultValue(&game, link_mode);
+
+   if (game.name == "swtrilgy" || game.name == "swtrilgya")
+   {
+      const auto cabinet = LibretroNvramSettings::Setting::Cabinet;
+      selection.values[static_cast<unsigned>(cabinet)] = "upright";
+   }
+
+   if (!selection.HasAny())
+      return NvramPatchResult::NotApplicable;
+
+   const NvramPatchResult result = apply_nvram_selection(
+      selection, "automatic initial NVRAM setup");
+   if (result == NvramPatchResult::Changed ||
+       result == NvramPatchResult::Unchanged)
+   {
+      log_cb(RETRO_LOG_INFO,
+             "[Supermodel] Applied automatic initial NVRAM setup for %s\n",
+             game.name.c_str());
+   }
+   return result;
+}
+
+static void initialize_new_nvram(void)
+{
+   // Export the pristine emulator state immediately so RetroArch always has a
+   // valid save-RAM container, even when this game has no automatic settings.
+   serialize_nvram();
+
+   if (!g_options.initial_nvram_setup)
+      return;
+
+   const Game &game = wrapper.getGame();
+   const auto *initial = LibretroInitialNvram::Find(game.name);
+   if (!initial)
+      return;
+
+   // A blank EEPROM has no game-owned structure for the field-level patcher
+   // to validate. Seed only the 64 EEPROM words from this exact ROM set's
+   // template; retain the emulator's empty Backup RAM and controller state,
+   // then apply the requested fields through the normal patch engine.
+   CBlockFileMemory writer(g_nvram_buffer, NVRAM_BUFFER_SIZE);
+   if (writer.FindBlock("93C46") != Result::OKAY)
+   {
+      log_cb(RETRO_LOG_WARN,
+             "[Supermodel] Unable to seed initial EEPROM for %s\n",
+             game.name.c_str());
+      return;
+   }
+   writer.Write(initial->eeprom.data(),
+                static_cast<uint32_t>(sizeof(uint16_t) * initial->eeprom.size()));
+   if (writer.HasError() ||
+       !unserialize_nvram("automatic initial NVRAM seed", false))
+   {
+      log_cb(RETRO_LOG_WARN,
+             "[Supermodel] Unable to load initial EEPROM seed for %s\n",
+             game.name.c_str());
+      return;
+   }
+
+   const NvramPatchResult result = apply_initial_nvram_settings();
+   if (result == NvramPatchResult::Error)
+      log_cb(RETRO_LOG_WARN,
+             "[Supermodel] Automatic initial NVRAM setup failed for %s\n",
+             game.name.c_str());
+}
+
+// Writes the values of the visible NVRAM Settings options into the loaded
+// game's NVRAM. Returns true when something changed.
+static bool apply_configured_nvram_settings(void)
+{
+   if (!g_options.nvram_settings_enabled || wrapper.getEmulator() == nullptr)
       return false;
-   memFile.Write(initial->eeprom.data(),
-                 static_cast<uint32_t>(sizeof(initial->eeprom)));
-   if (memFile.HasError() ||
-       !unserialize_nvram("automatic initial NVRAM template", false))
+   const Game &game = wrapper.getGame();
+
+   LibretroNvramSettings::Selection selection;
+   for (unsigned i = 0; i < kNvramSettingCount; ++i)
+   {
+      const auto setting = static_cast<LibretroNvramSettings::Setting>(i);
+      const char *key = active_nvram_option_key(setting);
+      const char *default_value =
+         LibretroNvramSettings::GetDefaultValue(&game, setting);
+      const char *selected = key && default_value
+         ? option_get(key, default_value) : nullptr;
+      selection.values[i] = LibretroNvramSettings::IsValueSupported(
+            &game, setting, selected)
+         ? selected : default_value;
+   }
+   if (!selection.HasAny())
       return false;
 
-   log_cb(RETRO_LOG_INFO,
-          "[Supermodel] Applied automatic initial NVRAM setup for %s\n",
-          wrapper.getGame().name.c_str());
-   return true;
+   const NvramPatchResult result = apply_nvram_selection(
+      selection, "game-aware NVRAM settings");
+   if (result == NvramPatchResult::Changed)
+      log_cb(RETRO_LOG_INFO,
+             "[Supermodel] Applied configured NVRAM settings for %s\n",
+             game.name.c_str());
+   return result == NvramPatchResult::Changed;
 }
 
 static void update_star_wars_cabinet_orientation(void)
@@ -668,6 +1018,8 @@ bool retro_load_game(const struct retro_game_info *info)
    g_ffb_drive_board_enabled = g_options.force_feedback;
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
+   g_nvram_game = wrapper.getGame().name;
+   update_nvram_option_visibility();
    if (wrapper.NativeTimingUnavailable())
    {
       static const struct retro_message message = {
@@ -713,6 +1065,8 @@ void retro_unload_game(void)
    last_width = 0;
    last_height = 0;
    g_context_ready = false;
+   g_nvram_game.clear();
+   update_nvram_option_visibility();
    pgo_flush();   // RetroArch may never call retro_deinit before exiting
 }
 void retro_run(void)
@@ -762,6 +1116,15 @@ void retro_run(void)
 
       update_core_options();
       ppc_set_jit_enabled(g_options.jit_enable);
+      update_nvram_option_visibility();
+
+      if (g_nvram_initialized && apply_configured_nvram_settings())
+      {
+         static const struct retro_message message = {
+            "NVRAM settings saved. Restart content to apply them.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+      }
 
       if (g_options.widescreen != old_widescreen)
       {
@@ -912,32 +1275,17 @@ void retro_run(void)
             log_cb(RETRO_LOG_WARN,
                    "[Supermodel] Native .nv is invalid; ignoring it and initializing new .srm save RAM\n");
             g_nvram_initialized = true;
-            const bool has_initial_template =
-               LibretroInitialNvram::Find(wrapper.getGame().name) != nullptr;
-            const bool template_applied = g_options.initial_nvram_setup &&
-               apply_initial_nvram_template();
-            if (!template_applied)
-            {
-               serialize_nvram();
-               if (g_options.initial_nvram_setup && has_initial_template)
-                  log_cb(RETRO_LOG_ERROR,
-                         "[Supermodel] Unable to apply automatic initial NVRAM setup for %s\n",
-                         wrapper.getGame().name.c_str());
-            }
+            initialize_new_nvram();
          }
       }
       else
       {
          log_cb(RETRO_LOG_INFO, "[Supermodel] No NVRAM data found, using defaults\n");
          g_nvram_initialized = true;
-         if (g_options.initial_nvram_setup &&
-             !apply_initial_nvram_template() &&
-             LibretroInitialNvram::Find(wrapper.getGame().name))
-            log_cb(RETRO_LOG_ERROR,
-                   "[Supermodel] Unable to apply automatic initial NVRAM setup for %s\n",
-                   wrapper.getGame().name.c_str());
+         initialize_new_nvram();
       }
 
+      apply_configured_nvram_settings();
       update_star_wars_cabinet_orientation();
    }
 
@@ -1412,11 +1760,8 @@ void retro_set_environment(retro_environment_t cb)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &vfs_iface_info))
       filestream_vfs_init(&vfs_iface_info);
 
-   // Ensure option_cats and option_defs are defined ABOVE this function
-   struct retro_core_options_v2 options_v2;
-   options_v2.categories = option_cats;
-   options_v2.definitions = option_defs;
-   environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, &options_v2);
+   // 2. Core options, including the generated per-game NVRAM settings
+   register_core_options();
 
    // 3. Variable Update Check
    bool dummy = false;

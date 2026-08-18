@@ -56,6 +56,7 @@ enum class EmulationThreading {
 
 struct CoreOptions {
    bool initial_nvram_setup;
+   bool nvram_settings_enabled;   // per-game NVRAM Settings options are applied at start
    float resolution_multiplier;
    bool widescreen;
    bool wide_background;     // stretch the lower 2D layer too (needs widescreen)
