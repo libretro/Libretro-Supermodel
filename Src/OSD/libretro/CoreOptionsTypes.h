@@ -24,6 +24,13 @@ enum class StarWarsInput {
    AnalogSticks   // RetroPad left stick as an absolute arcade yoke
 };
 
+// Supermodel MultiThreaded / GPUMultiThreaded (read when the content starts).
+enum class EmulationThreading {
+   SingleThread,
+   MultiThreaded,      // sound and drive boards on worker threads
+   MultiThreadedGPU    // also overlaps PowerPC emulation with rendering
+};
+
 struct CoreOptions {
    bool initial_nvram_setup;
    float resolution_multiplier;
@@ -42,6 +49,7 @@ struct CoreOptions {
    bool service_on_sticks;
    int ppc_frequency;
    int frameskip;
+   EmulationThreading emulation_threading;
    bool sound_enable;
    bool jit_enable;
    bool timing_overlay;      // draw the ImGui frame-timing overlay (costs a draw pass every frame)

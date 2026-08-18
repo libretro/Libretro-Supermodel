@@ -73,6 +73,7 @@ CoreOptions g_options = {
    /* service_on_sticks    */ true,
    /* ppc_frequency        */ 0,
    /* frameskip            */ 0,
+   /* emulation_threading  */ EmulationThreading::MultiThreadedGPU,
    /* sound_enable         */ true,
    /* jit_enable           */
 #ifdef __aarch64__
@@ -651,6 +652,7 @@ void retro_run(void)
       bool old_legacy_sound_dsp = g_options.legacy_sound_dsp;
       bool old_service_on_sticks = g_options.service_on_sticks;
       bool old_sound_enable = g_options.sound_enable;
+      EmulationThreading old_emulation_threading = g_options.emulation_threading;
       unsigned old_crosshairs = g_options.crosshairs;
 
       update_core_options();
@@ -700,6 +702,14 @@ void retro_run(void)
       {
          static const struct retro_message message = {
             "Sound Enable will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+      }
+
+      if (g_options.emulation_threading != old_emulation_threading)
+      {
+         static const struct retro_message message = {
+            "Emulation Threading will apply after restarting the content.", 180
          };
          environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }

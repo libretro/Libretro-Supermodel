@@ -900,6 +900,13 @@ int LibretroWrapper::Emulate(const char* romPath)
             (game.inputs & (Game::INPUT_ANALOG_GUN1 | Game::INPUT_ANALOG_GUN2)) != 0);
         s_runtime_config.Get("UpscaleMode").SetValue(g_options.upscale_mode);
         s_runtime_config.Get("LegacySoundDSP").SetValue(g_options.legacy_sound_dsp);
+        s_runtime_config.Get("MultiThreaded").SetValue(
+            g_options.emulation_threading != EmulationThreading::SingleThread);
+        s_runtime_config.Get("GPUMultiThreaded").SetValue(
+            g_options.emulation_threading == EmulationThreading::MultiThreadedGPU);
+        InfoLog("Libretro emulation threading: MultiThreaded=%d, GPUMultiThreaded=%d",
+                s_runtime_config["MultiThreaded"].ValueAs<bool>(),
+                s_runtime_config["GPUMultiThreaded"].ValueAs<bool>());
     }
 
     if (Model3 || Inputs || Outputs)

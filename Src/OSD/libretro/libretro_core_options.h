@@ -424,6 +424,21 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "auto"
    },
+   {
+      "supermodel_emulation_threading",
+      "Emulation Threading",
+      NULL,
+      "Select how Supermodel distributes emulation work across host CPU threads. Multi-threaded runs the sound and drive boards on worker threads; Multi-threaded + GPU also overlaps PowerPC emulation with graphics processing. This is independent of RetroArch's Threaded Video setting. Restart content to apply.",
+      NULL,
+      "cpu",
+      {
+         { "single",    "Single Thread" },
+         { "multi",     "Multi-threaded" },
+         { "multi_gpu", "Multi-threaded + GPU (Default)" },
+         { NULL, NULL },
+      },
+      "multi_gpu"
+   },
 #ifdef HAVE_PPC_JIT
    {
       "supermodel_jit_enable",
@@ -544,6 +559,14 @@ void update_core_options(void)
    {
       int mhz = atoi(ppc_freq);
       g_options.ppc_frequency = (mhz > 0) ? mhz : 0;
+   }
+
+   {
+      const char *threading = option_get("supermodel_emulation_threading", "multi_gpu");
+      g_options.emulation_threading =
+         strcmp(threading, "single") == 0 ? EmulationThreading::SingleThread
+         : strcmp(threading, "multi") == 0 ? EmulationThreading::MultiThreaded
+         : EmulationThreading::MultiThreadedGPU;
    }
 
 #ifdef HAVE_PPC_JIT
