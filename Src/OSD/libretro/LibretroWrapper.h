@@ -63,7 +63,10 @@ public:
     void setCRTColors(CRTcolor val) { CRTcolors = val; }
     void setHwRender(retro_hw_render_callback val) { hw_render = val; }
     void InitializePaths(const std::string& baseConfigPath);
-    void UpdateScreenSize(unsigned newWidth, unsigned newHeight);
+    // viewWidth/Height: the 4:3 game area; outputWidth/Height: the whole frame (wider in
+    // widescreen). The game area is centred in the frame.
+    void UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
+                          unsigned outputWidth, unsigned outputHeight);
     void SetServiceOnSticks(bool enabled);
     void SetCrosshairs(unsigned mask);
     void SetSoundVolume(int volume);

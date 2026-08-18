@@ -85,6 +85,39 @@ CoreOptions g_options = {
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates
+static unsigned scaled_native_dimension(unsigned value)
+{
+   const float multiplier = g_options.resolution_multiplier > 0.0f
+      ? g_options.resolution_multiplier : 1.0f;
+   return std::max(1u, static_cast<unsigned>(value * multiplier + 0.5f));
+}
+
+static unsigned widescreen_width(unsigned height)
+{
+   // Nearest integer to height * 16 / 9: native 384-line output becomes 683x384.
+   return std::max(1u, (height * 16u + 4u) / 9u);
+}
+
+// view: the 4:3 Model 3 screen; output: the frame handed to the frontend. In widescreen
+// the output is a real 16:9 frame with the 4:3 view centred in it, as in standalone
+// Supermodel, instead of a 4:3 frame the frontend stretches to 16:9.
+static void get_video_dimensions(unsigned &view_width, unsigned &view_height,
+                                 unsigned &output_width, unsigned &output_height)
+{
+   view_width = scaled_native_dimension(496);
+   view_height = scaled_native_dimension(384);
+   output_height = view_height;
+   output_width = g_options.widescreen ? widescreen_width(output_height) : view_width;
+}
+
+// Large enough for the current multiplier in either aspect, so toggling widescreen
+// needs only SET_GEOMETRY. A multiplier change still sends SET_SYSTEM_AV_INFO.
+static void get_maximum_video_dimensions(unsigned &max_width, unsigned &max_height)
+{
+   max_height = scaled_native_dimension(384);
+   max_width = std::max(scaled_native_dimension(496), widescreen_width(max_height));
+}
+
 static unsigned last_width = 0;
 static unsigned last_height = 0;
 #define NVRAM_BUFFER_SIZE (0x20000 + 2048) 
@@ -402,11 +435,11 @@ void retro_get_system_info(struct retro_system_info *info)
 
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
-   float multiplier = (g_options.resolution_multiplier > 0) ? g_options.resolution_multiplier : 1.0f;
-   info->geometry.base_width   = 496;
-   info->geometry.base_height  = 384;
-   info->geometry.max_width    = (unsigned)(496 * multiplier);
-   info->geometry.max_height   = (unsigned)(384 * multiplier);
+   unsigned view_width, view_height, output_width, output_height;
+   get_video_dimensions(view_width, view_height, output_width, output_height);
+   info->geometry.base_width   = output_width;
+   info->geometry.base_height  = output_height;
+   get_maximum_video_dimensions(info->geometry.max_width, info->geometry.max_height);
    info->geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
 
    info->timing.fps         = 57.53;
@@ -429,8 +462,8 @@ void context_reset(void)
         // The initial renderer already uses the selected core-option
         // resolution. Seed the cache so the first retro_run() does not send a
         // redundant SET_GEOMETRY that makes some frontends recreate GL.
-        last_width = wrapper.getXRes();
-        last_height = wrapper.getYRes();
+        last_width = wrapper.getTotalXRes();
+        last_height = wrapper.getTotalYRes();
     }
 
     // CRITICAL FIX: Force 1-byte alignment for textures.
@@ -623,16 +656,9 @@ void retro_run(void)
 
       if (g_options.widescreen != old_widescreen)
       {
+         // The output width changes too: retro_run() below resizes the renderers and
+         // sends the new geometry (frame size and aspect ratio) to the frontend.
          wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
-
-         // Tell RetroArch the aspect ratio changed
-         struct retro_game_geometry geometry;
-         geometry.base_width   = last_width  ? last_width  : 496;
-         geometry.base_height  = last_height ? last_height : 384;
-         geometry.max_width    = 496 * 4;
-         geometry.max_height   = 384 * 4;
-         geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
-         environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
       }
       else if (g_options.wide_background != old_wide_background)
       {
@@ -655,13 +681,7 @@ void retro_run(void)
          last_height = 0;
 
          struct retro_system_av_info av_info;
-         av_info.geometry.base_width   = 496;
-         av_info.geometry.base_height  = 384;
-         av_info.geometry.max_width    = (unsigned)(496 * g_options.resolution_multiplier);
-         av_info.geometry.max_height   = (unsigned)(384 * g_options.resolution_multiplier);
-         av_info.geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
-         av_info.timing.fps            = 57.53;
-         av_info.timing.sample_rate    = 44100.0;
+         retro_get_system_av_info(&av_info);
          environ_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av_info);
       }
 
@@ -780,22 +800,18 @@ void retro_run(void)
       skipRender = (g_skip_counter != 0);  // Render only when counter == 0
    }
 
-   // Apply resolution multiplier from core options - always use NATIVE resolution as base
-   const unsigned NATIVE_WIDTH = 496;
-   const unsigned NATIVE_HEIGHT = 384;
-
-   unsigned target_w = NATIVE_WIDTH * g_options.resolution_multiplier;
-   unsigned target_h = NATIVE_HEIGHT * g_options.resolution_multiplier;
+   // target: the whole output frame; view: the 4:3 game area centred in it.
+   unsigned view_w, view_h, target_w, target_h;
+   get_video_dimensions(view_w, view_h, target_w, target_h);
 
    // OPTIMIZATION: Only update screen size if it actually changed.
    if (target_w != last_width || target_h != last_height) {
-      wrapper.UpdateScreenSize(target_w, target_h);
+      wrapper.UpdateScreenSize(view_w, view_h, target_w, target_h);
       
       struct retro_game_geometry geometry;
       geometry.base_width   = target_w;
       geometry.base_height  = target_h;
-      geometry.max_width    = target_w;
-      geometry.max_height   = target_h;
+      get_maximum_video_dimensions(geometry.max_width, geometry.max_height);
       geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
 
       environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
@@ -806,7 +822,8 @@ void retro_run(void)
 
    Game game = wrapper.getGame();
    restore_driving_raw_inputs(game);
-   wrapper.Inputs->Poll(&game, 0, 0, target_w, target_h);
+   // Absolute pointers (mouse, light gun) map onto the 4:3 game area.
+   wrapper.Inputs->Poll(&game, wrapper.getXOffset(), wrapper.getYOffset(), view_w, view_h);
    apply_driving_analog_ranges(game);
 
    GLuint sm_fbo = wrapper.getSuperModelFBO();

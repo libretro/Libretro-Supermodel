@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <algorithm>
 #include <chrono>
 #include <GL/glew.h>
 #if !defined(ANDROID) && !defined(CORE_GLES)
@@ -240,16 +241,25 @@ static void GLAPIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLen
     printf("OGLDebug:: 0x%X: %s\n", id, message);
 }
 
-void LibretroWrapper::UpdateScreenSize(unsigned newWidth, unsigned newHeight)
+void LibretroWrapper::UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
+                                       unsigned outputWidth, unsigned outputHeight)
 {
     // If dimensions match and renderers are initialized, skip costly re-init
-    if (newWidth == xRes && newHeight == yRes && superAA != nullptr)
+    if (viewWidth == xRes && viewHeight == yRes &&
+        outputWidth == totalXRes && outputHeight == totalYRes &&
+        superAA != nullptr)
         return;
 
-    xRes = totalXRes = newWidth;
-    yRes = totalYRes = newHeight;
-    xOffset = 0;
-    yOffset = 0;
+    // As in standalone Supermodel: the 4:3 game area (xRes x yRes) is centred in the
+    // output frame. In widescreen the frame is wider; New3D widens full-screen
+    // viewports into the sides and Render2D keeps the 2D layers at 4:3 (or stretches
+    // the background layer with WideBackground).
+    xRes = std::min(viewWidth, outputWidth);
+    yRes = std::min(viewHeight, outputHeight);
+    totalXRes = outputWidth;
+    totalYRes = outputHeight;
+    xOffset = (totalXRes - xRes) / 2;
+    yOffset = (totalYRes - yRes) / 2;
 
     if (Model3)
         Model3->PauseThreads();
