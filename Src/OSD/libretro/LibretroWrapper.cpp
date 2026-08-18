@@ -394,7 +394,15 @@ void EndFrameVideo()
 {
   // Show crosshairs for light gun games
   if (videoInputs && s_crosshair)
+  {
+    // Render2D/New3D restore framebuffer 0 after drawing to Supermodel's
+    // off-screen target. In the standalone build that is the window
+    // backbuffer, but in Libretro it is not the image later blitted to the
+    // frontend. Rebind Supermodel's target so the crosshair becomes part of
+    // the submitted frame.
+    glBindFramebuffer(GL_FRAMEBUFFER, g_ctx->getSuperModelFBO());
     s_crosshair->Update(currentInputs, videoInputs, g_ctx->getXOffset(), g_ctx->getYOffset(), g_ctx->getXRes(), g_ctx->getYRes());
+  }
 }
 
 /******************************************************************************
@@ -525,8 +533,9 @@ int LibretroWrapper::SuperModelInit(const Game &game) {
   if (Result::OKAY != OpenAudio(s_runtime_config))
     return 1;
 
-  gameHasLightguns = !!(game.inputs & (Game::INPUT_GUN1|Game::INPUT_GUN2));
-  gameHasLightguns |= game.name == "lostwsga";
+  gameHasLightguns = !!(game.inputs &
+    (Game::INPUT_GUN1 | Game::INPUT_GUN2 |
+     Game::INPUT_ANALOG_GUN1 | Game::INPUT_ANALOG_GUN2));
   currentInputs = game.inputs;
   
   if (gameHasLightguns)
@@ -1018,6 +1027,17 @@ void LibretroWrapper::SetServiceOnSticks(bool enabled)
     auto* libretroInput = dynamic_cast<CLibretroInputSystem*>(m_inputSystem.get());
     if (libretroInput)
         libretroInput->SetServiceOnSticks(enabled);
+}
+
+void LibretroWrapper::SetCrosshairs(unsigned mask)
+{
+    mask &= 3u;
+    try {
+        s_runtime_config.Get("Crosshairs").SetValue(static_cast<int>(mask));
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("Crosshairs").SetValue(static_cast<int>(mask));
+    }
 }
 
 void LibretroWrapper::SetSoundVolume(int volume)

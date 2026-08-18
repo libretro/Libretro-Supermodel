@@ -63,6 +63,7 @@ public:
     void InitializePaths(const std::string& baseConfigPath);
     void UpdateScreenSize(unsigned newWidth, unsigned newHeight);
     void SetServiceOnSticks(bool enabled);
+    void SetCrosshairs(unsigned mask);
     void SetSoundVolume(int volume);
     void SetMusicVolume(int volume);
     int Emulate(const char* romPath);

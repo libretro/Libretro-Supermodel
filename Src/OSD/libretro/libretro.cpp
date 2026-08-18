@@ -55,8 +55,7 @@ CoreOptions g_options = {
    /* initial_nvram_setup */ true,
    /* resolution_multiplier */ 1,
    /* widescreen           */ false,
-   /* vsync                */ true,
-   /* crosshairs           */ true,
+   /* crosshairs           */ 0,
    /* force_feedback       */ false,
    /* analog_sensitivity   */ 100,
    /* sound_volume         */ 100,
@@ -458,6 +457,7 @@ bool retro_load_game(const struct retro_game_info *info)
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
    wrapper.SetWidescreen(g_options.widescreen);
+   wrapper.SetCrosshairs(g_options.crosshairs);
    wrapper.SetServiceOnSticks(g_options.service_on_sticks);
    if (wrapper.SuperModelInit(wrapper.getGame()) != 0)
    {
@@ -516,6 +516,7 @@ void retro_run(void)
       bool old_widescreen = g_options.widescreen;
       bool old_service_on_sticks = g_options.service_on_sticks;
       bool old_sound_enable = g_options.sound_enable;
+      unsigned old_crosshairs = g_options.crosshairs;
 
       update_core_options();
       ppc_set_jit_enabled(g_options.jit_enable);
@@ -555,6 +556,9 @@ void retro_run(void)
          wrapper.SetServiceOnSticks(g_options.service_on_sticks);
          set_input_descriptors(g_options.service_on_sticks);
       }
+
+      if (g_options.crosshairs != old_crosshairs)
+         wrapper.SetCrosshairs(g_options.crosshairs);
 
       if (g_options.sound_enable != old_sound_enable)
       {

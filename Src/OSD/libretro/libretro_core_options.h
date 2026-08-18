@@ -97,32 +97,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "disabled"
    },
    {
-      "supermodel_vsync",
-      "VSync",
-      NULL,
-      "Synchronize frame rendering with display refresh rate.",
-      NULL,
-      "video",
-      {
-         { "disabled", NULL },
-         { "enabled",  NULL },
-         { NULL, NULL },
-      },
-      "enabled"
-   },
-   {
       "supermodel_crosshairs",
       "Show Crosshairs",
       NULL,
-      "Display crosshairs for light gun games.",
+      "Select which native Supermodel crosshair is displayed in light gun games.",
       NULL,
       "video",
       {
-         { "disabled", NULL },
-         { "enabled",  NULL },
+         { "0", "Disabled" },
+         { "1", "Player 1 Only" },
+         { "2", "Player 2 Only" },
+         { "3", "Players 1 & 2" },
          { NULL, NULL },
       },
-      "enabled"
+      "0"
    },
    // Input
    {
@@ -358,8 +346,14 @@ void update_core_options(void)
    g_options.timing_overlay = strcmp(option_get("supermodel_timing_overlay", "disabled"), "enabled") == 0;
 
    g_options.widescreen = strcmp(option_get("supermodel_wide_screen", "disabled"), "enabled") == 0;
-   g_options.vsync = strcmp(option_get("supermodel_vsync", "enabled"), "enabled") == 0;
-   g_options.crosshairs = strcmp(option_get("supermodel_crosshairs", "enabled"), "enabled") == 0;
+   {
+      const char *crosshairs = option_get("supermodel_crosshairs", "0");
+      // Accept the values used by earlier builds so an existing .opt file
+      // cannot leave the option in an undefined state.
+      g_options.crosshairs = strcmp(crosshairs, "enabled") == 0 ? 3u
+                           : strcmp(crosshairs, "disabled") == 0 ? 0u
+                           : static_cast<unsigned>(atoi(crosshairs)) & 3u;
+   }
 
    g_options.sound_enable = strcmp(option_get("supermodel_sound_enable", "enabled"), "enabled") == 0;
    g_options.sound_volume = atoi(option_get("supermodel_sound_volume", "100"));

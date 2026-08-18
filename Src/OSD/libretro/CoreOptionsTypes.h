@@ -13,8 +13,7 @@ struct CoreOptions {
    bool initial_nvram_setup;
    float resolution_multiplier;
    bool widescreen;
-   bool vsync;
-   bool crosshairs;
+   unsigned crosshairs;      // native Supermodel mask: 0=off, 1=P1, 2=P2, 3=both
    bool force_feedback;
    int analog_sensitivity;
    int sound_volume;
