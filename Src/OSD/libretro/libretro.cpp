@@ -20,6 +20,7 @@
 #include "LibretroBlockFileMemory.h"
 #include "InitialNvramTemplates.h"
 #include "LibretroWrapper.h"
+#include "LibretroNetBoard.h"
 #include <GL/glew.h>
 #include "../../Graphics/SuperAA.h"
 #include "libretro_core_options.h"
@@ -94,6 +95,8 @@ CoreOptions g_options = {
    /* renderer_3d         */ Renderer3D::New3D,
    /* crt_colors          */ 0,
    /* supersampling       */ 1,
+   /* network_board       */ true,
+   /* network_cabinets    */ 2,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates
@@ -437,6 +440,13 @@ void retro_init(void)
    log_cb(RETRO_LOG_INFO, "[Supermodel] Config Path: %s\n", retro_base_directory);
    log_cb(RETRO_LOG_INFO, "[Supermodel] Save Path: %s\n", retro_save_directory);
 
+   if (CLibretroNetBoard::RegisterNetpacketInterface(environ_cb, log_cb))
+      log_cb(RETRO_LOG_INFO,
+             "[Supermodel] Libretro netpacket interface available.\n");
+   else
+      log_cb(RETRO_LOG_WARN,
+             "[Supermodel] Libretro netpacket interface unavailable; linked cabinets are disabled.\n");
+
    bool can_dupe = true;
    environ_cb(RETRO_ENVIRONMENT_GET_CAN_DUPE, &can_dupe);
 
@@ -450,6 +460,7 @@ void retro_init(void)
 
 void retro_deinit(void)
 {
+    CLibretroNetBoard::ShutdownNetpacketInterface();
     pgo_flush();
 }
 
@@ -714,6 +725,8 @@ void retro_run(void)
       int old_supersampling = g_options.supersampling;
       bool old_no_white_flash = g_options.no_white_flash;
       bool old_force_feedback = g_options.force_feedback;
+      bool old_network_board = g_options.network_board;
+      unsigned old_network_cabinets = g_options.network_cabinets;
 
       update_core_options();
       ppc_set_jit_enabled(g_options.jit_enable);
@@ -792,6 +805,15 @@ void retro_run(void)
          // If we just disabled it, kill any active vibration immediately
          if (!g_options.force_feedback)
             libretroInput->StopAllRumble();
+      }
+
+      if (g_options.network_board != old_network_board ||
+          g_options.network_cabinets != old_network_cabinets)
+      {
+         static const struct retro_message message = {
+            "Network Board settings will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
 
       // Turning it off applies immediately; turning it on needs the drive

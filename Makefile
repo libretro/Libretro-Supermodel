@@ -63,7 +63,7 @@ INCFLAGS := -I$(CORE_DIR) \
             -I$(CORE_DIR)/Src/CPU/68K/Musashi \
             -I$(CORE_DIR)/Src/CPU/68K/Musashi/generated
 
-COREDEFINES := -D__LIBRETRO__ -DSUPERMODEL_OSD_LIBRETRO
+COREDEFINES := -D__LIBRETRO__ -DSUPERMODEL_OSD_LIBRETRO -DNET_BOARD
 COREDEFINES += -DINLINE=inline
 COREDEFINES += -DPSS_STYLE=$(PSS_STYLE)
 
@@ -179,6 +179,7 @@ SOURCES_CXX := $(CORE_DIR)/Src/CPU/PowerPC/PPCDisasm.cpp \
                $(CORE_DIR)/Src/OSD/libretro/LibretroBlockFileMemory.cpp \
                $(CORE_DIR)/Src/OSD/libretro/CLibretroInputSystem.cpp \
                $(CORE_DIR)/Src/OSD/libretro/CLibretroOutputSystem.cpp \
+               $(CORE_DIR)/Src/OSD/libretro/LibretroNetBoard.cpp \
                $(CORE_DIR)/Src/OSD/libretro/LibretroWrapper.cpp \
                $(CORE_DIR)/Src/OSD/libretro/vfs_ioapi.cpp \
                $(CORE_DIR)/Src/OSD/libretro/libretro.cpp

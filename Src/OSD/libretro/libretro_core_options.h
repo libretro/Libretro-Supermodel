@@ -51,6 +51,47 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "enabled"
    },
+   {
+      "supermodel_network_board",
+      "Network Board",
+      NULL,
+      "Connect the Model 3 network board, equivalent to the standalone Network setting. Some games show their network settings in the Service Menu only while the board is connected. Experimental linked play through RetroArch Netplay is available for Daytona USA 2, Dirt Devils, Harley-Davidson, Le Mans 24, Scud Race, Sega Rally 2, Ski Champ, Spikeout, Spikeout Final Edition and Virtual On 2. Set each cabinet's link role in the game's Service Menu: the RetroArch host must be the Master and clients a Slave (Type 2 games may also use a Satellite role), and every cabinet needs its own car or machine number. Requires restarting the content.",
+      NULL,
+      "system",
+      {
+         { "enabled",  "Connected" },
+         { "disabled", "Disconnected" },
+         { NULL, NULL },
+      },
+      "enabled"
+   },
+   {
+      "supermodel_network_cabinets",
+      "Linked Cabinets",
+      NULL,
+      "Set the total number of Model 3 cabinets expected in the RetroArch Netplay session. The host waits for this exact number before starting the emulated cabinet link. Every instance must use the same value. Start the host before its clients. Two- and three-cabinet sessions have been tested; larger values remain experimental. Requires restarting the content.",
+      NULL,
+      "system",
+      {
+         { "2",  "2 Cabinets (Default)" },
+         { "3",  "3 Cabinets" },
+         { "4",  "4 Cabinets" },
+         { "5",  "5 Cabinets" },
+         { "6",  "6 Cabinets" },
+         { "7",  "7 Cabinets" },
+         { "8",  "8 Cabinets" },
+         { "9",  "9 Cabinets" },
+         { "10", "10 Cabinets" },
+         { "11", "11 Cabinets" },
+         { "12", "12 Cabinets" },
+         { "13", "13 Cabinets" },
+         { "14", "14 Cabinets" },
+         { "15", "15 Cabinets" },
+         { "16", "16 Cabinets" },
+         { NULL, NULL },
+      },
+      "2"
+   },
    // Video
    {
       "supermodel_resolution",
@@ -551,6 +592,15 @@ void update_core_options(void)
    g_options.initial_nvram_setup =
       strcmp(option_get("supermodel_initial_nvram_setup", "enabled"),
              "enabled") == 0;
+
+   g_options.network_board =
+      strcmp(option_get("supermodel_network_board", "enabled"),
+             "enabled") == 0;
+
+   g_options.network_cabinets = static_cast<unsigned>(
+      atoi(option_get("supermodel_network_cabinets", "2")));
+   if (g_options.network_cabinets < 2 || g_options.network_cabinets > 16)
+      g_options.network_cabinets = 2;
 
    const char* resolution = option_get("supermodel_resolution", "native");
    if (strcmp(resolution, "half") == 0)

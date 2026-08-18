@@ -79,15 +79,6 @@ namespace LibretroConfigProvider {
         config.Set("SDLFrictionMax", 100, "ForceFeedback", 0, 100);
         config.Set("SDLVibrateMax", 100, "ForceFeedback", 0, 100);
         config.Set("SDLConstForceThreshold", 30, "ForceFeedback", 0, 100);
-        #ifdef NET_BOARD
-
-        // NetBoard
-        config.Set("Network", false, "Network");
-        config.Set("SimulateNet", true, "Network");
-        config.Set("PortIn", unsigned(1970), "Network");
-        config.Set("PortOut", unsigned(1971), "Network");
-        config.Set<std::string>("AddressOut", "127.0.0.1", "Network", "", "");
-        #endif
         #else
         config.Set<std::string>("InputSystem", "sdl", "Core", "", "", { "sdl","sdlgamepad" });
         // SDL ForceFeedback
@@ -96,6 +87,15 @@ namespace LibretroConfigProvider {
         config.Set("SDLFrictionMax", 100, "ForceFeedback", 0, 100);
         config.Set("SDLVibrateMax", 100, "ForceFeedback", 0, 100);
         config.Set("SDLConstForceThreshold", 30, "ForceFeedback", 0, 100);
+        #endif
+        #ifdef NET_BOARD
+        // NetBoard: needed on every platform, the network board reads these.
+        config.Set("Network", false, "Network");
+        config.Set("NetworkCabinets", 2u, "Network", 2u, 16u);
+        config.Set("SimulateNet", true, "Network");
+        config.Set("PortIn", unsigned(1970), "Network");
+        config.Set("PortOut", unsigned(1971), "Network");
+        config.Set<std::string>("AddressOut", "127.0.0.1", "Network", "", "");
         #endif
         config.Set<std::string>("Outputs", "none", "Misc", "", "", { "none","win" });
         config.Set("DumpTextures", false, "Misc");

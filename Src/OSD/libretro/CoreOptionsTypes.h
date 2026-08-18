@@ -75,6 +75,8 @@ struct CoreOptions {
    Renderer3D renderer_3d;
    int crt_colors;           // Supermodel CRTcolors: 0 = none, 1-5 = monitor profiles
    int supersampling;        // Supermodel Supersampling: 1 = off, 2-8 = N x N samples
+   bool network_board;       // Supermodel Network: connect the Model 3 network board
+   unsigned network_cabinets; // Supermodel NetworkCabinets: 2-16 linked cabinets
 };
 
 extern CoreOptions g_options;

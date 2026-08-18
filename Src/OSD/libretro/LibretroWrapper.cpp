@@ -907,6 +907,13 @@ int LibretroWrapper::Emulate(const char* romPath)
         // The drive board only generates force effects when Supermodel's
         // ForceFeedback is set; it reads this when the board is reset.
         s_runtime_config.Get("ForceFeedback").SetValue(g_options.force_feedback);
+#ifdef NET_BOARD
+        // The Libretro backend simulates the Model 3 network board and uses
+        // RetroArch's netpacket transport, never the standalone sockets.
+        s_runtime_config.Get("Network").SetValue(g_options.network_board);
+        s_runtime_config.Get("NetworkCabinets").SetValue(g_options.network_cabinets);
+        s_runtime_config.Get("SimulateNet").SetValue(true);
+#endif
         s_runtime_config.Get("CRTcolors").SetValue(
             g_options.renderer_3d == Renderer3D::New3D ? g_options.crt_colors : 0);
         s_runtime_config.Get("LegacySoundDSP").SetValue(g_options.legacy_sound_dsp);
