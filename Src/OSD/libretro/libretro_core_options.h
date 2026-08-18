@@ -440,7 +440,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "disabled"
    },
 #endif
-   { NULL, NULL, NULL, NULL, NULL, NULL, {{0}}, NULL },
+   { NULL, NULL, NULL, NULL, NULL, NULL, {{NULL, NULL}}, NULL },
 };
 
 // --- Helper: Read Core Option ---

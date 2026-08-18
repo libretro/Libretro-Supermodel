@@ -342,7 +342,7 @@ namespace LibretroConfigProvider {
             
     };
 
-    static ParsedCommandLine ParseCommandLine(int argc, char **argv)
+    [[maybe_unused]] static ParsedCommandLine ParseCommandLine(int argc, char **argv)
     {
     ParsedCommandLine cmd_line;
     static const std::map<std::string, std::string> valued_options

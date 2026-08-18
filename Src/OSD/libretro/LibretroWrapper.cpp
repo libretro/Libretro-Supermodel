@@ -151,7 +151,7 @@ static CCrosshair* s_crosshair = nullptr;
 #endif
 
 LibretroWrapper::LibretroWrapper() :
-    xRes(800), yRes(600), xOffset(0), yOffset(0),
+    xOffset(0), yOffset(0), xRes(800), yRes(600),
     totalXRes(800), totalYRes(600), aaValue(0), CRTcolors(CRTcolor::None),
     upscaleMode(UpscaleMode::Bilinear)
 {
@@ -236,7 +236,9 @@ void LibretroWrapper::InitializePaths(const std::string& systemPath)
     std::cout << "[Supermodel] System assets: " << systemPath << std::endl;
 }
 
-static void GLAPIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+[[maybe_unused]] static void GLAPIENTRY DebugCallback(GLenum /*source*/, GLenum /*type*/, GLuint id,
+                                                      GLenum /*severity*/, GLsizei /*length*/,
+                                                      const GLchar* message, const void* /*userParam*/)
 {
     printf("OGLDebug:: 0x%X: %s\n", id, message);
 }
@@ -299,7 +301,6 @@ void LibretroWrapper::Screenshot()
 ******************************************************************************/
 
 static const int STATE_FILE_VERSION = 6;  // keep in sync with standalone Supermodel
-static const int NVRAM_FILE_VERSION  = 0;  // keep in sync with standalone Supermodel
 static unsigned s_saveSlot = 0;           // save state slot #
 
 static void SaveState(IEmulator *Model3)
@@ -352,42 +353,6 @@ static void LoadState(IEmulator *Model3, std::string file_path = std::string())
   Model3->LoadState(&SaveState);
   SaveState.Close();
   InfoLog("Loaded state from '%s'.", file_path.c_str());
-}
-
-static void SaveNVRAM(IEmulator *Model3)
-{
-  CBlockFile  NVRAM;
-  std::string file_path = Util::Format() << FileSystemPath::GetPath(FileSystemPath::NVRAM) << Model3->GetGame().name << ".nv";
-  
-  if (Result::OKAY != NVRAM.Create(file_path, "Supermodel NVRAM State", "Supermodel Version " SUPERMODEL_VERSION))
-  {
-    ErrorLog("Unable to save NVRAM to '%s'. Make sure directory exists!", file_path.c_str());
-    return;
-  }
-
-  int32_t fileVersion = NVRAM_FILE_VERSION;
-  NVRAM.Write(&fileVersion, sizeof(fileVersion));
-  NVRAM.Write(Model3->GetGame().name);
-
-  Model3->SaveNVRAM(&NVRAM);
-  NVRAM.Close();
-}
-
-static void LoadNVRAM(IEmulator *Model3)
-{
-  CBlockFile  NVRAM;
-  std::string file_path = Util::Format() << FileSystemPath::GetPath(FileSystemPath::NVRAM) << Model3->GetGame().name << ".nv";
-
-  if (Result::OKAY != NVRAM.Load(file_path)) return;
-
-  if (Result::OKAY != NVRAM.FindBlock("Supermodel NVRAM State")) return;
-
-  int32_t fileVersion;
-  NVRAM.Read(&fileVersion, sizeof(fileVersion));
-  if (fileVersion != NVRAM_FILE_VERSION) return;
-
-  Model3->LoadNVRAM(&NVRAM);
-  NVRAM.Close();
 }
 
 /******************************************************************************
@@ -590,21 +555,13 @@ int LibretroWrapper::SuperModelInit(const Game &game) {
 
   fpsFramesElapsed = 0;
   return 0;
-
-QuitError:
-  delete Render2D;
-  delete Render3D;
-  delete superAA;
-  // Clean up Outputs if we failed
-  if (Outputs) {
-      delete Outputs;
-      Outputs = nullptr;
-  }
-  return 1;
 }
 
 int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
 {
+#ifndef SUPERMODEL_DEBUGGER
+    (void)game;
+#endif
     const auto engineStart = std::chrono::steady_clock::now();
     if (paused)
     {
@@ -736,8 +693,6 @@ int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
     }
 
   return 0;
-QuitError:
-  return 1;
 }
 
 void LibretroWrapper::ShutDownSupermodel()

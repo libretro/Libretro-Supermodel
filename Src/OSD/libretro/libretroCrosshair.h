@@ -38,7 +38,6 @@ private:
   const float m_base = 0.01f, m_height = 0.02f; // geometric parameters of each triangle
   const float m_dist = 0.004f;                  // distance of triangle tip from center
   const float m_squareSize = 1.0f;
-  const float m_standardDpi = 96.0f;            // normal dpi for usual monitor (full hd)
   float m_dpiMultiplicator = 0.0f;
   const float m_scaleBitmap = 0.1f;
 
@@ -62,7 +61,6 @@ private:
   VBO m_vbo;
   VBO m_textvbo;
   GLuint m_vao = 0;
-  int m_textureCoordsCount = 0;
 
   const int MaxVerts = 1024;  // per draw call
 

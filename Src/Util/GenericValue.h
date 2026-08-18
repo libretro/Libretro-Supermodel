@@ -35,7 +35,7 @@ namespace Util
 
     // This case should never actually be called
     template <typename T>
-    static typename std::enable_if_t<!IntegerEncodableAsHex<T>::value, T> ParseInteger(const std::string &str)
+    static typename std::enable_if_t<!IntegerEncodableAsHex<T>::value, T> ParseInteger(const std::string & /*str*/)
     {
       return T();
     }
@@ -81,7 +81,7 @@ namespace Util
 
     // This case should never actually be called
     template <typename T>
-    inline T ParseBool(const std::string &str)
+    inline T ParseBool(const std::string & /*str*/)
     {
       return T();
     }

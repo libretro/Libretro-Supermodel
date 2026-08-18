@@ -36,9 +36,7 @@ float balanceFactorRearLeft   = 1.0f;
 float balanceFactorRearRight  = 1.0f;
 
 static bool enabled = true;                     // True if sound output is enabled
-static constexpr unsigned latency = 20;         // Audio latency to use (ie size of audio buffer) as percentage of max buffer size
 static constexpr bool underRunLoop = true;      // True if should loop back to beginning of buffer on under-run, otherwise sound is just skipped
-static constexpr unsigned playSamples = 512;    // Size (in samples) of callback play buffer
 static UINT32 audioBufferSize = 0;              // Size (in bytes) of audio buffer
 static INT8* audioBuffer = NULL;                // Audio buffer
 static UINT32 writePos = 0;                     // Current position at which writing into buffer
@@ -116,7 +114,7 @@ static INT16 ClampINT16(float x)
     }
     return (INT16)xi;
 }
-void PlayCallback(void* data, uint8_t* stream, int len)
+void PlayCallback(void* /*data*/, uint8_t* /*stream*/, int len)
 {
     std::lock_guard<std::mutex> lock(s_audioMutex);
     if (!enabled || !audio_batch_cb) return;
@@ -229,6 +227,8 @@ static void MixChannels(unsigned numSamples, const float* leftFrontBuffer, const
         case Game::QUAD_1_FRL_2_RRL:
         case Game::QUAD_1_RRL_2_FRL:
             flipStereo = !flipStereo;
+            break;
+        default:
             break;
         }
 
@@ -430,8 +430,6 @@ Result OpenAudio(const Util::Config::Node& config)
 
 bool OutputAudio(unsigned numSamples, const float* leftFrontBuffer, const float* rightFrontBuffer, const float* leftRearBuffer, const float* rightRearBuffer, bool flipStereo)
 {
-    UINT32 bytesRemaining;
-    UINT32 bytesToCopy;
     INT16* src;
 
     // 1. Bound Check

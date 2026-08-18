@@ -44,7 +44,9 @@ static LibretroWrapper wrapper = LibretroWrapper();
 void set_input_descriptors(bool service_on_sticks);
 
 // GPU timer queries (double-buffered: write slot N, read slot N-1)
+#if defined(CORE_GLES)
 static GLuint s_gpuQuery[2]  = {0, 0};
+#endif
 static int    s_gpuSlot      = 0;
 static float  s_gpuMs        = 0.0f;
 static bool   s_gpuQueryOK   = false;
