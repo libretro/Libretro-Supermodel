@@ -2979,81 +2979,35 @@ Result CModel3::LoadGame(const Game &game, const ROMSet &rom_set)
   // Configure CPU and PCI bridge
   PPC_CONFIG  ppc_config;
 
-  // The PCI bridge is determined by the hardware stepping, independently of
-  // an emulated CPU-frequency override: Step 1.x uses MPC105 and Step 2.x uses
-  // MPC106.
+  // CPU model, bus timing and PCI bridge are properties of the emulated board
+  // and therefore remain stepping-dependent. A PowerPC frequency override only
+  // changes the per-frame cycle budget in GetCPUClockFrequencyInHz(), matching
+  // standalone Supermodel.
   if (game.stepping == "2.0" || game.stepping == "2.1")
-    PCIBridge.SetModel(0x106);
-  else if (game.stepping == "1.0" || game.stepping == "1.5")
-    PCIBridge.SetModel(0x105);
+  {
+    ppc_config.pvr = PPC_MODEL_603R;  // 166 MHz
+    ppc_config.bus_frequency = BUS_FREQUENCY_66MHZ;
+    ppc_config.bus_frequency_multiplier = 0x25; // 2.5X multiplier
+    PCIBridge.SetModel(0x106);        // MPC106
+  }
+  else if (game.stepping == "1.5")
+  {
+    ppc_config.pvr = PPC_MODEL_603E;  // 100 MHz
+    ppc_config.bus_frequency = BUS_FREQUENCY_66MHZ;
+    ppc_config.bus_frequency_multiplier = 0x15; // 1.5X multiplier
+    PCIBridge.SetModel(0x105);        // MPC105
+  }
+  else if (game.stepping == "1.0")
+  {
+    ppc_config.pvr = PPC_MODEL_603R;  // 66 MHz
+    ppc_config.bus_frequency = BUS_FREQUENCY_66MHZ;
+    ppc_config.bus_frequency_multiplier = 0x10; // 1X multiplier
+    PCIBridge.SetModel(0x105);        // MPC105
+  }
   else
   {
     ErrorLog("Cannot configure Model 3 because game uses unrecognized stepping (%s).", game.stepping.c_str());
     return Result::FAIL;
-  }
-
-  // Check if PowerPC frequency override is set via core options
-  if (g_options.ppc_frequency > 0)
-  {
-    // User selected a specific frequency override
-    ppc_config.pvr = PPC_MODEL_603R;
-    ppc_config.bus_frequency = BUS_FREQUENCY_66MHZ;
-
-    // Map frequency to multiplier: with 66MHz bus, multiplier = frequency / 66
-    switch (g_options.ppc_frequency)
-    {
-      case 33:
-        ppc_config.bus_frequency_multiplier = 0x08;  // 0.5x -> 33 MHz
-        break;
-      case 50:
-        ppc_config.bus_frequency_multiplier = 0x0C;  // 0.75x -> 50 MHz
-        break;
-      case 66:
-        ppc_config.bus_frequency_multiplier = 0x10;  // 1.0x -> 66 MHz
-        break;
-      case 100:
-        ppc_config.bus_frequency_multiplier = 0x15;  // 1.5x -> 100 MHz
-        break;
-      case 133:
-        ppc_config.bus_frequency_multiplier = 0x20;  // 2.0x -> 133 MHz
-        break;
-      case 166:
-        ppc_config.bus_frequency_multiplier = 0x25;  // 2.5x -> 166 MHz
-        break;
-      case 200:
-        ppc_config.bus_frequency_multiplier = 0x30;  // 3.0x -> 200 MHz
-        break;
-      default:
-        ppc_config.bus_frequency_multiplier = 0x10;  // Default 1.0x = 66 MHz
-        break;
-    }
-  }
-  else
-  {
-    // Use game.stepping defaults
-    if (game.stepping == "2.0" || game.stepping == "2.1")
-    {
-      ppc_config.pvr = PPC_MODEL_603R;  // 166 MHz
-      ppc_config.bus_frequency = BUS_FREQUENCY_66MHZ;
-      ppc_config.bus_frequency_multiplier = 0x25; // 2.5X multiplier
-    }
-    else if (game.stepping == "1.5")
-    {
-      ppc_config.pvr = PPC_MODEL_603E;  // 100 MHz
-      ppc_config.bus_frequency = BUS_FREQUENCY_66MHZ;
-      ppc_config.bus_frequency_multiplier = 0x15; // 1.5X multiplier
-    }
-    else if (game.stepping == "1.0")
-    {
-      ppc_config.pvr = PPC_MODEL_603R;  // 66 MHz
-      ppc_config.bus_frequency = BUS_FREQUENCY_66MHZ;
-      ppc_config.bus_frequency_multiplier = 0x10; // 1X multiplier
-    }
-    else
-    {
-      ErrorLog("Cannot configure Model 3 because game uses unrecognized stepping (%s).", game.stepping.c_str());
-      return Result::FAIL;
-    }
   }
 
   // Initialize CPU
