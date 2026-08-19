@@ -107,6 +107,7 @@ public:
   static void SetZipFilefunc(const zlib_filefunc64_def *filefunc);
 
   GameLoader(const std::string &xml_file);
+  GameLoader(const char *xml_data, size_t xml_size, const std::string &source_name = "<memory>");
   bool Load(Game *game, ROMSet *rom_set, const std::string &zipfilename) const;
   const std::map<std::string, Game> &GetGames() const
   {

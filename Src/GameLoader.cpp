@@ -1017,3 +1017,16 @@ GameLoader::GameLoader(const std::string &xml_file)
 {
   LoadDefinitionXML(xml_file);
 }
+
+GameLoader::GameLoader(const char *xml_data, size_t xml_size, const std::string &source_name)
+{
+  m_xml_filename = source_name;
+  Util::Config::Node xml("xml");
+  std::string text(xml_data, xml_size);
+  if (Util::Config::FromXML(&xml, text))
+  {
+    ErrorLog("Game and ROM set definitions could not be parsed from '%s'!", source_name.c_str());
+    return;
+  }
+  ParseXML(xml);
+}

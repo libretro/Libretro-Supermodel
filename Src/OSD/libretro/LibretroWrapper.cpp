@@ -781,12 +781,37 @@ int LibretroWrapper::Emulate(const char* romPath)
         if (rom_specified || cmd_line.print_games)
         {
             std::string xml_file = config3["GameXMLFile"].ValueAs<std::string>();
+
+            // Set VFS backend for ROM ZIP loading (bypasses Android scoped storage)
             if (g_vfs_interface) {
                 static zlib_filefunc64_def vfs_filefunc;
                 fill_retro_vfs_filefunc64(&vfs_filefunc, g_vfs_interface);
                 GameLoader::SetZipFilefunc(&vfs_filefunc);
             }
-            GameLoader loader(xml_file);
+
+            // Load Games.xml via VFS when available (Android scoped storage safe),
+            // falling back to the bundled bytes embedded in the binary.
+            std::string xml_text;
+            bool xml_loaded = false;
+            if (g_vfs_interface) {
+                auto *f = g_vfs_interface->open(xml_file.c_str(), RETRO_VFS_FILE_ACCESS_READ, RETRO_VFS_FILE_ACCESS_HINT_NONE);
+                if (f) {
+                    int64_t size = g_vfs_interface->size(f);
+                    if (size > 0) {
+                        xml_text.resize((size_t)size);
+                        g_vfs_interface->read(f, xml_text.data(), (uint64_t)size);
+                        xml_loaded = true;
+                        log_cb(RETRO_LOG_INFO, "[Supermodel] Loaded Games.xml via VFS (%s)\n", xml_file.c_str());
+                    }
+                    g_vfs_interface->close(f);
+                }
+            }
+            if (!xml_loaded) {
+                log_cb(RETRO_LOG_INFO, "[Supermodel] Using bundled Games.xml\n");
+                xml_text.assign(reinterpret_cast<const char *>(bundled_games_xml), bundled_games_xml_len);
+            }
+
+            GameLoader loader(xml_text.data(), xml_text.size(), xml_file);
             if (loader.Load(&game, &rom_set, *cmd_line.rom_files.begin()))
                 return 1;
             Util::Config::MergeINISections(&config4, config3, fileConfig[game.name]);   
