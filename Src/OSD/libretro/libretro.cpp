@@ -554,7 +554,13 @@ static NvramPatchResult apply_initial_nvram_settings(void)
       selection.values[static_cast<unsigned>(link_mode)] =
          LibretroNvramSettings::GetDefaultValue(&game, link_mode);
 
-   if (game.name == "swtrilgy" || game.name == "swtrilgya")
+   const std::string &name = game.name;
+   if (name == "lamachin" || name == "lostwsga" ||
+       name == "oceanhun" || name == "oceanhuna" ||
+       name == "swtrilgy" || name == "swtrilgya")
+      selection.normalizeAnalogInputs = true;
+
+   if (name == "swtrilgy" || name == "swtrilgya")
    {
       const auto cabinet = LibretroNvramSettings::Setting::Cabinet;
       selection.values[static_cast<unsigned>(cabinet)] = "upright";

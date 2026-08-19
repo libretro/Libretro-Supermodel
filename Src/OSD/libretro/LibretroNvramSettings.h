@@ -21,6 +21,7 @@ enum class Setting : unsigned {
   Vocal,
   LeverFeedback,
   DefaultView,
+  ProvideCalibrationData,
   Count,
 };
 
@@ -37,6 +38,8 @@ enum Capability : unsigned {
   Vocal         = 1u << static_cast<unsigned>(Setting::Vocal),
   LeverFeedback = 1u << static_cast<unsigned>(Setting::LeverFeedback),
   DefaultView   = 1u << static_cast<unsigned>(Setting::DefaultView),
+  ProvideCalibrationData =
+    1u << static_cast<unsigned>(Setting::ProvideCalibrationData),
 };
 
 constexpr unsigned CapabilityFor(Setting setting)
@@ -110,17 +113,21 @@ inline const SupportedGame *GetSupportedGames(size_t &count)
     { "harleya", "harley",
       { "export", "normal", "stand_alone", "1", "deluxe" } },
     { "lamachin", nullptr,
-      { "japan", "level_5", nullptr, nullptr, "standard" } },
+      { "japan", "level_5", nullptr, nullptr, "standard", nullptr,
+        nullptr, nullptr, nullptr, nullptr, nullptr, "disabled" } },
     { "lemans24", nullptr,
       { "japan", "level_8", "no_link", "1", "twin_lemans", "none" } },
     { "lostwsga", nullptr,
-      { "japan", "level_8" } },
+      { "japan", "level_8", nullptr, nullptr, nullptr, nullptr, nullptr,
+        nullptr, nullptr, nullptr, nullptr, "disabled" } },
     { "magtruck", nullptr,
       { "export", "level_8", nullptr, nullptr, nullptr, nullptr, nullptr, "off" } },
     { "oceanhun", nullptr,
-      { "japan", "normal", nullptr, nullptr, "deluxe" } },
+      { "japan", "normal", nullptr, nullptr, "deluxe", nullptr, nullptr,
+        nullptr, nullptr, nullptr, nullptr, "disabled" } },
     { "oceanhuna", "oceanhun",
-      { "japan", "normal", nullptr, nullptr, "deluxe" } },
+      { "japan", "normal", nullptr, nullptr, "deluxe", nullptr, nullptr,
+        nullptr, nullptr, nullptr, nullptr, "disabled" } },
     { "scud", nullptr,
       { "japan", "normal", "single", "1", "twin" } },
     { "scudau", "scud",
@@ -147,10 +154,10 @@ inline const SupportedGame *GetSupportedGames(size_t &count)
         nullptr, nullptr, nullptr, nullptr, "driver" } },
     { "swtrilgy", nullptr,
       { "export", "normal", nullptr, nullptr, "upright", nullptr, nullptr,
-        nullptr, nullptr, "enable" } },
+        nullptr, nullptr, "enable", nullptr, "disabled" } },
     { "swtrilgya", "swtrilgy",
       { "export", "normal", nullptr, nullptr, "upright", nullptr, nullptr,
-        nullptr, nullptr, "enable" } },
+        nullptr, nullptr, "enable", nullptr, "disabled" } },
     { "vf3", nullptr,
       { "japan", "normal" } },
     { "vf3a", "vf3",
@@ -210,6 +217,7 @@ inline const char *GetDefaultValue(const Game *game, Setting setting)
 
 struct Selection {
   const char *values[static_cast<unsigned>(Setting::Count)] = {};
+  bool normalizeAnalogInputs = false;
 
   const char *Get(Setting setting) const
   {
@@ -218,6 +226,8 @@ struct Selection {
 
   bool HasAny() const
   {
+    if (normalizeAnalogInputs)
+      return true;
     for (const char *value : values)
       if (value)
         return true;
@@ -476,6 +486,8 @@ NVRAM_VALUES(kLeverFeedback,
   { "enable", "ON", 1 }, { "disable", "Disable", 0 });
 NVRAM_VALUES(kDefaultView,
   { "driver", "Driver", 0 }, { "behind", "Behind", 0x0004 });
+NVRAM_VALUES(kProvideCalibrationData,
+  { "disabled", "OFF", 0 }, { "enabled", "ON", 1 });
 
 NVRAM_INFO(kCountryInfoJuea0, Setting::Country, "Country", "Set the machine country stored in NVRAM.", kCountryJuea0);
 NVRAM_INFO(kCountryInfoJuea1, Setting::Country, "Country", "Set the machine country stored in NVRAM.", kCountryJuea1);
@@ -535,6 +547,10 @@ NVRAM_INFO(kChristmasInfo, Setting::ChristmasMode, "Christmas Mode", "Set Magica
 NVRAM_INFO(kVocalInfo, Setting::Vocal, "Vocal", "Select the Daytona USA 2 vocal version stored in NVRAM.", kVocal);
 NVRAM_INFO(kLeverFeedbackInfo, Setting::LeverFeedback, "Lever Feedback", "Enable or disable Star Wars Trilogy Arcade's Deluxe cabinet lever feedback stored in NVRAM.", kLeverFeedback);
 NVRAM_INFO(kDefaultViewInfo, Setting::DefaultView, "Default View", "Select Sega Rally 2's default driving view stored in NVRAM.", kDefaultView);
+NVRAM_INFO(kProvideCalibrationDataInfo, Setting::ProvideCalibrationData,
+  "Provide Calibration Data",
+  "Apply validated title-specific calibration data at startup, overwriting calibration stored by the Service Menu.",
+  kProvideCalibrationData);
 
 #undef NVRAM_INFO
 #undef NVRAM_VALUES
@@ -649,6 +665,15 @@ inline const SettingInfo *GetSettingInfo(const Game *game, Setting setting)
     return family == Family::StarWars ? &kLeverFeedbackInfo : nullptr;
   case Setting::DefaultView:
     return family == Family::SegaRally2 ? &kDefaultViewInfo : nullptr;
+  case Setting::ProvideCalibrationData:
+    switch (family)
+    {
+    case Family::Lamachin:
+    case Family::LostWorld:
+    case Family::OceanHunter:
+    case Family::StarWars:         return &kProvideCalibrationDataInfo;
+    default:                       return nullptr;
+    }
   default:
     return nullptr;
   }
@@ -763,6 +788,7 @@ inline const char *OptionSuffix(Setting setting)
     "vocal",
     "lever_feedback",
     "default_view",
+    "provide_calibration_data",
   };
   return suffixes[static_cast<unsigned>(setting)];
 }
@@ -851,6 +877,9 @@ inline ApplyResult Apply(const Game &game, uint16_t *words,
   };
 
   uint16_t value = 0;
+  const bool provideCalibrationData =
+    SelectedValue(game, Setting::ProvideCalibrationData, selection, value) &&
+    value != 0;
   switch (family)
   {
   case Family::Bass:
@@ -914,6 +943,15 @@ inline ApplyResult Apply(const Game &game, uint16_t *words,
     if (SelectedValue(game, Setting::Country, selection, value)) replaceHigh(words[12], value);
     if (SelectedValue(game, Setting::Difficulty, selection, value)) replaceMasked(words[15], 0x00e0, value);
     if (SelectedValue(game, Setting::Cabinet, selection, value)) replaceHigh(words[14], value);
+    if (selection.normalizeAnalogInputs || provideCalibrationData)
+    {
+      // Service-menu P1/P2 X/Y calibration: complete 00-FF range in the
+      // primary settings block and its redundant copy.
+      for (unsigned word = 19; word <= 22; ++word)
+        replaceMasked(words[word], 0xffff, 0xff00);
+      for (unsigned word = 48; word <= 51; ++word)
+        replaceMasked(words[word], 0xffff, 0xff00);
+    }
     break;
   case Family::LeMans24:
     if (SelectedValue(game, Setting::Country, selection, value)) replaceHigh(words[12], value);
@@ -926,6 +964,19 @@ inline ApplyResult Apply(const Game &game, uint16_t *words,
   case Family::LostWorld:
     if (SelectedValue(game, Setting::Country, selection, value)) replaceHigh(words[12], value);
     if (SelectedValue(game, Setting::Difficulty, selection, value)) replaceMasked(words[15], 0x00f0, value);
+    if (selection.normalizeAnalogInputs || provideCalibrationData)
+    {
+      // Five-point Service-menu calibration reduced by the game to center and
+      // endpoint values for each axis. Apply the same normalized F4/80/0B
+      // calibration to both players; counters and transient records are not
+      // copied from the captured samples.
+      replaceMasked(words[23], 0xffff, 0x8080); // P1 X/Y center
+      replaceMasked(words[24], 0xffff, 0xf40b); // P1 X endpoints
+      replaceMasked(words[25], 0xffff, 0xf40b); // P1 Y endpoints
+      replaceMasked(words[26], 0xffff, 0x8080); // P2 X/Y center
+      replaceMasked(words[27], 0xffff, 0xf40b); // P2 X endpoints
+      replaceMasked(words[28], 0xffff, 0xf40b); // P2 Y endpoints
+    }
     break;
   case Family::MagTruck:
     if (SelectedValue(game, Setting::Country, selection, value)) replaceHigh(words[12], value);
@@ -943,6 +994,23 @@ inline ApplyResult Apply(const Game &game, uint16_t *words,
       replaceHigh(words[15], value), replaceHigh(words[44], value);
     if (SelectedValue(game, Setting::Cabinet, selection, value))
       replaceHigh(words[16], value), replaceHigh(words[45], value);
+    if (selection.normalizeAnalogInputs || provideCalibrationData)
+    {
+      // Service-menu calibration for P1/P2 X/Y: center 80, complete 00-FF
+      // range. Preserve the unused third analog channel in each player group.
+      replaceMasked(words[19], 0xffff, 0x80ff);
+      replaceMasked(words[20], 0xffff, 0x0080);
+      replaceMasked(words[21], 0xffff, 0xff00);
+      replaceMasked(words[24], 0xffff, 0xff00);
+      replaceMasked(words[25], 0xffff, 0x80ff);
+      replaceMasked(words[26], 0xffff, 0x0080);
+      replaceMasked(words[48], 0xffff, 0x80ff);
+      replaceMasked(words[49], 0xffff, 0x0080);
+      replaceMasked(words[50], 0xffff, 0xff00);
+      replaceMasked(words[53], 0xffff, 0xff00);
+      replaceMasked(words[54], 0xffff, 0x80ff);
+      replaceMasked(words[55], 0xffff, 0x0080);
+    }
     break;
   case Family::Scud:
     if (SelectedValue(game, Setting::Country, selection, value))
@@ -1002,6 +1070,13 @@ inline ApplyResult Apply(const Game &game, uint16_t *words,
     if (SelectedValue(game, Setting::Difficulty, selection, value)) replaceMasked(words[12], 0x0038, value);
     if (SelectedValue(game, Setting::Cabinet, selection, value)) replaceMasked(words[12], 0x0400, value);
     if (SelectedValue(game, Setting::LeverFeedback, selection, value)) replaceMasked(words[13], 0x0001, value);
+    if (selection.normalizeAnalogInputs || provideCalibrationData)
+    {
+      // X/Y calibration is stored as minimum, maximum and center values.
+      replaceMasked(words[24], 0xffff, 0x00ff);
+      replaceMasked(words[25], 0xffff, 0x8000);
+      replaceMasked(words[26], 0xffff, 0xff80);
+    }
     break;
   case Family::VirtuaFighter3:
     if (SelectedValue(game, Setting::Difficulty, selection, value)) replaceBackup(122886, value);

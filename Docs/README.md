@@ -67,24 +67,29 @@ is ignored and replaced by default machine settings in a new `.srm`. The core
 never writes or overwrites the native `.nv` file.
 
 `Automatic Initial NVRAM Setup` affects only a newly created save. For the
-supported ROM sets (Daytona USA 2, Dirt Devils, Harley-Davidson, Le Mans 24,
-Scud Race, Sega Rally 2, Ski Champ, Spikeout, Star Wars Trilogy and Virtual
-On 2) it starts from that set's factory settings, selects the single-cabinet
-link mode and sets Star Wars Trilogy to the Upright cabinet, so the game boots
-without a network check or cabinet hardware that is not emulated. Existing
-saves are never modified; delete a game's `.srm` to regenerate them.
+supported ROM sets (Daytona USA 2, Dirt Devils, Harley-Davidson, LA
+Machineguns, Le Mans 24, The Lost World, The Ocean Hunter, Scud Race, Sega
+Rally 2, Ski Champ, Spikeout, Star Wars Trilogy and Virtual On 2) it starts
+from that set's factory settings, selects the single-cabinet link mode and
+sets Star Wars Trilogy to the Upright cabinet, so the game boots without a
+network check or cabinet hardware that is not emulated. For the gun games it
+also stores a gun calibration spanning the whole screen, which is the range
+the core's cursor covers, so the sight follows the pointer without a Service
+Menu calibration. Existing saves are never modified; delete a game's `.srm`
+to regenerate them.
 
 `NVRAM Settings` (off by default) adds the game's own Service Menu settings as
 core options: Country, Difficulty, Link Mode, Car Number, Cabinet Type and a
 few game-specific ones such as Le Mans 24's Special Car or the Daytona USA 2
-vocal. The options appear only for the loaded game. While the switch is on,
-the displayed values are written into NVRAM at every content start, so they
-override changes made in the Service Menu; turn it off to let the Service
-Menu rule again. Supported: Bass Fishing, Daytona USA 2, Dirt Devils, ECA,
-Fighting Vipers 2, Harley-Davidson, LA Machineguns, Le Mans 24, The Lost
-World, Magical Truck Adventure, The Ocean Hunter, Scud Race, Ski Champ,
-Spikeout, Sega Rally 2, Star Wars Trilogy, Virtua Fighter 3, Virtual On 2 and
-Virtua Striker 2 (all versions).
+vocal; the gun games get `Provide Calibration Data`, which rewrites the
+whole-screen gun calibration. The options appear only for the loaded game.
+While the switch is on, the displayed values are written into NVRAM at every
+content start, so they override changes made in the Service Menu; turn it off
+to let the Service Menu rule again. Supported: Bass Fishing, Daytona USA 2,
+Dirt Devils, ECA, Fighting Vipers 2, Harley-Davidson, LA Machineguns, Le Mans
+24, The Lost World, Magical Truck Adventure, The Ocean Hunter, Scud Race, Ski
+Champ, Spikeout, Sega Rally 2, Star Wars Trilogy, Virtua Fighter 3, Virtual
+On 2 and Virtua Striker 2 (all versions).
 
 ## Controls
 
