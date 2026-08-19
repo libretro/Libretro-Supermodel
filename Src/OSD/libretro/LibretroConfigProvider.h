@@ -121,10 +121,10 @@ namespace LibretroConfigProvider {
         config.Set<std::string>("InputStart2", "KEY_2,JOY2_BUTTON9", "Input", "", "");
         config.Set<std::string>("InputCoin1", "KEY_3,JOY1_BUTTON10", "Input", "", "");
         config.Set<std::string>("InputCoin2", "KEY_4,JOY2_BUTTON10", "Input", "", "");
-        config.Set<std::string>("InputServiceA", "KEY_5", "Input", "", "");
-        config.Set<std::string>("InputServiceB", "KEY_7", "Input", "", "");
-        config.Set<std::string>("InputTestA", "KEY_6", "Input", "", "");
-        config.Set<std::string>("InputTestB", "KEY_8", "Input", "", "");
+        config.Set<std::string>("InputServiceA", "KEY_5,JOY1_BUTTON21", "Input", "", "");
+        config.Set<std::string>("InputServiceB", "KEY_7,JOY1_BUTTON23", "Input", "", "");
+        config.Set<std::string>("InputTestA", "KEY_6,JOY1_BUTTON22", "Input", "", "");
+        config.Set<std::string>("InputTestB", "KEY_8,JOY1_BUTTON24", "Input", "", "");
 
         // 4-way digital joysticks
         config.Set<std::string>("InputJoyUp", "KEY_UP,JOY1_UP", "Input", "", "");
