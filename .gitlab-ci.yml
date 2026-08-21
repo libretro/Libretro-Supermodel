@@ -62,6 +62,12 @@ libretro-build-windows-x64:
   extends:
     - .libretro-windows-x64-mingw-make-default
     - .core-defs
+  script:
+    - make -C ${MAKEFILE_PATH} -f ${MAKEFILE} -j${NUMPROC}
+    # Fail the job instead of uploading nothing: when the Makefile did not
+    # match platform=win64, make had nothing to do, exited 0 and the job went
+    # green while no DLL was ever produced.
+    - test -f ${MAKEFILE_PATH}/${CORENAME}_libretro.dll
 
 # macOS 64-bit
 libretro-build-osx-x64:

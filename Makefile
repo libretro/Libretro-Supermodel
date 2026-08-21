@@ -29,6 +29,15 @@ ifeq ($(platform),)
     endif
 endif
 
+# The libretro buildbot passes platform=win64 to the MinGW cross build, and
+# other spellings are in circulation too. Normalize them all to "win" so the
+# Windows branches below actually match -- otherwise no branch matches at all,
+# TARGET stays empty and "make" silently does nothing.
+WIN_PLATFORM := $(filter $(platform),win win32 win64 windows wincross64)
+ifneq (,$(WIN_PLATFORM))
+    platform := win
+endif
+
 # System platform (for native builds)
 system_platform = unix
 ifeq ($(shell uname -a),)
@@ -448,13 +457,31 @@ ifeq ($(platform),win)
     
     ifeq ($(system_platform),win)
         # Native Windows build with MinGW
-        override CC := gcc
-        override CXX := g++
+        ifeq ($(origin CC),default)
+            CC := gcc
+        endif
+        ifeq ($(origin CXX),default)
+            CXX := g++
+        endif
     else
-        # Cross-compile to Windows (from Linux)
-        override CC := x86_64-w64-mingw32-gcc
-        override CXX := x86_64-w64-mingw32-g++
-        override AR := x86_64-w64-mingw32-ar
+        # Cross-compile to Windows (from Linux). Only fall back to the plain
+        # mingw-w64 names when no toolchain was handed to us -- the buildbot's
+        # MXE container exports its own (x86_64-w64-mingw32.static-gcc), and
+        # overriding that would point us at compilers that do not exist there.
+        ifeq ($(WIN_PLATFORM),win32)
+            MINGW_PREFIX ?= i686-w64-mingw32
+        else
+            MINGW_PREFIX ?= x86_64-w64-mingw32
+        endif
+        ifeq ($(origin CC),default)
+            CC := $(MINGW_PREFIX)-gcc
+        endif
+        ifeq ($(origin CXX),default)
+            CXX := $(MINGW_PREFIX)-g++
+        endif
+        ifeq ($(origin AR),default)
+            AR := $(MINGW_PREFIX)-ar
+        endif
     endif
     
     # Static-link MinGW runtimes and zlib so the DLL is self-contained — no
