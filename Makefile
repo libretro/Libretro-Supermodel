@@ -251,7 +251,10 @@ ifeq ($(platform),unix)
     LDFLAGS += -shared -fPIC
     CFLAGS += -fPIC
     CXXFLAGS += -fPIC
-    LIBS += -ldl -lm -lz
+    # Legacy3D uses GLU's perspective helper. Unlike desktop OpenGL entry
+    # points supplied by the Libretro frontend, GLU is not guaranteed to be
+    # exported by the frontend process and must be an explicit dependency.
+    LIBS += -ldl -lm -lz -lGLU
     ifeq ($(strip $(CROSS_COMPILE)),)
         INCFLAGS += -I/usr/include
     endif
