@@ -46,6 +46,7 @@ static UINT32 playPos = 0;                      // Current position at which pla
 static bool writeWrapped = false;               // True if write position has wrapped around at end of buffer but play position has not done so yet
 static unsigned underRuns = 0;                  // Number of buffer under-runs that have occured
 static unsigned overRuns = 0;                   // Number of buffer over-runs that have occured
+static unsigned shortWrites = 0;                // Frontend batch callbacks that accepted fewer frames than requested
 static AudioCallbackFPtr callback = NULL;       // Pointer to audio callback that is called when audio buffer is less than half empty
 static void* callbackData = NULL;               // Pointer to data to be passed to audio callback when it is called
 static std::mutex s_audioMutex;
@@ -142,11 +143,46 @@ void PlayCallback(void* data, uint8_t* stream, int len)
             len1 = to_read;
         }
 
-        if (len1 > 0) audio_batch_cb((const int16_t*)src1, len1 / 4);
-        if (len2 > 0) audio_batch_cb((const int16_t*)src2, len2 / 4);
+        UINT32 consumed_bytes = 0;
+        bool frontend_short_write = false;
 
-        playPos = (playPos + to_read) % audioBufferSize;
-        if (playPos < to_read) writeWrapped = false;
+        if (len1 > 0)
+        {
+            const size_t requested_frames = len1 / bytes_per_sample_host;
+            const size_t accepted_frames = std::min(
+                audio_batch_cb((const int16_t*)src1, requested_frames),
+                requested_frames);
+            consumed_bytes += static_cast<UINT32>(
+                accepted_frames * bytes_per_sample_host);
+            frontend_short_write = accepted_frames != requested_frames;
+        }
+
+        // Preserve submission order across the ring-buffer boundary. If the
+        // frontend only accepted part of the first span, leave both the
+        // unaccepted frames and the wrapped span queued for the next call.
+        if (!frontend_short_write && len2 > 0)
+        {
+            const size_t requested_frames = len2 / bytes_per_sample_host;
+            const size_t accepted_frames = std::min(
+                audio_batch_cb((const int16_t*)src2, requested_frames),
+                requested_frames);
+            consumed_bytes += static_cast<UINT32>(
+                accepted_frames * bytes_per_sample_host);
+            frontend_short_write = accepted_frames != requested_frames;
+        }
+
+        if (frontend_short_write)
+            ++shortWrites;
+
+        const UINT32 old_play_pos = playPos;
+        playPos = (playPos + consumed_bytes) % audioBufferSize;
+        if (old_play_pos + consumed_bytes >= audioBufferSize)
+            writeWrapped = false;
+
+        // A short frontend write is not an emulator under-run. Do not append
+        // synthetic samples after data the frontend explicitly deferred.
+        if (frontend_short_write)
+            to_read = static_cast<UINT32>(len);
     }
 
     int missing_bytes = len - to_read;
@@ -166,7 +202,11 @@ void PlayCallback(void* data, uint8_t* stream, int len)
             fade_buf[i*2+1] = (int16_t)(lastSample[1] * fade);  // Right
         }
         
-        audio_batch_cb(fade_buf, samples_to_fill);
+        const size_t requested_frames = static_cast<size_t>(samples_to_fill);
+        const size_t accepted_frames = std::min(
+            audio_batch_cb(fade_buf, requested_frames), requested_frames);
+        if (accepted_frames != requested_frames)
+            ++shortWrites;
     }
 
     if (callback) callback(callbackData);
@@ -377,6 +417,7 @@ Result OpenAudio(const Util::Config::Node& config)
     writeWrapped = false;
     underRuns = 0;
     overRuns = 0;
+    shortWrites = 0;
 
     // In Libretro, "starting" audio just means we are ready to accept calls.
     enabled = true; 
@@ -522,5 +563,7 @@ bool OutputAudio(unsigned numSamples, const float* leftFrontBuffer, const float*
 
 void CloseAudio()
 {
-    // Nothing to destroy.
+    if (shortWrites > 0)
+        InfoLog("[Supermodel] Audio frontend reported %u partial batch submission(s); unaccepted ring-buffer frames were preserved.",
+                shortWrites);
 }
