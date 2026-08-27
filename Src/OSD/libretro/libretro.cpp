@@ -491,10 +491,8 @@ void retro_run(void)
          libretroInput->SetFFBEnabled(g_options.force_feedback);
          
          // If we just disabled it, kill any active vibration immediately
-         if (!g_options.force_feedback && rumble.set_rumble_state) {
-            rumble.set_rumble_state(0, RETRO_RUMBLE_STRONG, 0);
-            rumble.set_rumble_state(0, RETRO_RUMBLE_WEAK, 0);
-         }
+         if (!g_options.force_feedback)
+            libretroInput->StopAllRumble();
       }
    }
 

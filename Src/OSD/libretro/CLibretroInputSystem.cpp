@@ -376,6 +376,18 @@ bool CLibretroInputSystem::ProcessForceFeedbackCmd(int joyNum, int axisNum, Forc
     return true;
 }
 
+void CLibretroInputSystem::StopAllRumble()
+{
+    if (!m_rumbleInterface.set_rumble_state)
+        return;
+
+    for (unsigned port = 0; port < 2; ++port)
+    {
+        m_rumbleInterface.set_rumble_state(port, RETRO_RUMBLE_STRONG, 0);
+        m_rumbleInterface.set_rumble_state(port, RETRO_RUMBLE_WEAK, 0);
+    }
+}
+
 const KeyDetails *CLibretroInputSystem::GetKeyDetails(int kbdNum)
 {
     static KeyDetails d{};

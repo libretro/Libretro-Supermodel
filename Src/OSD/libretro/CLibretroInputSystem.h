@@ -35,6 +35,7 @@ public:
     virtual const JoyDetails *GetJoyDetails(int joyNum) override;
     void SetRumbleInterface(struct retro_rumble_interface interface) { m_rumbleInterface = interface; }
     void SetFFBEnabled(bool enabled) { m_ffbEnabled = enabled; }
+    void StopAllRumble();
     // Signature match check: Supermodel usually uses the struct directly, 
     // but ensure your .cpp matches this exactly.
     virtual bool ProcessForceFeedbackCmd(int joyNum, int axisNum, ForceFeedbackCmd ffCmd) override;

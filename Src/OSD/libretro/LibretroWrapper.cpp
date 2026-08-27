@@ -671,6 +671,13 @@ void LibretroWrapper::ShutDownSupermodel()
   if (Model3)
     Model3->PauseThreads();
 
+  // Stop rumble after the drive-board thread has paused, while the Libretro
+  // input interface is still alive. Otherwise the thread can overwrite an
+  // earlier stop command during teardown.
+  auto libretroInput = std::static_pointer_cast<CLibretroInputSystem>(m_inputSystem);
+  if (libretroInput)
+    libretroInput->StopAllRumble();
+
   // NOTE: NVRAM is now saved by retro_unload_game() to the libretro buffer
   // Don't call SaveNVRAM() here - it would save to a file, which we don't want
 
