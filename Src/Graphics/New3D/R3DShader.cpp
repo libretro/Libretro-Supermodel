@@ -343,7 +343,7 @@ void R3DShader::SetMeshUniforms(const Mesh* m)
 		// i think it should just disable z write, but the polys I think must be written first
 		if (m_layered) {
 			glStencilFunc(GL_EQUAL, 0, 0b01111111);			// basically stencil test passes if the value is zero
-			glStencilOp(GL_KEEP, GL_INCR, GL_INCR);			// if the stencil test passes, we increment the value
+			glStencilOp(GL_KEEP, GL_KEEP, GL_INCR); // Increment only when both stencil and depth tests pass.
 			glStencilMask(0b01111111);
 		}
 		else {
