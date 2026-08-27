@@ -128,7 +128,7 @@ SOURCES_CXX := $(CORE_DIR)/Src/CPU/PowerPC/PPCDisasm.cpp \
                $(CORE_DIR)/Src/Model3/TileGen.cpp \
                $(CORE_DIR)/Src/Model3/Model3.cpp \
                $(CORE_DIR)/Src/CPU/PowerPC/ppc.cpp \
-               $(if $(filter android aarch64 rpi64 linux-aarch64,$(platform)),$(CORE_DIR)/Src/CPU/PowerPC/Jit/JitArm64.cpp,) \
+               $(if $(filter android aarch64 rpi64 linux-aarch64 osx,$(platform)),$(CORE_DIR)/Src/CPU/PowerPC/Jit/JitArm64.cpp,) \
                $(CORE_DIR)/Src/Model3/SoundBoard.cpp \
                $(CORE_DIR)/Src/Sound/SCSP.cpp \
                $(CORE_DIR)/Src/Sound/SCSPDSP.cpp \
@@ -292,6 +292,12 @@ ifeq ($(platform),osx)
         CFLAGS += $(ARCHFLAGS)
         CXXFLAGS += $(ARCHFLAGS)
         LDFLAGS += $(ARCHFLAGS)
+
+        # Apple Silicon requires MAP_JIT plus per-thread W^X switching. Keep
+        # Intel and universal cross-builds on the interpreter.
+        ifeq ($(NATIVE_ARCH),arm64)
+            PLATFORM_DEFINES += -DHAVE_PPC_JIT
+        endif
     else
         # Cross-compile from Linux via osxcross (universal x86_64 + arm64 dylib).
         OSXCROSS_ROOT ?= /opt/osxcross

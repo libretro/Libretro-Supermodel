@@ -1,5 +1,5 @@
 #pragma once
-#ifdef __aarch64__
+#if defined(__aarch64__) && defined(HAVE_PPC_JIT)
 
 #include <cstdint>
 #include <cstddef>
@@ -115,6 +115,7 @@ private:
     uint8_t  *m_code_buf   = nullptr;
     uint8_t  *m_write_buf  = nullptr;   // may differ from m_code_buf on W^X systems
     size_t    m_code_pos   = 0;
+    bool      m_init_attempted = false; // avoid repeatedly retrying a denied allocation
 
     // Block cache: guest PC → JitBlock
     std::unordered_map<uint32_t, JitBlock> m_cache;
@@ -139,4 +140,4 @@ private:
     Stats m_stats = {};
 };
 
-#endif // __aarch64__
+#endif // __aarch64__ && HAVE_PPC_JIT

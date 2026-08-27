@@ -284,12 +284,12 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "auto"
    },
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
    {
       "supermodel_jit_enable",
-      "JIT Recompiler (ARM64)",
+      "ARM64 JIT Recompiler (Experimental)",
       NULL,
-      "Enable the ARM64 JIT recompiler for the PowerPC CPU. Significantly improves performance on ARM64 devices. Disable to use the interpreter for debugging.",
+      "Enable the experimental ARM64 dynamic recompiler for the emulated PowerPC CPU. Disabled by default; the interpreter remains the correctness reference. Restart content to apply.",
       NULL,
       "cpu",
       {
@@ -297,7 +297,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
          { "disabled", "Disabled (Interpreter)" },
          { NULL, NULL },
       },
-      "enabled"
+      "disabled"
    },
 #endif
    { NULL, NULL, NULL, NULL, NULL, NULL, {{0}}, NULL },
@@ -370,8 +370,8 @@ void update_core_options(void)
    float current_ppc_mhz = (g_options.ppc_frequency > 0) ? g_options.ppc_frequency : 66.0f;
    AdjustAudioForCPUFrequency(current_ppc_mhz);
 
-#ifdef __aarch64__
-   g_options.jit_enable = strcmp(option_get("supermodel_jit_enable", "enabled"), "enabled") == 0;
+#ifdef HAVE_PPC_JIT
+   g_options.jit_enable = strcmp(option_get("supermodel_jit_enable", "disabled"), "enabled") == 0;
 #else
    g_options.jit_enable = false;
 #endif
