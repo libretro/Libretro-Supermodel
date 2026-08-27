@@ -58,7 +58,7 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -67,7 +67,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes build-essential file zlib1g-dev
+          sudo apt-get install --yes build-essential file libgl-dev zlib1g-dev
 
       - name: Install Windows toolchain
         if: runner.os == 'Windows'
@@ -105,7 +105,7 @@ jobs:
           cp Config/Games.xml Config/Music.xml artifact/system/supermodel/
 
       - name: Upload core artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: artifact/
