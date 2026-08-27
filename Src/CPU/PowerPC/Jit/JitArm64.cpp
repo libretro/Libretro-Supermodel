@@ -2631,6 +2631,13 @@ static void emit_set_fprf(Arm64Emitter &e, int rD)
 // ---------------------------------------------------------------------------
 static bool translate_op63(Arm64Emitter &e, uint32_t op)
 {
+    // Native FP translation is not yet fully equivalent to the interpreter.
+    // Harley-Davidson's attract-mode AI visibly diverges with it enabled, while
+    // keeping the integer/control/memory JIT and interpreting FP restores the
+    // reference behaviour with ample performance headroom.
+    constexpr bool native_fp_enabled = false;
+    if (!native_fp_enabled) { (void)e; (void)op; return false; }
+
     int rD  = (op >> 21) & 0x1F;
     int rA  = (op >> 16) & 0x1F;
     int rB  = (op >> 11) & 0x1F;
@@ -2836,6 +2843,9 @@ static bool translate_op63(Arm64Emitter &e, uint32_t op)
 // ---------------------------------------------------------------------------
 static bool translate_op59(Arm64Emitter &e, uint32_t op)
 {
+    constexpr bool native_fp_enabled = false;
+    if (!native_fp_enabled) { (void)e; (void)op; return false; }
+
     int rD  = (op >> 21) & 0x1F;
     int rA  = (op >> 16) & 0x1F;
     int rB  = (op >> 11) & 0x1F;
