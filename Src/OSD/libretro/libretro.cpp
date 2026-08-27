@@ -9,7 +9,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <limits>
 #include <string>
+#include <zlib.h>
 #include <Inputs/Inputs.h>
 #include "libretro_cbs.h"
 #include "Game.h"
@@ -77,6 +79,10 @@ static unsigned last_height = 0;
 static uint8_t g_nvram_buffer[NVRAM_BUFFER_SIZE];
 static constexpr int32_t NVRAM_FILE_VERSION = 0;
 static constexpr const char* NVRAM_HEADER_BLOCK = "Supermodel NVRAM State";
+static constexpr int32_t SAVE_STATE_FILE_VERSION = 5;
+static constexpr const char* SAVE_STATE_HEADER_BLOCK = "Supermodel Save State";
+static constexpr uint32_t SAVE_STATE_INTEGRITY_VERSION = 1;
+static constexpr const char* SAVE_STATE_INTEGRITY_BLOCK = "Libretro Save State Integrity";
 // Optimization: Cache save state size
 static size_t g_cached_serialize_size = 0;
 static bool g_first_run = true;
@@ -721,6 +727,29 @@ void retro_run(void)
 
 // --- Save States ---
 
+static void write_save_state(CBlockFile& state,
+                             bool includeHeader,
+                             bool includeIntegrity)
+{
+    if (includeHeader)
+    {
+        state.NewBlock(SAVE_STATE_HEADER_BLOCK,
+                       "Supermodel Version " SUPERMODEL_VERSION);
+        state.Write(&SAVE_STATE_FILE_VERSION, sizeof(SAVE_STATE_FILE_VERSION));
+        state.Write(wrapper.getGame().name);
+    }
+    wrapper.getEmulator()->SaveState(&state);
+    if (includeIntegrity)
+    {
+        const uint32_t emptyChecksum = 0;
+        state.NewBlock(SAVE_STATE_INTEGRITY_BLOCK,
+                       "Libretro state truncation and corruption detection");
+        state.Write(&SAVE_STATE_INTEGRITY_VERSION,
+                    sizeof(SAVE_STATE_INTEGRITY_VERSION));
+        state.Write(&emptyChecksum, sizeof(emptyChecksum));
+    }
+}
+
 size_t retro_serialize_size(void)
 {
     if (g_cached_serialize_size > 0)
@@ -729,25 +758,151 @@ size_t retro_serialize_size(void)
     if (wrapper.getEmulator() != nullptr)
     {
         CBlockFileCounter counter;
-        wrapper.getEmulator()->SaveState(&counter);
+        write_save_state(counter, true, true);
         g_cached_serialize_size = counter.GetSize();
     }
     return g_cached_serialize_size;
 }
 
-bool retro_serialize(void* data, size_t size) {
-    if (!data || size == 0) return false;
-    CBlockFileMemory mem(data, size);
-    wrapper.getEmulator()->SaveState(&mem);
-    mem.Finish();
+bool retro_serialize(void* data, size_t size)
+{
+    if (!data || wrapper.getEmulator() == nullptr)
+        return false;
+
+    const size_t requiredSize = retro_serialize_size();
+    if (requiredSize == 0 || size < requiredSize)
+    {
+        log_cb(RETRO_LOG_ERROR,
+               "[Supermodel] Save State buffer is too small (%zu supplied, %zu required)\n",
+               size, requiredSize);
+        return false;
+    }
+
+    CBlockFileMemory mem(data, requiredSize);
+    write_save_state(mem, true, true);
+    if (!mem.Finish() || mem.GetOffset() != requiredSize)
+    {
+        log_cb(RETRO_LOG_ERROR, "[Supermodel] Failed to serialize complete Save State\n");
+        return false;
+    }
+
+    CBlockFileMemory integrityLocator(
+        static_cast<const void*>(data), requiredSize);
+    if (integrityLocator.FindBlock(SAVE_STATE_INTEGRITY_BLOCK) != Result::OKAY)
+        return false;
+    uint32_t integrityVersion = 0;
+    if (integrityLocator.Read(&integrityVersion, sizeof(integrityVersion)) !=
+            sizeof(integrityVersion) ||
+        integrityVersion != SAVE_STATE_INTEGRITY_VERSION)
+        return false;
+
+    const size_t checksumOffset = integrityLocator.GetOffset();
+    if (checksumOffset > std::numeric_limits<uInt>::max())
+        return false;
+    uLong checksum = crc32(0L, Z_NULL, 0);
+    checksum = crc32(checksum, static_cast<const Bytef*>(data),
+                     static_cast<uInt>(checksumOffset));
+    const uint32_t storedChecksum = static_cast<uint32_t>(checksum);
+    std::memcpy(static_cast<uint8_t*>(data) + checksumOffset,
+                &storedChecksum, sizeof(storedChecksum));
     return true;
 }
 
 bool retro_unserialize(const void* data, size_t size)
 {
-    if (!data || size == 0) return false;
-    CBlockFileMemory mem(const_cast<void*>(data), size);
+    if (!data || size == 0 || wrapper.getEmulator() == nullptr)
+        return false;
+
+    // Preflight the complete block layout before touching emulator state.
+    // This prevents a truncated or structurally corrupt buffer from leaving
+    // the running machine partially restored.
+    CBlockFileCounter currentLayout;
+    write_save_state(currentLayout, true, true);
+    CBlockFileCounter standaloneLayout;
+    write_save_state(standaloneLayout, true, false);
+    CBlockFileCounter legacyLayout;
+    write_save_state(legacyLayout, false, false);
+
+    CBlockFileMemory mem(data, size);
+    const bool hasCurrentLayout = mem.ValidateLayout(currentLayout.GetLayout());
+    const bool hasStandaloneLayout = !hasCurrentLayout &&
+        mem.ValidateLayout(standaloneLayout.GetLayout());
+    const bool hasLegacyLayout = !hasCurrentLayout && !hasStandaloneLayout &&
+        mem.ValidateLayout(legacyLayout.GetLayout());
+    if (!hasCurrentLayout && !hasStandaloneLayout && !hasLegacyLayout)
+    {
+        log_cb(RETRO_LOG_ERROR,
+               "[Supermodel] Save State has an invalid or incompatible block layout\n");
+        return false;
+    }
+
+    if (hasCurrentLayout || hasStandaloneLayout)
+    {
+        if (mem.FindBlock(SAVE_STATE_HEADER_BLOCK) != Result::OKAY)
+            return false;
+
+        int32_t fileVersion = -1;
+        const std::string& expectedGame = wrapper.getGame().name;
+        std::vector<char> storedGame(expectedGame.size() + 1, '\0');
+        if (mem.Read(&fileVersion, sizeof(fileVersion)) != sizeof(fileVersion) ||
+            mem.Read(storedGame.data(), static_cast<uint32_t>(storedGame.size())) !=
+                storedGame.size() ||
+            mem.HasError() ||
+            fileVersion != SAVE_STATE_FILE_VERSION ||
+            storedGame.back() != '\0' ||
+            expectedGame != storedGame.data())
+        {
+            log_cb(RETRO_LOG_ERROR,
+                   "[Supermodel] Save State version or ROM set does not match the running content\n");
+            return false;
+        }
+
+        if (hasCurrentLayout)
+        {
+            if (mem.FindBlock(SAVE_STATE_INTEGRITY_BLOCK) != Result::OKAY)
+                return false;
+            uint32_t integrityVersion = 0;
+            uint32_t storedChecksum = 0;
+            if (mem.Read(&integrityVersion, sizeof(integrityVersion)) !=
+                    sizeof(integrityVersion) ||
+                integrityVersion != SAVE_STATE_INTEGRITY_VERSION)
+                return false;
+            const size_t checksumOffset = mem.GetOffset();
+            if (mem.Read(&storedChecksum, sizeof(storedChecksum)) !=
+                    sizeof(storedChecksum))
+                return false;
+            if (checksumOffset > std::numeric_limits<uInt>::max())
+                return false;
+            uLong checksum = crc32(0L, Z_NULL, 0);
+            checksum = crc32(checksum, static_cast<const Bytef*>(data),
+                             static_cast<uInt>(checksumOffset));
+            const uint32_t calculatedChecksum =
+                static_cast<uint32_t>(checksum);
+            if (storedChecksum != calculatedChecksum)
+            {
+                log_cb(RETRO_LOG_ERROR,
+                       "[Supermodel] Save State checksum mismatch; state is truncated or corrupt\n");
+                return false;
+            }
+        }
+        else
+        {
+            log_cb(RETRO_LOG_INFO,
+                   "[Supermodel] Loading standalone-compatible Save State without Libretro checksum\n");
+        }
+    }
+    else
+    {
+        log_cb(RETRO_LOG_WARN,
+               "[Supermodel] Loading legacy Libretro Save State without version or ROM-set metadata\n");
+    }
+
     wrapper.getEmulator()->LoadState(&mem);
+    if (mem.HasError())
+    {
+        log_cb(RETRO_LOG_ERROR, "[Supermodel] Save State data ended unexpectedly while loading\n");
+        return false;
+    }
     return true;
 }
 

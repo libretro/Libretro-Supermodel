@@ -243,8 +243,7 @@ void LibretroWrapper::Screenshot()
  Save States and NVRAM
 ******************************************************************************/
 
-static const int STATE_FILE_VERSION = 5;  // save state file version
-static const int NVRAM_FILE_VERSION = 0;  // NVRAM file version
+static const int STATE_FILE_VERSION = 5;  // keep in sync with this engine revision
 static unsigned s_saveSlot = 0;           // save state slot #
 
 static void SaveState(IEmulator *Model3)
