@@ -529,6 +529,7 @@ ifneq (,$(or $(findstring webos,$(CROSS_COMPILE)),$(findstring starfish,$(CROSS_
 endif
 
 OBJECTS := $(SOURCES_C:.c=.o) $(SOURCES_CXX:.cpp=.o)
+DEPFILES := $(OBJECTS:.o=.d)
 
 # ============ COMMON COMPILER FLAGS ============
 
@@ -586,6 +587,8 @@ $(BUNDLED_SUPERMODEL_H): $(CORE_DIR)/Config/Supermodel.ini
 	xxd -i $< | sed 's/unsigned char.*\[\]/const unsigned char bundled_supermodel_ini[]/' \
 	           | sed 's/unsigned int.*_len/const unsigned int bundled_supermodel_ini_len/' > $@
 
+-include $(DEPFILES)
+
 $(TARGET): $(OBJECTS)
 	@echo "Linking $(TARGET)..."
 	$(CXX) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
@@ -602,14 +605,14 @@ ifeq ($(platform),android)
 endif
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) -MMD -MP -c -o $@ $<
 
 clean:
 	@echo "Cleaning..."
-	@rm -f $(OBJECTS) $(TARGET)
+	@rm -f $(OBJECTS) $(DEPFILES) $(TARGET)
 	@echo "Clean complete"
 
 info:
