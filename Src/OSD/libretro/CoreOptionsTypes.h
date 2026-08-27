@@ -10,6 +10,7 @@ enum class DrivingLayout {
 };
 
 struct CoreOptions {
+   bool initial_nvram_setup;
    float resolution_multiplier;
    bool widescreen;
    bool vsync;

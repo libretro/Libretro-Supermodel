@@ -16,6 +16,7 @@
 #include "libretro_cbs.h"
 #include "Game.h"
 #include "LibretroBlockFileMemory.h"
+#include "InitialNvramTemplates.h"
 #include "LibretroWrapper.h"
 #include <GL/glew.h>
 #include "../../Graphics/SuperAA.h"
@@ -50,6 +51,7 @@ char retro_save_directory[4096];
 char retro_base_directory[4096];
 
 CoreOptions g_options = {
+   /* initial_nvram_setup */ true,
    /* resolution_multiplier */ 1,
    /* widescreen           */ false,
    /* vsync                */ true,
@@ -132,6 +134,32 @@ static bool unserialize_nvram(const char* source, bool allow_legacy_layout)
    }
 
    wrapper.getEmulator()->LoadNVRAM(&memFile);
+   return true;
+}
+
+static bool apply_initial_nvram_template(void)
+{
+   const LibretroInitialNvram::Template *initial =
+      LibretroInitialNvram::Find(wrapper.getGame().name);
+   if (!initial)
+      return false;
+
+   // Build the normal, standalone-compatible container around the emulator's
+   // empty backup RAM, then replace only the 93C46 machine settings. Each
+   // template already contains the checksum written by the game's Service menu.
+   serialize_nvram();
+   CBlockFileMemory memFile(g_nvram_buffer, NVRAM_BUFFER_SIZE);
+   if (memFile.FindBlock("93C46") != Result::OKAY)
+      return false;
+   memFile.Write(initial->eeprom.data(),
+                 static_cast<uint32_t>(sizeof(initial->eeprom)));
+   if (memFile.HasError() ||
+       !unserialize_nvram("automatic initial NVRAM template", false))
+      return false;
+
+   log_cb(RETRO_LOG_INFO,
+          "[Supermodel] Applied automatic initial NVRAM setup for %s\n",
+          wrapper.getGame().name.c_str());
    return true;
 }
 
@@ -545,13 +573,30 @@ void retro_run(void)
             log_cb(RETRO_LOG_WARN,
                    "[Supermodel] Native .nv is invalid; ignoring it and initializing new .srm save RAM\n");
             g_nvram_initialized = true;
-            serialize_nvram();
+            const bool has_initial_template =
+               LibretroInitialNvram::Find(wrapper.getGame().name) != nullptr;
+            const bool template_applied = g_options.initial_nvram_setup &&
+               apply_initial_nvram_template();
+            if (!template_applied)
+            {
+               serialize_nvram();
+               if (g_options.initial_nvram_setup && has_initial_template)
+                  log_cb(RETRO_LOG_ERROR,
+                         "[Supermodel] Unable to apply automatic initial NVRAM setup for %s\n",
+                         wrapper.getGame().name.c_str());
+            }
          }
       }
       else
       {
          log_cb(RETRO_LOG_INFO, "[Supermodel] No NVRAM data found, using defaults\n");
          g_nvram_initialized = true;
+         if (g_options.initial_nvram_setup &&
+             !apply_initial_nvram_template() &&
+             LibretroInitialNvram::Find(wrapper.getGame().name))
+            log_cb(RETRO_LOG_ERROR,
+                   "[Supermodel] Unable to apply automatic initial NVRAM setup for %s\n",
+                   wrapper.getGame().name.c_str());
       }
    }
 

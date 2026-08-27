@@ -7,6 +7,11 @@
 // --- Core Options ---
 static struct retro_core_option_v2_category option_cats[] = {
    {
+      "system",
+      "System",
+      "Configure machine initialization and persistence."
+   },
+   {
       "video",
       "Video",
       "Configure graphics and rendering options."
@@ -30,6 +35,21 @@ static struct retro_core_option_v2_category option_cats[] = {
 };
 
 static struct retro_core_option_v2_definition option_defs[] = {
+   // System
+   {
+      "supermodel_initial_nvram_setup",
+      "Automatic Initial NVRAM Setup",
+      NULL,
+      "When no frontend .srm or valid standalone .nv exists, initialize known games with the cabinet settings required to boot without unsupported linked cabinets or lever feedback. Existing saves are never modified. Delete the game's .srm to regenerate this initial setup. Restart content to apply.",
+      NULL,
+      "system",
+      {
+         { "enabled",  NULL },
+         { "disabled", NULL },
+         { NULL, NULL },
+      },
+      "enabled"
+   },
    // Video
    {
       "supermodel_resolution",
@@ -318,6 +338,10 @@ static const char* option_get(const char* key, const char* default_value)
 // --- Update Core Options ---
 void update_core_options(void)
 {
+   g_options.initial_nvram_setup =
+      strcmp(option_get("supermodel_initial_nvram_setup", "enabled"),
+             "enabled") == 0;
+
    const char* resolution = option_get("supermodel_resolution", "native");
    if (strcmp(resolution, "half") == 0)
       g_options.resolution_multiplier = 0.5f;
