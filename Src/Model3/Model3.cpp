@@ -824,7 +824,7 @@ void CModel3::WriteSecurity(unsigned reg, UINT32 data)
  Unknown PCI devices are handled here.
 ******************************************************************************/
 
-UINT32 CModel3::ReadPCIConfigSpace(unsigned device, unsigned reg, unsigned bits, unsigned offset) const
+UINT32 CModel3::ReadPCIConfigSpace(unsigned device, unsigned reg, unsigned bits, unsigned /* offset */) const
 {
   if ((bits==8) || (bits==16))
   {
@@ -851,7 +851,7 @@ UINT32 CModel3::ReadPCIConfigSpace(unsigned device, unsigned reg, unsigned bits,
   return 0;
 }
 
-void CModel3::WritePCIConfigSpace(unsigned device, unsigned reg, unsigned bits, unsigned offset, UINT32 data)
+void CModel3::WritePCIConfigSpace(unsigned device, unsigned reg, unsigned bits, unsigned /* offset */, UINT32 data)
 {
   DebugLog("Model 3: PCI %d-bit write request for device=%d, reg=%02X, data=%08X\n", bits, device, reg, data);
 }
@@ -2174,7 +2174,7 @@ void CModel3::RunMainBoardFrame(bool skipRender)
 	// Run the PowerPC for the active display part of the frame
     for (int i = 0; i < 384; i++)
     {
-        if (i == pingPongFlipLine) {
+        if (static_cast<UINT32>(i) == pingPongFlipLine) {
             GPU.FlipPingPongBit();
         }
 
