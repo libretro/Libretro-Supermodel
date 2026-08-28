@@ -7,7 +7,7 @@ DEPS_DIR := $(CORE_DIR)/deps
 GIT_VERSION := $(shell git -C $(CORE_DIR) rev-parse --short HEAD 2>/dev/null || echo unknown)
 
 COREFLAGS := \
-    -DANDROID -D__LIBRETRO__ -DPSS_STYLE=1 \
+    -DANDROID -D__LIBRETRO__ -DSUPERMODEL_OSD_LIBRETRO -DPSS_STYLE=1 \
     -D_FILE_OFFSET_BITS=64 -D_POSIX_C_SOURCE=200809L -D_GNU_SOURCE \
     -DEGL_EGLEXT_PROTOTYPES \
     -DGLES -Dgles -DHAVE_OPENGLES=1 -DHAVE_OPENGLES3=1 -DCORE_GLES -D__glext_h_ -D__GLEXT_H_ \
@@ -101,6 +101,7 @@ SOURCES_CXX := \
     $(CORE_DIR)/Src/Model3/DriveBoard/JoystickBoard.cpp \
     $(CORE_DIR)/Src/Model3/DriveBoard/SkiBoard.cpp \
     $(CORE_DIR)/Src/Model3/DriveBoard/BillBoard.cpp \
+    $(CORE_DIR)/Src/Model3/DriveBoard/Z80CTC.cpp \
     $(CORE_DIR)/Src/Model3/MPC10x.cpp \
     $(CORE_DIR)/Src/Inputs/Input.cpp \
     $(CORE_DIR)/Src/Inputs/Inputs.cpp \
