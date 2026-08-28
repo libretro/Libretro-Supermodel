@@ -287,6 +287,7 @@ void LibretroWrapper::Screenshot()
 ******************************************************************************/
 
 static const int STATE_FILE_VERSION = 6;  // keep in sync with standalone Supermodel
+static const int NVRAM_FILE_VERSION  = 0;  // keep in sync with standalone Supermodel
 static unsigned s_saveSlot = 0;           // save state slot #
 
 static void SaveState(IEmulator *Model3)
