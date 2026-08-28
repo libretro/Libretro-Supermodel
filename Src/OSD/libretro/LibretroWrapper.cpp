@@ -211,7 +211,13 @@ void LibretroWrapper::InitializePaths(const std::string& systemPath)
     // Use the negotiated Libretro VFS instead of relying on filesystem helper
     // symbols that are not part of the frontend ABI.
     if (g_vfs_interface && g_vfs_interface->mkdir)
+    {
+        // VFS mkdir is single-level: create the parent first, then the target.
+        const size_t lastSlash = systemPath.rfind('/');
+        if (lastSlash != std::string::npos)
+            g_vfs_interface->mkdir(systemPath.substr(0, lastSlash).c_str());
         g_vfs_interface->mkdir(systemPath.c_str());
+    }
 
     // External assets remain authoritative. The official embedded assets are
     // retained as a first-run fallback when neither the native nor legacy
