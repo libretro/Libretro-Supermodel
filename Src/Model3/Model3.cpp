@@ -2243,7 +2243,10 @@ void CModel3::RenderFrame(void)
 
 bool CModel3::RunSoundBoardFrame(void)
 {
-  if (!g_options.sound_enable)
+  // Sound emulation is configured when content is loaded. Keep this tied to
+  // the active Model 3 configuration so changing the core option cannot leave
+  // the SCSP and DSB paths in a partially updated state.
+  if (!m_config["EmulateSound"].ValueAs<bool>())
     return false;
   UINT32 start = CThread::GetTicks();
   bool bufferFull = SoundBoard.RunFrame();

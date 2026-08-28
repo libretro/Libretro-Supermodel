@@ -479,6 +479,7 @@ void retro_run(void)
       float old_multiplier = g_options.resolution_multiplier;
       bool old_widescreen = g_options.widescreen;
       bool old_service_on_sticks = g_options.service_on_sticks;
+      bool old_sound_enable = g_options.sound_enable;
 
       update_core_options();
       ppc_set_jit_enabled(g_options.jit_enable);
@@ -515,6 +516,14 @@ void retro_run(void)
 
       if (g_options.service_on_sticks != old_service_on_sticks)
          wrapper.SetServiceOnSticks(g_options.service_on_sticks);
+
+      if (g_options.sound_enable != old_sound_enable)
+      {
+         static const struct retro_message message = {
+            "Sound Enable will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+      }
 
       wrapper.SetSoundVolume(g_options.sound_volume);
       wrapper.SetMusicVolume(g_options.music_volume);

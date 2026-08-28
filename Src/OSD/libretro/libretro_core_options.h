@@ -256,7 +256,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_sound_enable",
       "Sound Enable",
       NULL,
-      "Enable or disable sound emulation. Disabling sound can significantly improve performance on slow hardware.",
+      "Enable or disable sound emulation. Disabling sound can significantly improve performance on slow hardware. Takes effect after restarting content.",
       NULL,
       "audio",
       {
