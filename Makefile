@@ -611,8 +611,14 @@ endif
 # Build Rules
 # ============================================================
 
+.DEFAULT_GOAL := all
+
 BUNDLED_GAMES_XML_H  := $(CORE_DIR)/Src/OSD/libretro/BundledGamesXml.h
 BUNDLED_SUPERMODEL_H := $(CORE_DIR)/Src/OSD/libretro/BundledSupermodelIni.h
+
+$(CORE_DIR)/Src/OSD/libretro/LibretroWrapper.o: \
+	$(BUNDLED_GAMES_XML_H) \
+	$(BUNDLED_SUPERMODEL_H)
 
 .PHONY: all clean info
 $(info PLATFORM_DEFINES ARE: $(PLATFORM_DEFINES))
