@@ -1,0 +1,373 @@
+---
+schema_version: 1
+game:
+  set: bassdx
+  parent: bassdx
+  title: Sega Bass Fishing
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: game_difficulty
+      label: Difficulty
+      native_label_raw: GAME DIFFICULTY
+      position: 1
+      catalogue_position: 1
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, MEDIUM HARD, VERY HARD, VERY EASY, MEDIUM EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: game_mode
+      label: Game Mode
+      native_label_raw: GAME MODE
+      position: 2
+      catalogue_position: 2
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - EVENT
+      photographed_cycle:
+      - NORMAL
+      - EVENT
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-mode-000.png"
+        sha256: 3555862f116ebc2f0c20c1fe22da25c0eb728245d20dd3742dc7f5bb9df4ac48
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-mode-001.png"
+        sha256: ae74695a5aa6849d1e47f46578990c5fa616892fdefabe0f3d760cdee043f9bf
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-mode-002.png"
+        sha256: 1db32ee748c444e041fdd48fe665a96d04d1e1aa761d822fa2da3bf42d149576
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-mode-003.png"
+        sha256: 3555862f116ebc2f0c20c1fe22da25c0eb728245d20dd3742dc7f5bb9df4ac48
+      intermediate_page: Entering Event opens its own Game Assignments page; Exit
+        returns to Event on the main page. The next Test returns to Normal.
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: game_time
+      label: Game Time
+      native_label_raw: GAME TIME
+      position: 3
+      catalogue_position: 3
+      native_default: 1M 30S
+      implemented: false
+      values:
+      - 1M 30S
+      - 1M 40S
+      - 1M 50S
+      - 2M 0S
+      - 2M 10S
+      - 2M 20S
+      - 2M 30S
+      - 2M 40S
+      - 2M 50S
+      - 3M 0S
+      - 3M 10S
+      - 3M 20S
+      - 3M 30S
+      - 3M 40S
+      - 3M 50S
+      - 1M 0S
+      - 1M 10S
+      - 1M 20S
+      photographed_cycle:
+      - 1M 30S
+      - 1M 40S
+      - 1M 50S
+      - 2M 0S
+      - 2M 10S
+      - 2M 20S
+      - 2M 30S
+      - 2M 40S
+      - 2M 50S
+      - 3M 0S
+      - 3M 10S
+      - 3M 20S
+      - 3M 30S
+      - 3M 40S
+      - 3M 50S
+      - 1M 0S
+      - 1M 10S
+      - 1M 20S
+      - 1M 30S
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-000.png"
+        sha256: 9a30af3f8a7c4247b98a7b5167a75c7a0515dd64800ee9c0cb4bd790653826db
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-001.png"
+        sha256: 8c13c125450039321a611f06f286bd487ecd67cdf8bf15a905df11baf507f395
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-002.png"
+        sha256: b91f6a2a377d659a9be4714528ea8be2ee804004bb076affa6e74e6a78e77cb0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-003.png"
+        sha256: 0e573e1535604c9dd802ff292fcb394ebcc8bfc1a9f0a68c970dc5c9f0ec6c65
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-004.png"
+        sha256: cf173173f7e3caae5a38f7eb1fe7e18a86346c193dc97038467fa1342713b7b8
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-005.png"
+        sha256: b886ffe02f599b15d5660901da45137496d846b68049db6d7592bcec26d58f9d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-006.png"
+        sha256: 6ff8dc69c0b34726515493c16f84d4e6eadb4c6fcc1e62ceeda7759e074ff39c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-007.png"
+        sha256: e72e07c89b7b413af0c77db91741c082ea835025387449324db5854ea7c2809b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-008.png"
+        sha256: 42105db7797a3fd82d112d43674472125551271fbba3953aa146b006eb95435b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-009.png"
+        sha256: 6cc2ec5f2cb6a5a9a4a3dfdc1aeb617680f0f6054d6b6056e6558d4a270c55b3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-010.png"
+        sha256: 7fb31e44a9147d797874a8e415b5086f44aae09d64b5471122e6b40c68d55b8a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-011.png"
+        sha256: db48653ab085ce4461714a6556e8325189f3fd6ee8822535e48e030171d588b0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-012.png"
+        sha256: a1f38e1ad4af0072eeff45ffffcc53713d852fdfe1d92cd7fdb1a42b86ea866a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-013.png"
+        sha256: e58723dae2e9e8ad2c267429cd6636fb12fc099b5d15d883244b93ffe859a367
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-014.png"
+        sha256: a2904a49969b5c082cfdeb7a584234cf97c77ac9d65b20fa8d3321211019db6f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-015.png"
+        sha256: b09816ef39189d1808f6952d412d404485aa0bbf0934f90d970bdefff4f75916
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-016.png"
+        sha256: 00d34af1eb9fa5f7876476a1ed517ac593b9a285eb11b63d0f015ca3998f32ea
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-017.png"
+        sha256: ccff0de8b09bd660753af0c5aae522a1ddf508cba9162a3c80187dec51b17aab
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-game-time-018.png"
+        sha256: 9a30af3f8a7c4247b98a7b5167a75c7a0515dd64800ee9c0cb4bd790653826db
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: continue_time
+      label: Continue Time
+      native_label_raw: CONTINUE TIME
+      position: 4
+      catalogue_position: 4
+      native_default: 1M 20S
+      implemented: false
+      values:
+      - 1M 20S
+      - 1M 30S
+      - 1M 40S
+      - 1M 50S
+      - 2M 0S
+      - 2M 10S
+      - 2M 20S
+      - 2M 30S
+      - 2M 40S
+      - 2M 50S
+      - 3M 0S
+      - 3M 10S
+      - 3M 20S
+      - 3M 30S
+      - 3M 40S
+      - 3M 50S
+      - 1M 0S
+      - 1M 10S
+      photographed_cycle:
+      - 1M 20S
+      - 1M 30S
+      - 1M 40S
+      - 1M 50S
+      - 2M 0S
+      - 2M 10S
+      - 2M 20S
+      - 2M 30S
+      - 2M 40S
+      - 2M 50S
+      - 3M 0S
+      - 3M 10S
+      - 3M 20S
+      - 3M 30S
+      - 3M 40S
+      - 3M 50S
+      - 1M 0S
+      - 1M 10S
+      - 1M 20S
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-000.png"
+        sha256: ea10b961d398b2c3205d9e6202fa29929cbf76d5dadde1146b80e7734fa9d257
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-001.png"
+        sha256: 8cd903fcfd87840d8c2ec4c5c7471494bd9b757f1143c9204979ae38895bc9ec
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-002.png"
+        sha256: 8381a745c606f73a12a97aa3ca87a358a1c8c7b835550c2ce1f5d57d80fa85e2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-003.png"
+        sha256: fac914480db7c13695f5e396af5293d3c650d8b5a57a7c1281e8de832313bea1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-004.png"
+        sha256: f612fae606277f268fe97e24ddca8d91abc5759d155a0e75a2fa6c25a60b0f18
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-005.png"
+        sha256: 5c0ece97235b4374cd297dcde8c82c01d6915b55c5154be86d171b40b01f8713
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-006.png"
+        sha256: 8e8a577df10dc6c0d494d3ea91d37a66fb258a7809bc9d708bb05f6fce3f6189
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-007.png"
+        sha256: e3a849de595289f6027fc0e2fe21a39c418a63a2bc2855f4329200fd57c1f35d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-008.png"
+        sha256: 7d44e5d963a7da261cc9c4fa7d775dc62ed51dfa6d83d24b2602017a92be3a4c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-009.png"
+        sha256: a7880c5b4d17ee9852545a253977d120ac8429cc2c2b1d1c0bff6de0d7597f23
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-010.png"
+        sha256: 50f7c69ba64cd7cc1cd8ce01336e27230bd45d871d563fd71b3e09777ba5d122
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-011.png"
+        sha256: 521c2d5c5c29fd111a6cd36d97bd6c7b5a23e067a82b1ebf1ec2e88bb5bc9dcb
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-012.png"
+        sha256: 20620d1149d0d7d7f21531ac574b2301c29863526001d9b5ea4ac1c8934ff102
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-013.png"
+        sha256: 05cb6bd9fedaf762294b89b7dd278830733e4edf6ebd9588a06bba26809b29c4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-014.png"
+        sha256: dac7afa01ecafd579a8e78000a5bc5a8f9b9a78f1ad0b84a45df50858e4ae058
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-015.png"
+        sha256: 62183f2bf11565cfa12029fb34b03c90867a3a6d51efe8bf24881326a5d6cba5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-016.png"
+        sha256: 284631230e862bb7e36c1342b2360f4682eec6bcfee5508ddfe6adf661d9146e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-017.png"
+        sha256: ed159bcb8148d6e863d150b20ea21d804f7929a05ad65f536690c95ae2ea08b7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-continue-time-018.png"
+        sha256: ea10b961d398b2c3205d9e6202fa29929cbf76d5dadde1146b80e7734fa9d257
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 5
+      catalogue_position: 5
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-advertise-sound-000.png"
+        sha256: e1f15b60672fb04e2af311d1936cde78e0a2655ad18e514169267b95415e5c91
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-advertise-sound-001.png"
+        sha256: 2d3d3d8ce8281d6738a804e76b80140cef80096a268f14e07bbc795ea2216685
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-advertise-sound-002.png"
+        sha256: e1f15b60672fb04e2af311d1936cde78e0a2655ad18e514169267b95415e5c91
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: tournament_mode
+      label: Tournament Mode
+      native_label_raw: TOURNAMENT MODE
+      position: 6
+      catalogue_position: 6
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-tournament-mode-000.png"
+        sha256: d7cdfabf55065a3ac58f5b5aaea9f06e5a2665b1fbb088ac29fd4b935575314d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-tournament-mode-001.png"
+        sha256: f3039acc8d5bebe4d07f3910f530a208a58bb25b249f4bac37c24f410c6e8a23
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-tournament-mode-002.png"
+        sha256: d7cdfabf55065a3ac58f5b5aaea9f06e5a2665b1fbb088ac29fd4b935575314d
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 7
+      native_default: USA
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      observed_values_raw: USA, EXPORT, AUSTRALIA, JAPAN
+      historical_photo_evidence: base + ciclo completo nella schermata nascosta Country
+        Select Mode
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  event_game_assignments:
+    options:
+    - key: event_game_time
+      label: Game Time (Event)
+      native_label_raw: GAME TIME
+      position: 1
+      catalogue_position: 8
+      native_default: 1M 0S
+      implemented: false
+      dependency: Game Mode Event; Editable Time On The Event Submenu
+      values:
+      - 1M 0S
+      - 1M 30S
+      - 2M 0S
+      - 2M 30S
+      - 3M 0S
+      - 3M 30S
+      - 4M 0S
+      - 4M 30S
+      - 5M 0S
+      photographed_cycle:
+      - 1M 0S
+      - 1M 30S
+      - 2M 0S
+      - 2M 30S
+      - 3M 0S
+      - 3M 30S
+      - 4M 0S
+      - 4M 30S
+      - 5M 0S
+      - 1M 0S
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-000.png"
+        sha256: d384319b5c64fb95c61f583aa068cd2c9d3d93fb4f048459ff01823c68606401
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-001.png"
+        sha256: 3044db71f902fee9304d44363dee839443485f283be4d3fac8b040971237c543
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-002.png"
+        sha256: fa7284f369278fe80d45a3e9c97356fa94126c3016bfad889a267e959016e7e3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-003.png"
+        sha256: 237b76fa2f1507c516c59a8db68fb82289e553d3db0da6aff2028f9e61fcbda4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-004.png"
+        sha256: 356fe40d0ef2e7905e377a7d960d00d4f2b62e8d739dffb3662ef68feed6e407
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-005.png"
+        sha256: 6bdb2d823e43264f8835db22a6bb5f8d3564a035a31f3c5da084e9c94801b855
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-006.png"
+        sha256: dcbc7dadc0c8cab2abf91b9d435b80c7630415ce138edf99a1b75e5be4549b43
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-007.png"
+        sha256: 74fb02cedf9b7167e08e80748aaf888b2dc60a4b621a40af6e89a3c36d863e32
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-008.png"
+        sha256: 7f15ccaf50b827d1ee109c796e9677dbbe293bf93b530a5e2a8606eb67963e1d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-cycle-event-game-time-009.png"
+        sha256: d384319b5c64fb95c61f583aa068cd2c9d3d93fb4f048459ff01823c68606401
+      dependency_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/bassdx/screenshots/bassdx-20261018-context-event-game-time.png"
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested

@@ -49,6 +49,19 @@ static void* callbackData = NULL;               // Pointer to data to be passed 
 static std::mutex s_audioMutex;
 static const Util::Config::Node* s_config = 0;
 
+// Called with the sound thread parked during a machine reset.
+void ResetLibretroAudio()
+{
+    std::lock_guard<std::mutex> lock(s_audioMutex);
+    if (audioBuffer) memset(audioBuffer, 0, audioBufferSize);
+    // Match OpenAudio's startup queue. An empty reset can make the asynchronous
+    // producer wrap onto playPos during under-run recovery: the consumer then
+    // sees an empty queue while the producer sees a full one, leaving silence.
+    playPos = 0;
+    writePos = audioBuffer ? 2 * bytes_per_frame_host : 0;
+    writeWrapped = false;
+}
+
 UINT32 GetAvailableAudioLen()
 {
     // Simple circular buffer distance
@@ -407,16 +420,12 @@ Result OpenAudio(const Util::Config::Node& config)
     if (audioBuffer == NULL) {
         return Result::FAIL;
     }
-    memset(audioBuffer, 0, audioBufferSize);
-
     // 4. State initialization. The ring buffer cannot represent full and
     // empty with identical read/write positions. Seed two silent packets so
     // the first frontend callback has valid data while it wakes the
     // asynchronous SoundBoard thread. That thread then replaces the initial
     // silence with real audio and keeps the buffer filled.
-    playPos = 0;
-    writePos = 2 * bytes_per_frame_host;
-    writeWrapped = false;
+    ResetLibretroAudio();
     underRuns = 0;
     overRuns = 0;
     shortWrites = 0;

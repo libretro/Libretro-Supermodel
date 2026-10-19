@@ -249,6 +249,12 @@ void C53C810::WriteRegister(unsigned reg, UINT8 data)
     Ctx.regISTAT = data;
     DebugLog("ISTAT=%02X\n", data);
     break;
+  case 0x1B:    // CTEST3
+    Ctx.regs[0x1B] &= ~0x04;  // CLF (clear DMA FIFO) self-clears once FIFO is cleared, which is instantaneous here
+    break;
+  case 0x4F:    // STEST3
+    Ctx.regs[0x4F] &= ~0x02;  // CSF (clear SCSI FIFO) self-clears once FIFO is cleared, which is instantaneous here
+    break;
   case 0x1C:    // TEMP 7-0
     Ctx.regTEMP &= 0xFFFFFF00;
     Ctx.regTEMP |= data;

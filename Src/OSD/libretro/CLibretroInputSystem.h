@@ -3,10 +3,17 @@
 
 #include <Inputs/InputSystem.h>
 #include "libretro.h"
+#include <mutex>
 
 class CLibretroInputSystem : public CInputSystem
 {
 public:
+    enum class GunSecondaryInput
+    {
+        Reload,
+        AuxAOrReload
+    };
+
     CLibretroInputSystem();
     virtual ~CLibretroInputSystem() override;
 
@@ -32,8 +39,9 @@ public:
     virtual bool IsJoyPOVInDir(int joyNum, int povNum, int povDir) const override;
     virtual bool IsJoyButPressed(int joyNum, int butNum) const override;
     virtual const JoyDetails *GetJoyDetails(int joyNum) override;
-    void SetRumbleInterface(struct retro_rumble_interface interface) { m_rumbleInterface = interface; }
-    void SetFFBEnabled(bool enabled) { m_ffbEnabled = enabled; }
+    void SetRumbleInterface(struct retro_rumble_interface interface);
+    void SetFFBEnabled(bool enabled);
+    void SetGunSecondaryInput(GunSecondaryInput input) { m_gunSecondaryInput = input; }
     void StopAllRumble();
     // Signature match check: Supermodel usually uses the struct directly, 
     // but ensure your .cpp matches this exactly.
@@ -71,7 +79,12 @@ private:
     unsigned m_analogJoystickSource; // 0: stick, 1: mouse
 
     retro_rumble_interface m_rumbleInterface;
+    std::mutex m_rumbleMutex;
+    uint16_t m_rumbleEffects[2][NUM_JOY_AXES][4] = {};
+    uint16_t m_rumbleMotors[2][2] = {};
+    void PublishRumble(unsigned port, bool force = false);
     bool m_ffbEnabled = false; // Guard flag
+    GunSecondaryInput m_gunSecondaryInput = GunSecondaryInput::AuxAOrReload;
 };
 
 #endif

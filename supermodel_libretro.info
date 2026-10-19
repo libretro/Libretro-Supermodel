@@ -6,7 +6,7 @@ supported_extensions = "zip"
 license = "GPLv3+"
 permissions = ""
 categories = "Emulator"
-display_version = "Git"
+display_version = "v0.3a-20261012-git-ed608de-libretro.1"
 
 # Hardware Information
 manufacturer = "Sega"

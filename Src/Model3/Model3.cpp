@@ -2916,6 +2916,11 @@ void CModel3::Reset(void)
   timings.drvTicks = 0;
 #ifdef NET_BOARD
   timings.netTicks = 0;
+#ifdef SUPERMODEL_OSD_LIBRETRO
+  // Apply frontend board/topology changes with the normal machine reset.
+  NetBoard->Init(netRAM, netBuffer);
+  m_runNetBoard = m_game.stepping != "1.0" && NetBoard->IsAttached();
+#endif
   NetBoard->Reset();
 #endif
   timings.frameTicks = 0;

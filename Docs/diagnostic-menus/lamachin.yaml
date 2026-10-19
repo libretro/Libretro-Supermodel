@@ -1,0 +1,187 @@
+---
+schema_version: 1
+game:
+  set: lamachin
+  parent: lamachin
+  title: 'L.A. Machineguns: Rage of the Machines'
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: game_difficulty
+      label: Game Difficulty
+      native_label_raw: GAME DIFFICULTY
+      position: 1
+      catalogue_position: 1
+      native_default: barra 5 / 8
+      implemented: true
+      observed_values_raw: barre da 1 / 8 a 8 / 8
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: player_life
+      label: Player Life
+      native_label_raw: PLAYER LIFE
+      position: 2
+      catalogue_position: 2
+      native_default: '3'
+      implemented: false
+      values:
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - '1'
+      - '2'
+      photographed_cycle:
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - '1'
+      - '2'
+      - '3'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-player-life-000.png"
+        sha256: b182faa92437064dfa4bd58144ae3d31c967382bdb15e75f0590858a35e5ff8b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-player-life-001.png"
+        sha256: 5a9fdcd0e3523b0062606184935a4d63d063ec581563787daa965a248be1aa91
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-player-life-002.png"
+        sha256: 371fb7288078c23150cc287c4d7f825310e6be19f8acb8a79bed47586255c085
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-player-life-003.png"
+        sha256: 1116cb0cdf77fce0787847686b72383c852e0ce0d578cca7bceeda74068dc081
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-player-life-004.png"
+        sha256: 7155535109e0f488af9b6519f49c59af92e22ddb8cb454d475fc214cc75e2358
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-player-life-005.png"
+        sha256: 9183e9fa0b7ab1ee7abb28846f64d3c649253d9062a0be61bfd9c5cae273a5fd
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-player-life-006.png"
+        sha256: b182faa92437064dfa4bd58144ae3d31c967382bdb15e75f0590858a35e5ff8b
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: gun_action
+      label: Gun Action
+      native_label_raw: GUN ACTION
+      position: 3
+      catalogue_position: 3
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-gun-action-000.png"
+        sha256: ffb897712a1ebd4f8305a469687fdc48001fc9e82592f829007c2b73b0071b23
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-gun-action-001.png"
+        sha256: e162724e35bb089b4b4f2bd37cf85f696e9c8bdccb27b49f4712425ca3fe6c97
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-gun-action-002.png"
+        sha256: ffb897712a1ebd4f8305a469687fdc48001fc9e82592f829007c2b73b0071b23
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 4
+      catalogue_position: 4
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-advertise-sound-000.png"
+        sha256: c9fe861aaf61f580e82d4cb9958f5bdee17578bce2405625a8b4117715c454f2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-advertise-sound-001.png"
+        sha256: 4e618d6cd3422d12f7251918ce8b0a734c3d02dbe39e24d4ea5eb9fafa278426
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-advertise-sound-002.png"
+        sha256: c9fe861aaf61f580e82d4cb9958f5bdee17578bce2405625a8b4117715c454f2
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: cabinet_type
+      label: Cabinet Type
+      native_label_raw: CABINET TYPE
+      position: 5
+      catalogue_position: 5
+      native_default: STANDERD
+      implemented: true
+      observed_values_raw: STANDERD, DELUXE
+      historical_photo_evidence: base + ciclo completo; grafia del Service Menu conservata
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: bass_shaker
+      label: Bass Shaker
+      native_label_raw: BASS SHAKER
+      position: 6
+      catalogue_position: 6
+      native_default: non visibile con STANDERD
+      implemented: false
+      dependency: Cabinet Type Deluxe; Absent With Native STANDERD
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-bass-shaker-000.png"
+        sha256: fa07fd464cabf7b656f39c371d04dfb8054815f7063dad1b6aff2d559fa64408
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-bass-shaker-001.png"
+        sha256: c752a64633a08ee843990566a94e076c33ff68b18491aa989945ec3053e0e8c2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-cycle-bass-shaker-002.png"
+        sha256: fa07fd464cabf7b656f39c371d04dfb8054815f7063dad1b6aff2d559fa64408
+      dependency_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lamachin/screenshots/lamachin-20261018-context-bass-shaker.png"
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+  country_assignments:
+    options:
+    - key: country_code
+      label: Country Code
+      native_label_raw: COUNTRY CODE
+      position: 1
+      catalogue_position: 7
+      native_default: JAPAN
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      observed_values_raw: JAPAN, USA, EXPORT, AUSTRALIA
+      historical_photo_evidence: ciclo completo in Country Select Mode
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

@@ -34,12 +34,13 @@ static struct retro_core_option_v2_category option_cats[] = {
 };
 
 static struct retro_core_option_v2_definition option_defs[] = {
-   // System
+   // F04: one definition sequence feeds modern and legacy registration.
+   // System: preserve initialization, networking and native operator order.
    {
       "supermodel_initial_nvram_setup",
-      "Automatic Initial NVRAM Setup",
+      "Automatic Initial NVRAM Setup (Restart Required)",
       NULL,
-      "When no frontend .srm or valid standalone .nv exists, initialize supported games with Single, Stand Alone, or No Link and set Star Wars Trilogy Arcade to the Upright cabinet. Other EEPROM fields retain the validated smoke-test values for that ROM set. Existing saves are never modified. Delete the game's .srm to regenerate this initial setup. Restart content to apply.",
+      "Initialize missing save data from a validated NVRAM template and apply approved initial settings while preserving existing valid saves.",
       NULL,
       "system",
       {
@@ -50,51 +51,10 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "enabled"
    },
    {
-      "supermodel_network_board",
-      "Network Board",
-      NULL,
-      "Connect the Model 3 network board, equivalent to the standalone Network setting. Some games expose their Network Assignments in the Service Menu only while the board is connected. Requires a content restart. Experimental linked play through RetroArch Netplay is available for Daytona USA 2, Dirt Devils, Harley-Davidson, Le Mans 24, Scud Race, Sega Rally 2, Ski Champ, Spikeout, Spikeout Final Edition, and Virtual On 2 families.",
-      NULL,
-      "system",
-      {
-         { "enabled",  "Connected" },
-         { "disabled", "Disconnected" },
-         { NULL, NULL },
-      },
-      "enabled"
-   },
-   {
-      "supermodel_network_cabinets",
-      "Linked Cabinets",
-      NULL,
-      "Set the total number of Model 3 cabinets expected in the RetroArch Netplay session. The host waits for this exact number before starting the emulated cabinet link. Every instance must use the same value. The RetroArch host must use the game's Master role; clients cannot use Master. Type 1 clients must use Slave; Type 2 clients may use a supported Slave / Satellite role. Start the host before its clients. Two- and three-cabinet sessions have been tested; larger values remain experimental. Requires a content restart.",
-      NULL,
-      "system",
-      {
-         { "2",  "2 Cabinets (Default)" },
-         { "3",  "3 Cabinets" },
-         { "4",  "4 Cabinets" },
-         { "5",  "5 Cabinets" },
-         { "6",  "6 Cabinets" },
-         { "7",  "7 Cabinets" },
-         { "8",  "8 Cabinets" },
-         { "9",  "9 Cabinets" },
-         { "10", "10 Cabinets" },
-         { "11", "11 Cabinets" },
-         { "12", "12 Cabinets" },
-         { "13", "13 Cabinets" },
-         { "14", "14 Cabinets" },
-         { "15", "15 Cabinets" },
-         { "16", "16 Cabinets" },
-         { NULL, NULL },
-      },
-      "2"
-   },
-   {
       "supermodel_nvram_settings",
       "NVRAM Settings",
       NULL,
-      "Let RetroArch manage the supported NVRAM settings for each game. When enabled, every displayed value is applied at startup and overrides later Service Menu changes. When disabled, the core does not modify these fields. Settings saved for other games are never reused. Restart content to apply.",
+      "Apply reviewed operator overrides to saved NVRAM while preserving unrelated fields and calibration.",
       NULL,
       "system",
       {
@@ -104,12 +64,62 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "disabled"
    },
-   // Video
+   // Video: rendering, image presentation, then timing and diagnostics.
+   // Rendering engine and its specific controls.
+#if defined(HAVE_LEGACY3D) && !defined(USE_LEGACY3D)
+   {
+      "supermodel_renderer_3d",
+      "3D Renderer",
+      NULL,
+      "Select the New3D or Legacy3D graphics engine.",
+      NULL,
+      "video",
+      {
+         { "new3d",    "New3D (Default)" },
+         { "legacy3d", "Legacy3D (Experimental)" },
+         { NULL, NULL },
+      },
+      "new3d"
+   },
+#endif
+#ifdef HAVE_QUAD_RENDERING
+   {
+      "supermodel_quad_rendering",
+      "Quad Rendering",
+      NULL,
+      "Render native quadrilaterals directly instead of splitting them into triangles. Applies only to the New3D renderer.",
+      NULL,
+      "video",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+#endif
+#ifdef HAVE_LEGACY3D
+   {
+      "supermodel_legacy_multi_texture",
+      "Legacy3D Multi-Texture",
+      NULL,
+      "Select single-texture or eight-texture-map decoding for the legacy renderer. Applies only to the Legacy3D renderer.",
+      NULL,
+      "video",
+      {
+         { "disabled", "Single Texture (Default)" },
+         { "enabled",  "Eight Texture Maps" },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+#endif
+   // Image quality and presentation.
    {
       "supermodel_resolution",
       "Internal Resolution",
       NULL,
-      "Render at higher internal resolution for improved image quality. Lower values reduce GPU load. 'Half' (248x192) recommended for low-end systems.",
+      "Select the internal rendering resolution to balance image quality and GPU load. Changes apply when returning to the game.",
       NULL,
       "video",
       {
@@ -122,80 +132,12 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "native"
    },
-#if defined(HAVE_LEGACY3D) && !defined(USE_LEGACY3D)
-   {
-      "supermodel_renderer_3d",
-      "3D Renderer",
-      NULL,
-      "Select Supermodel's 3D engine. New3D is the current renderer. Legacy3D uses the desktop OpenGL compatibility profile and may perform better on older or integrated GPUs. Legacy3D is experimental and may crash the frontend or fail to initialize on unsupported OpenGL drivers. Takes effect after restarting content.",
-      NULL,
-      "video",
-      {
-         { "new3d",    "New3D (Default)" },
-         { "legacy3d", "Legacy3D (Experimental)" },
-         { NULL, NULL },
-      },
-      "new3d"
-   },
-#endif
-#ifdef HAVE_LEGACY3D
-   {
-      "supermodel_legacy_multi_texture",
-      "Legacy3D Multi-Texture",
-      NULL,
-      "Use eight texture maps for Legacy3D decoding instead of decoding to a single texture. Only applies to Legacy3D and takes effect after restarting content.",
-      NULL,
-      "video",
-      {
-         { "disabled", "Single Texture (Default)" },
-         { "enabled",  "Eight Texture Maps" },
-         { NULL, NULL },
-      },
-      "disabled"
-   },
-#endif
-#ifdef HAVE_QUAD_RENDERING
-   {
-      "supermodel_quad_rendering",
-      "Quad Rendering",
-      NULL,
-      "Render Model 3 quadrilaterals as native quads through New3D's geometry-shader path instead of splitting them into triangles. Requires OpenGL 4.5 and takes effect after restarting content. Ignored by Legacy3D.",
-      NULL,
-      "video",
-      {
-         { "disabled", NULL },
-         { "enabled",  NULL },
-         { NULL, NULL },
-      },
-      "disabled"
-   },
-#endif
-#ifdef HAVE_CRT_COLOURS
-   {
-      "supermodel_crt_colors",
-      "CRT Colour",
-      NULL,
-      "Apply Supermodel's native pre-output colour and gamma adaptation. This is distinct from a frontend CRT shader, and applies to New3D after restarting content. Ignored by Legacy3D.",
-      NULL,
-      "video",
-      {
-         { "0", "None (Default)" },
-         { "1", "ARI/D93 (Japan)" },
-         { "2", "PVM-20M2U/D93" },
-         { "3", "BT.601 525/D93" },
-         { "4", "BT.601 525/D65 (USA)" },
-         { "5", "BT.601 625/D65 (Europe/Australia)" },
-         { NULL, NULL },
-      },
-      "0"
-   },
-#endif
 #ifdef HAVE_SUPERSAMPLING
    {
       "supermodel_supersampling",
-      "Supersampling",
+      "Supersampling (Restart Required)",
       NULL,
-      "Render each output pixel from multiple internal samples using Supermodel's native supersampling pass. The scale applies on top of Internal Resolution: 2x uses 4 samples per pixel, 3x uses 9, and 8x uses 64. Higher values can require substantial GPU time and memory. Takes effect after restarting content.",
+      "Render additional internal samples per output pixel to improve image quality. Applies only to Vulkan / OpenGL / GLES renderers.",
       NULL,
       "video",
       {
@@ -213,24 +155,10 @@ static struct retro_core_option_v2_definition option_defs[] = {
    },
 #endif
    {
-      "supermodel_timing_overlay",
-      "Frame Timing Overlay",
-      NULL,
-      "Show the per-frame timing overlay (PPC/Render/GPU/Total) and log timing averages. Costs an extra draw pass every frame, so leave it off unless you are profiling.",
-      NULL,
-      "video",
-      {
-         { "disabled", NULL },
-         { "enabled",  NULL },
-         { NULL, NULL },
-      },
-      "disabled"
-   },
-   {
       "supermodel_upscale_mode",
       "2D Layer Upscaling Filter",
       NULL,
-      "Select the native Supermodel filter used to upscale internal 2D tile layers before they are composited with 3D. At native resolution Supermodel always uses Nearest. Takes effect after restarting content.",
+      "Select the upscaling filter applied to 2D tile layers before compositing with 3D.",
       NULL,
       "video",
       {
@@ -243,25 +171,60 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "2"
    },
    {
-      "supermodel_wide_screen",
-      "Widescreen Mode",
+      "supermodel_aspect_ratio",
+      "Aspect Ratio",
       NULL,
-      "Expand full-screen 3D viewports horizontally to render a true 16:9 field of view. 'Widescreen + Wide Background' also stretches the lower 2D background layer to fill the sides; HUD and upper overlays remain at their original aspect ratio. Takes effect after restarting content. May expose geometry or background artifacts in some games.",
+      "Select the displayed aspect ratio. Auto follows Widescreen Mode. Explicit 4:3 suppresses expansion; 16:9 with Widescreen Mode Disabled stretches the original image. Changes apply when returning to the game.",
       NULL,
       "video",
       {
-         { "disabled", NULL },
-         { "enabled", "Widescreen" },
-         { "wide_background", "Widescreen + Wide Background" },
+         { "auto", "Auto" },
+         { "4_3", "4:3" },
+         { "16_9", "16:9" },
+         { NULL, NULL },
+      },
+      "auto"
+   },
+   {
+      "supermodel_wide_screen",
+      "Widescreen Mode",
+      NULL,
+      "Expand the 3D field of view with Aspect Ratio set to Auto or 16:9, optionally stretching the lower 2D background. Explicit 4:3 suppresses expansion. Upper 2D layers keep their proportions. Disabled retains original rendering; Aspect Ratio 16:9 then stretches the complete image. Changes apply when returning to the game without a reset or content reload.",
+      NULL,
+      "video",
+      {
+         { "disabled", "Disabled" },
+         { "enabled", "Expand 3D View Only" },
+         { "wide_background", "Expand 3D View + Stretch 2D Background" },
          { NULL, NULL },
       },
       "disabled"
    },
+#ifdef HAVE_CRT_COLOURS
+   {
+      "supermodel_crt_colors",
+      "CRT Colour",
+      NULL,
+      "Apply the renderer's native colour and gamma correction. Applies only to the New3D renderer.",
+      NULL,
+      "video",
+      {
+         { "0", "None (Default)" },
+         { "1", "ARI/D93 (Japan)" },
+         { "2", "PVM-20M2U/D93" },
+         { "3", "BT.601 525/D93" },
+         { "4", "BT.601 525/D65 (USA)" },
+         { "5", "BT.601 625/D65 (Europe/Australia)" },
+         { NULL, NULL },
+      },
+      "0"
+   },
+#endif
    {
       "supermodel_no_white_flash",
       "Disable White Flash",
       NULL,
-      "Suppress the white flash normally shown when a game disables 3D rendering. Equivalent to standalone Supermodel's NoWhiteFlash setting. Requires restarting content.",
+      "Suppress the white flash produced when 3D rendering is disabled",
       NULL,
       "video",
       {
@@ -271,11 +234,12 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "disabled"
    },
+   // Cadence and diagnostics.
    {
       "supermodel_av_timing",
-      "Model 3 Timing Mode",
+      "A/V Timing (Restart Required)",
       NULL,
-      "Select the video cadence and matching 44.1 kHz audio packetization. Native Model 3 timing reports 57.524160 FPS and uses a fractional 766/767-sample audio cadence; a display capable of matching this refresh rate provides the smoothest result. Native timing requires a multi-threaded emulation mode for continuous audio. Requires restarting content.",
+      "Select the video cadence and corresponding audio timing.",
       NULL,
       "video",
       {
@@ -286,191 +250,25 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "60hz"
    },
    {
-      "supermodel_crosshairs",
-      "Show Crosshair",
+      "supermodel_timing_overlay",
+      "Timing / FPS Overlay",
       NULL,
-      "Select which native Supermodel vector crosshair is displayed in light gun games.",
+      "Display timing and frame-rate measurements to inspect emulation and rendering performance.",
       NULL,
-      "input",
+      "video",
       {
-         { "0", "Disabled" },
-         { "1", "Player 1 Only" },
-         { "2", "Player 2 Only" },
-         { "3", "Players 1 & 2" },
+         { "disabled", NULL },
+         { "enabled",  NULL },
          { NULL, NULL },
       },
-      "0"
+      "disabled"
    },
-   // Input
-   {
-      "supermodel_gun_input",
-      "Gun Input Mode",
-      NULL,
-      "Input source for analog-gun games. Standard accepts RetroArch Lightgun, Mouse, and the left Analog Stick through one virtual cursor. Mouse + Analog Stick excludes Lightgun coordinates while retaining both relative cursor sources. Dedicated modes restrict input to the selected source. Changes take effect immediately.",
-      NULL,
-      "input",
-      {
-         { "hybrid",   "Standard" },
-         { "lightgun", "Lightgun Only" },
-         { "mouse_analog", "Mouse + Analog Stick" },
-         { "mouse",    "Mouse Only" },
-         { "analog",   "Analog Stick Only" },
-         { NULL, NULL },
-      },
-      "hybrid"
-   },
-   {
-      "supermodel_star_wars_input",
-      "Star Wars Trilogy Input Mode",
-      NULL,
-      "Input source for the arcade analog joystick used by Star Wars Trilogy Arcade. Standard accepts RetroArch Lightgun, Mouse, and the left Analog Stick through one virtual control. Mouse + Analog Stick excludes Lightgun coordinates. Changes take effect immediately.",
-      NULL,
-      "input",
-      {
-         { "hybrid",       "Standard" },
-         { "lightgun",     "Lightgun Only" },
-         { "mouse_analog", "Mouse + Analog Stick" },
-         { "mouse",        "Mouse Only" },
-         { "analog",       "Analog Stick Only" },
-         { NULL, NULL },
-      },
-      "hybrid"
-   },
-   {
-      "supermodel_star_wars_upright_x_inversion",
-      "Star Wars Trilogy Upright Mode X-Axis Inversion Fix",
-      NULL,
-      "Invert the horizontal analog input when Star Wars Trilogy Arcade's NVRAM cabinet type is Upright, matching the cabinet-specific axis orientation. Disable this when the frontend or input device already applies the required inversion. Changes take effect immediately.",
-      NULL,
-      "input",
-      {
-         { "enabled",  "ON" },
-         { "disabled", "Disable" },
-         { NULL, NULL },
-      },
-      "enabled"
-   },
-   {
-      "supermodel_force_feedback",
-      "Force Feedback",
-      NULL,
-      "Enable force feedback for racing games (requires compatible hardware).",
-      NULL,
-      "input",
-      {
-         { "enabled",  "ON (Default)" },
-         { "disabled", "Disable" },
-         { NULL, NULL },
-      },
-      "enabled"
-   },
-   {
-      "supermodel_four_speed_shifter",
-      "4-Speed Shifter",
-      NULL,
-      "Applied only to recognized 4-Speed driving games. Standard assigns each of the four remappable directional inputs directly to one gear. H-Gate interprets them as Up, Down, Left, and Right, selecting gears from the four diagonal positions. Neutral remains on West and L/R remain sequential shift controls. Changes take effect immediately.",
-      NULL,
-      "input",
-      {
-         { "h_gate",   "H-Gate Mode" },
-         { "standard", "Standard" },
-         { NULL, NULL },
-      },
-      "h_gate"
-   },
-   {
-      "supermodel_steering_response",
-      "Driving Steering Response",
-      NULL,
-      "Applied only to games recognized as Driving. Select the steering response curve; Progressive and FBNeo Logarithmic reduce sensitivity around the center while retaining the available output range.",
-      NULL,
-      "input",
-      {
-         { "linear",      "Linear" },
-         { "progressive", "Progressive (Fine Center)" },
-         { "fbneo",       "FBNeo Logarithmic (Fine Center)" },
-         { NULL, NULL },
-      },
-      "linear"
-   },
-   {
-      "supermodel_steering_output_range",
-      "Driving Steering Output Range",
-      NULL,
-      "Applied only to games recognized as Driving. Scale steering around its center. Values below 100% reduce the emulated wheel range; values above 100% reach full lock with less physical stick travel.",
-      NULL,
-      "input",
-      {
-         { "50",  "50%" },
-         { "60",  "60%" },
-         { "63",  "63% (30-80-D0)" },
-         { "70",  "70%" },
-         { "80",  "80%" },
-         { "90",  "90%" },
-         { "100", "100%" },
-         { "110", "110%" },
-         { "120", "120%" },
-         { "130", "130%" },
-         { "140", "140%" },
-         { "150", "150%" },
-         { NULL, NULL },
-      },
-      "100"
-   },
-   {
-      "supermodel_accelerator_output_range",
-      "Driving Accelerator Output Range",
-      NULL,
-      "Applied only to games recognized as Driving. Scale the accelerator from its zero rest position. Values below 100% reduce the maximum emulated pedal output; values above 100% reach full output with less physical trigger travel.",
-      NULL,
-      "input",
-      {
-         { "50",   "50%" },
-         { "60",   "60%" },
-         { "70",   "70%" },
-         { "75.3", "75.3% (00-C0)" },
-         { "80",   "80%" },
-         { "90",   "90%" },
-         { "100",  "100%" },
-         { "110",  "110%" },
-         { "120",  "120%" },
-         { "130",  "130%" },
-         { "140",  "140%" },
-         { "150",  "150%" },
-         { NULL, NULL },
-      },
-      "100"
-   },
-   {
-      "supermodel_brake_output_range",
-      "Driving Brake Output Range",
-      NULL,
-      "Applied only to games recognized as Driving. Scale the brake from its zero rest position. Values below 100% reduce the maximum emulated pedal output; values above 100% reach full output with less physical trigger travel.",
-      NULL,
-      "input",
-      {
-         { "50",   "50%" },
-         { "60",   "60%" },
-         { "70",   "70%" },
-         { "75.3", "75.3% (00-C0)" },
-         { "80",   "80%" },
-         { "90",   "90%" },
-         { "100",  "100%" },
-         { "110",  "110%" },
-         { "120",  "120%" },
-         { "130",  "130%" },
-         { "140",  "140%" },
-         { "150",  "150%" },
-         { NULL, NULL },
-      },
-      "100"
-   },
-   // Audio
+   // Audio: sound enable, output levels, then the SCSP processing choice.
    {
       "supermodel_sound_enable",
       "Sound Enable",
       NULL,
-      "Enable or disable sound emulation. Disabling sound can significantly improve performance on slow hardware. Takes effect after restarting content.",
+      "Enable or disable sound emulation.",
       NULL,
       "audio",
       {
@@ -484,7 +282,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_sound_volume",
       "Sound Volume",
       NULL,
-      "Adjust overall sound volume.",
+      "Adjust the SCSP sound output level. The separate MPEG music board is controlled by Music Volume.",
       NULL,
       "audio",
       {
@@ -517,7 +315,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_music_volume",
       "Music Volume",
       NULL,
-      "Adjust DSB music volume (affects games with separate music board e.g. Sega Rally 2, Virtua Fighter 3).",
+      "Adjust the output level of the separate MPEG music board.",
       NULL,
       "audio",
       {
@@ -550,7 +348,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_scsp_dsp",
       "SCSP DSP Engine",
       NULL,
-      "Select the Sega Custom Sound Processor DSP implementation. The modern MAME-derived engine is recommended; use Legacy ElSemi for games with audio compatibility issues such as Fighting Vipers 2. Takes effect after restarting content.",
+      "Select the SCSP DSP implementation used for audio processing.",
       NULL,
       "audio",
       {
@@ -560,12 +358,250 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "new"
    },
-   // CPU
+   // Input: profile and rumble, Lightgun, Gear, Driving, then game-specific controls.
+   {
+      "supermodel_controller_profile_type",
+      "Controller Profile Type",
+      NULL,
+      "Select whether controller profiles include Test/Service inputs while retaining gameplay controls and remapping.",
+      NULL,
+      "input",
+      {
+         { "normal", "Normal" },
+         { "test_service", "Normal + Test/Service" },
+         { NULL, NULL },
+      },
+      "test_service"
+   },
+   {
+      "supermodel_force_feedback",
+      "Gamepad Rumble",
+      NULL,
+      "Enable gamepad vibration using the game's force-feedback or rumble effects.",
+      NULL,
+      "input",
+      {
+         { "enabled",  "ON (Default)" },
+         { "disabled", "Disable" },
+         { NULL, NULL },
+      },
+      "enabled"
+   },
+   {
+      "supermodel_crosshairs",
+      "Show Crosshair",
+      NULL,
+      "Select external crosshair visibility for each player, or use the automatic native-reticle behavior.",
+      NULL,
+      "input",
+      {
+         { "auto", "Automatic" },
+         { "0", "Disabled" },
+         { "1", "Player 1 Only" },
+         { "2", "Player 2 Only" },
+         { "3", "Players 1 & 2" },
+         { NULL, NULL },
+      },
+      "auto"
+   },
+   {
+      "supermodel_gun_input",
+      "Gun Input Mode",
+      NULL,
+      "Select which input devices control the aiming cursor, including combined and dedicated input modes.",
+      NULL,
+      "input",
+      {
+         { "hybrid",   "Standard" },
+         { "lightgun", "Lightgun Only" },
+         { "mouse_analog", "Mouse + Analog Stick" },
+         { "mouse",    "Mouse Only" },
+         { "analog",   "Analog Stick Only" },
+         { NULL, NULL },
+      },
+      "hybrid"
+   },
+   {
+      "supermodel_offscreen_reload_shortcut",
+      "Off-Screen Reload Shortcut",
+      NULL,
+      "Enable dedicated inputs that force an off-screen reload while retaining native lightgun off-screen firing.",
+      NULL,
+      "input",
+      {
+         { "enabled",  "Enabled" },
+         { "disabled", "Disabled" },
+         { NULL, NULL },
+      },
+      "enabled"
+   },
+   {
+      "supermodel_mouse_edge_offscreen_reload",
+      "Mouse Edge Off-Screen Reload",
+      NULL,
+      "Allow a mouse shot at the screen edge to trigger off-screen reload.",
+      NULL,
+      "input",
+      {
+         { "disabled", "Disabled" },
+         { "enabled",  "Enabled" },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+   {
+      "supermodel_four_speed_shifter",
+      "4-Speed Shifter",
+      NULL,
+      "Select direct directional gear selection or diagonal analog-stick H-gate shifting. Applies only to 4-speed driving games.",
+      NULL,
+      "input",
+      {
+         { "h_gate",   "H-Gate Mode" },
+         { "standard", "Standard" },
+         { NULL, NULL },
+      },
+      "h_gate"
+   },
+   {
+      "supermodel_steering_response",
+      "Driving Steering Response",
+      NULL,
+      "Select the steering response curve to adjust sensitivity around the center while retaining full travel.",
+      NULL,
+      "input",
+      {
+         { "linear",      "Linear" },
+         { "progressive", "Progressive (Fine Center)" },
+         { "fbneo",       "FBNeo Logarithmic (Fine Center)" },
+         { NULL, NULL },
+      },
+      "linear"
+   },
+   {
+      "supermodel_steering_output_range",
+      "Driving Steering Output Range",
+      NULL,
+      "Scale steering output around its center to adjust the input travel needed for full lock.",
+      NULL,
+      "input",
+      {
+         { "50",  "50%" },
+         { "60",  "60%" },
+         { "63",  "63% (30-80-D0)" },
+         { "70",  "70%" },
+         { "80",  "80%" },
+         { "90",  "90%" },
+         { "100", "100%" },
+         { "110", "110%" },
+         { "120", "120%" },
+         { "130", "130%" },
+         { "140", "140%" },
+         { "150", "150%" },
+         { NULL, NULL },
+      },
+      "100"
+   },
+   {
+      "supermodel_accelerator_output_range",
+      "Driving Accelerator Output Range",
+      NULL,
+      "Scale accelerator output from its released position to adjust the input travel needed for full acceleration.",
+      NULL,
+      "input",
+      {
+         { "50",   "50%" },
+         { "60",   "60%" },
+         { "70",   "70%" },
+         { "75.3", "75.3% (00-C0)" },
+         { "80",   "80%" },
+         { "90",   "90%" },
+         { "100",  "100%" },
+         { "110",  "110%" },
+         { "120",  "120%" },
+         { "130",  "130%" },
+         { "140",  "140%" },
+         { "150",  "150%" },
+         { NULL, NULL },
+      },
+      "100"
+   },
+   {
+      "supermodel_brake_output_range",
+      "Driving Brake Output Range",
+      NULL,
+      "Scale brake output from its released position to adjust the input travel needed for full braking.",
+      NULL,
+      "input",
+      {
+         { "50",   "50%" },
+         { "60",   "60%" },
+         { "70",   "70%" },
+         { "75.3", "75.3% (00-C0)" },
+         { "80",   "80%" },
+         { "90",   "90%" },
+         { "100",  "100%" },
+         { "110",  "110%" },
+         { "120",  "120%" },
+         { "130",  "130%" },
+         { "140",  "140%" },
+         { "150",  "150%" },
+         { NULL, NULL },
+      },
+      "100"
+   },
+   {
+      "supermodel_star_wars_input",
+      "Star Wars Trilogy: Input Mode",
+      NULL,
+      "Select the input devices used to control the arcade analog joystick.",
+      NULL,
+      "input",
+      {
+         { "hybrid",       "Standard" },
+         { "lightgun",     "Lightgun Only" },
+         { "mouse_analog", "Mouse + Analog Stick" },
+         { "mouse",        "Mouse Only" },
+         { "analog",       "Analog Stick Only" },
+         { NULL, NULL },
+      },
+      "hybrid"
+   },
+   {
+      "supermodel_star_wars_upright_x_inversion",
+      "Star Wars Trilogy: Upright Mode X-Axis Inversion Fix",
+      NULL,
+      "Invert horizontal analog input for the upright cabinet orientation.",
+      NULL,
+      "input",
+      {
+         { "enabled",  "ON" },
+         { "disabled", "Disable" },
+         { NULL, NULL },
+      },
+      "enabled"
+   },
+   // CPU: host threading and frame skipping, then PowerPC execution controls.
+   {
+      "supermodel_emulation_threading",
+      "Emulation Threading",
+      NULL,
+      "Select how emulation and graphics work are distributed across host threads.",
+      NULL,
+      "cpu",
+      {
+         { "single",    "Single Thread" },
+         { "multi",     "Multi-threaded" },
+         { "multi_gpu", "Multi-threaded + GPU (Default)" },
+         { NULL, NULL },
+      },
+      "multi_gpu"
+   },
    {
       "supermodel_frameskip",
       "Frame Skip",
       NULL,
-      "Skip rendering every N frames to reduce GPU load on slow hardware. 'OFF' disables frame skipping. Higher values improve speed at the cost of visual smoothness.",
+      "Skip selected rendered frames to reduce GPU workload.",
       NULL,
       "cpu",
       {
@@ -581,7 +617,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_ppc_frequency",
       "PowerPC CPU Frequency",
       NULL,
-      "Adjust PowerPC CPU frequency to trade cycle accuracy for performance on low-end hardware. 'Auto' follows the game's stepping (66/100/166 MHz): a Stepping 2.x game such as Daytona 2 runs at 166 MHz, which is over twice the CPU work of 70 MHz. Underclocking is the single biggest performance lever on weak hardware, at the cost of cycle accuracy.",
+      "Adjust the emulated PowerPC clock frequency to balance cycle accuracy and performance.",
       NULL,
       "cpu",
       {
@@ -599,27 +635,12 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "auto"
    },
-   {
-      "supermodel_emulation_threading",
-      "Emulation Threading",
-      NULL,
-      "Select how Supermodel distributes emulation work across host CPU threads. Multi-threaded runs the sound and drive boards on worker threads; Multi-threaded + GPU also overlaps PowerPC emulation with graphics processing. This is independent of RetroArch's Threaded Video setting. Restart content to apply.",
-      NULL,
-      "cpu",
-      {
-         { "single",    "Single Thread" },
-         { "multi",     "Multi-threaded" },
-         { "multi_gpu", "Multi-threaded + GPU (Default)" },
-         { NULL, NULL },
-      },
-      "multi_gpu"
-   },
 #ifdef __aarch64__
    {
       "supermodel_jit_enable",
       "JIT Recompiler (ARM64)",
       NULL,
-      "Enable the ARM64 JIT recompiler for the PowerPC CPU. Significantly improves performance on ARM64 devices. Disable to use the interpreter for debugging.",
+      "Enable ARM64 just-in-time compilation of the emulated PowerPC CPU. Applies only to ARM64 hosts.",
       NULL,
       "cpu",
       {
@@ -651,15 +672,6 @@ void update_core_options(void)
    g_options.initial_nvram_setup =
       strcmp(option_get("supermodel_initial_nvram_setup", "enabled"),
              "enabled") == 0;
-
-   g_options.network_board =
-      strcmp(option_get("supermodel_network_board", "enabled"),
-             "enabled") == 0;
-
-   g_options.network_cabinets = static_cast<unsigned>(
-      atoi(option_get("supermodel_network_cabinets", "2")));
-   if (g_options.network_cabinets < 2 || g_options.network_cabinets > 16)
-      g_options.network_cabinets = 2;
 
    g_options.nvram_settings_enabled =
       strcmp(option_get("supermodel_nvram_settings", "disabled"),
@@ -728,6 +740,11 @@ void update_core_options(void)
    g_options.timing_overlay = strcmp(option_get("supermodel_timing_overlay", "disabled"), "enabled") == 0;
 
    {
+      const char *aspect = option_get("supermodel_aspect_ratio", "auto");
+      g_options.aspect_ratio = strcmp(aspect, "4_3") == 0
+         ? AspectRatioMode::FourThree
+         : strcmp(aspect, "16_9") == 0
+            ? AspectRatioMode::SixteenNine : AspectRatioMode::Auto;
       const char *widescreen = option_get(
          "supermodel_wide_screen", "disabled");
       g_options.widescreen_mode =
@@ -745,10 +762,11 @@ void update_core_options(void)
          ? AVTimingMode::Native57524Hz
          : AVTimingMode::Default60Hz;
    {
-      const char *crosshairs = option_get("supermodel_crosshairs", "0");
+      const char *crosshairs = option_get("supermodel_crosshairs", "auto");
       // Accept the values used by earlier development builds so an existing
       // .opt file cannot leave the option in an undefined state.
-      g_options.crosshairs = strcmp(crosshairs, "enabled") == 0 ? 3u
+      g_options.crosshairs = strcmp(crosshairs, "auto") == 0 ? CROSSHAIRS_AUTOMATIC
+                           : strcmp(crosshairs, "enabled") == 0 ? 3u
                            : strcmp(crosshairs, "disabled") == 0 ? 0u
                            : static_cast<unsigned>(atoi(crosshairs)) & 3u;
    }
@@ -768,6 +786,12 @@ void update_core_options(void)
                           : strcmp(gun_input, "analog") == 0   ? GunInput::AnalogSticks
                                                                : GunInput::Hybrid;
    }
+   g_options.offscreen_trigger_reload =
+      strcmp(option_get("supermodel_offscreen_reload_shortcut", "enabled"),
+             "enabled") == 0;
+   g_options.mouse_edge_offscreen_reload =
+      strcmp(option_get("supermodel_mouse_edge_offscreen_reload", "disabled"),
+             "enabled") == 0;
    {
       const char *star_wars_input = option_get(
          "supermodel_star_wars_input", "hybrid");

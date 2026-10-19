@@ -259,7 +259,7 @@ ifneq ($(filter $(CORE_DIR)/Src/Graphics/Legacy3D/Legacy3D.cpp,$(SOURCES_CXX)),)
     RENDERER_DEFINES += -DHAVE_LEGACY3D
 endif
 
-ifneq ($(filter $(platform),osx android rpi64 aarch64 linux-aarch64),$(platform))
+ifneq ($(filter $(platform),android rpi64 aarch64 linux-aarch64),$(platform))
     RENDERER_DEFINES += -DHAVE_QUAD_RENDERING
 endif
 

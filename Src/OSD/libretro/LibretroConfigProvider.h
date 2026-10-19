@@ -87,7 +87,7 @@ namespace LibretroConfigProvider {
 
         // NetBoard
         config.Set("Network", false, "Network");
-        config.Set("NetworkCabinets", unsigned(2), "Network", 2, 16);
+        config.Set("NetworkCabinets", unsigned(1), "Network", 1, 17);
         config.Set("SimulateNet", true, "Network");
         config.Set("PortIn", unsigned(1970), "Network");
         config.Set("PortOut", unsigned(1971), "Network");
@@ -126,10 +126,10 @@ namespace LibretroConfigProvider {
         config.Set<std::string>("InputStart2", "KEY_2,JOY2_BUTTON9", "Input", "", "");
         config.Set<std::string>("InputCoin1", "KEY_3,JOY1_BUTTON10", "Input", "", "");
         config.Set<std::string>("InputCoin2", "KEY_4,JOY2_BUTTON10", "Input", "", "");
-        config.Set<std::string>("InputServiceA", "KEY_5,JOY1_BUTTON16", "Input", "", "");
-        config.Set<std::string>("InputServiceB", "KEY_7,JOY2_BUTTON16", "Input", "", "");
-        config.Set<std::string>("InputTestA", "KEY_6,JOY1_BUTTON15", "Input", "", "");
-        config.Set<std::string>("InputTestB", "KEY_8,JOY2_BUTTON15", "Input", "", "");
+        config.Set<std::string>("InputServiceA", "KEY_5,JOY1_BUTTON15", "Input", "", "");
+        config.Set<std::string>("InputServiceB", "KEY_7,JOY2_BUTTON15", "Input", "", "");
+        config.Set<std::string>("InputTestA", "KEY_6,JOY1_BUTTON16", "Input", "", "");
+        config.Set<std::string>("InputTestB", "KEY_8,JOY2_BUTTON16", "Input", "", "");
 
         // 4-way digital joysticks
         config.Set<std::string>("InputJoyUp", "KEY_UP,JOY1_UP", "Input", "", "");
@@ -192,7 +192,7 @@ namespace LibretroConfigProvider {
         config.Set<std::string>("InputVR4", "KEY_F,JOY1_POV1_RIGHT", "Input", "", ""); // Green: D-Pad Right
 
         // Single view change button (Dirt Devils, ECA, Harley-Davidson, Sega Rally 2)
-        config.Set<std::string>("InputViewChange", "KEY_A,JOY1_POV1_UP", "Input", "", "");
+        config.Set<std::string>("InputViewChange", "KEY_A,JOY1_POV1_UP,JOY1_POV1_DOWN", "Input", "", "");
 
         // Handbrake (Sega Rally 2)
         config.Set<std::string>("InputHandBrake", "KEY_S,JOY1_BUTTON2", "Input", "", "");
@@ -344,8 +344,10 @@ namespace LibretroConfigProvider {
         config.Set("Supersampling", g_options.supersampling);
         config.Set("UpscaleMode", g_options.upscale_mode);
         config.Set("WideScreen",
+                   g_options.aspect_ratio != AspectRatioMode::FourThree &&
                    g_options.widescreen_mode != WidescreenMode::Disabled);
         config.Set("WideBackground",
+                   g_options.aspect_ratio != AspectRatioMode::FourThree &&
                    g_options.widescreen_mode ==
                        WidescreenMode::WidescreenWideBackground);
         config.Set("NoWhiteFlash", g_options.no_white_flash);
@@ -369,7 +371,9 @@ namespace LibretroConfigProvider {
         config.Set("SoundVolume", g_options.sound_volume);
         config.Set("MusicVolume", g_options.music_volume);
         config.Set("LegacySoundDSP", g_options.legacy_sound_dsp);
-        config.Set("ForceFeedback", g_options.force_feedback);
+        // Gamepad Rumble mutes frontend output, not the emulated drive board.
+        // Keep native effects running so output can be enabled without reload.
+        config.Set("ForceFeedback", true);
         config.Set("PowerPCFrequency", static_cast<unsigned>(g_options.ppc_frequency));
         config.Set("MultiThreaded",
                    g_options.emulation_threading !=
@@ -663,10 +667,10 @@ namespace LibretroConfigProvider {
         config.Set<std::string>("InputStart2", "KEY_2,JOY2_BUTTON9");
         config.Set<std::string>("InputCoin1", "KEY_3,JOY1_BUTTON10");
         config.Set<std::string>("InputCoin2", "KEY_4,JOY2_BUTTON10");
-        config.Set<std::string>("InputServiceA", "KEY_5,JOY1_BUTTON16");
-        config.Set<std::string>("InputServiceB", "KEY_7,JOY2_BUTTON16");
-        config.Set<std::string>("InputTestA", "KEY_6,JOY1_BUTTON15");
-        config.Set<std::string>("InputTestB", "KEY_8,JOY2_BUTTON15");
+        config.Set<std::string>("InputServiceA", "KEY_5,JOY1_BUTTON15");
+        config.Set<std::string>("InputServiceB", "KEY_7,JOY2_BUTTON15");
+        config.Set<std::string>("InputTestA", "KEY_6,JOY1_BUTTON16");
+        config.Set<std::string>("InputTestB", "KEY_8,JOY2_BUTTON16");
     }
 
     inline void ApplyStandardJoystickLayout(Util::Config::Node &config, uint32_t inputs)
@@ -879,7 +883,7 @@ namespace LibretroConfigProvider {
             config.Set<std::string>("InputVR4", "KEY_F,JOY1_POV1_RIGHT"); // Green: D-Pad Right
         }
         if (inputs & Game::INPUT_VIEWCHANGE)
-            config.Set<std::string>("InputViewChange", "KEY_A,JOY1_POV1_UP"); // D-Pad Up
+            config.Set<std::string>("InputViewChange", "KEY_A,JOY1_POV1_UP,JOY1_POV1_DOWN"); // D-Pad Up / Down
         if (inputs & Game::INPUT_HANDBRAKE)
         {
             config.Set<std::string>("InputHandBrake", "KEY_S,JOY1_BUTTON1"); // South

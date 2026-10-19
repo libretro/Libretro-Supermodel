@@ -13,7 +13,8 @@ standard_srm = "~/Documents/RetroArch/model3-nvram-analysis/bassdx/game-base.srm
 output_dir = "~/Documents/RetroArch/model3-nvram-analysis/bassdx/generated"
 
 # Common timings, in real seconds.
-startup_wait = 5.0
+# bassdx reaches its input-ready attract loop later than the other parents.
+startup_wait = 12.0
 button_hold = 0.06
 button_hold_long = 0.12
 default_wait = 0.18
@@ -27,19 +28,19 @@ window_height = 384
 # reference other macros; *N repeats a button or macro. CLOSE performs the
 # exact clean shutdown sequence Esc, wait, Esc on this RetroArch process only.
 [macros]
-EnterServ = "L3, WAIT(0.7)"
-OpenGameAssignments = "R3*9, L3, WAIT(0.5)"
-SelectDifficultyType = "R3*1"
-ExitDifficultyType = "R3*6, L3, WAIT(0.5)"
-# SelectCabinetType = "R3*8"
-# ExitCabinetType = "R3*2, L3, WAIT(0.5)"
-# SelectLinkType = "R3*9"
-# ExitLinkType = "R3, L3, WAIT(0.5)"
-ExitServfromGame = "R3*5, L3, WAIT(3.0)"
-OpenCountryAssignments = "R3*7,L3*2, R3*4, L3, R3*2, L3, R3*3, LONG(R3)+L3"
+EnterServ = "TEST, WAIT(0.7)"
+OpenGameAssignments = "SERVICE*9, TEST, WAIT(0.5)"
+SelectDifficultyType = "SERVICE*1"
+ExitDifficultyType = "SERVICE*6, TEST, WAIT(0.5)"
+# SelectCabinetType = "SERVICE*8"
+# ExitCabinetType = "SERVICE*2, TEST, WAIT(0.5)"
+# SelectLinkType = "SERVICE*9"
+# ExitLinkType = "SERVICE, TEST, WAIT(0.5)"
+ExitServfromGame = "SERVICE*5, TEST, WAIT(3.0)"
+OpenCountryAssignments = "SERVICE*7,TEST*2, SERVICE*4, TEST, SERVICE*2, TEST, SERVICE*3, LONG(SERVICE)+TEST"
 SelectCountryType = ""
-ExitCountryType = "L3, R3*3, L3, WAIT(0.5)"
-ExitServfromCountry = "R3*5, L3, WAIT(3.0)"
+ExitCountryType = "TEST, SERVICE*3, TEST, WAIT(0.5)"
+ExitServfromCountry = "SERVICE*5, TEST, WAIT(3.0)"
 Close = "CLOSE"
 
 # Starting from the immutable DELUXE standard above, one press on Cabinet Type
@@ -49,7 +50,7 @@ suffix = "difficulty-00-normal"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*0, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*0, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -60,7 +61,7 @@ suffix = "difficulty-01-medium-hard"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*1, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*1, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -71,7 +72,7 @@ suffix = "difficulty-02-very-hard"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*2, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*2, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -82,7 +83,7 @@ suffix = "difficulty-03-very-easy"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*3, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*3, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -93,7 +94,7 @@ suffix = "difficulty-04-medium-easy"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*4, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*4, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -104,7 +105,7 @@ suffix = "country-00-usa"
 sequence = [
   "@EnterServ",
   "@OpenCountryAssignments",
-  "@SelectCountryType, R3*0, WAIT(0.5)",
+  "@SelectCountryType, SERVICE*0, WAIT(0.5)",
   "@ExitCountryType",
   "@ExitServfromCountry",
   "@Close",
@@ -115,7 +116,7 @@ suffix = "country-01-export"
 sequence = [
   "@EnterServ",
   "@OpenCountryAssignments",
-  "@SelectCountryType, R3*1, WAIT(0.5)",
+  "@SelectCountryType, SERVICE*1, WAIT(0.5)",
   "@ExitCountryType",
   "@ExitServfromCountry",
   "@Close",
@@ -126,7 +127,7 @@ suffix = "country-02-australia"
 sequence = [
   "@EnterServ",
   "@OpenCountryAssignments",
-  "@SelectCountryType, R3*2, WAIT(0.5)",
+  "@SelectCountryType, SERVICE*2, WAIT(0.5)",
   "@ExitCountryType",
   "@ExitServfromCountry",
   "@Close",
@@ -137,7 +138,7 @@ suffix = "country-03-japan"
 sequence = [
   "@EnterServ",
   "@OpenCountryAssignments",
-  "@SelectCountryType, R3*3, WAIT(0.5)",
+  "@SelectCountryType, SERVICE*3, WAIT(0.5)",
   "@ExitCountryType",
   "@ExitServfromCountry",
   "@Close",
@@ -148,4 +149,4 @@ sequence = [
 #
 # [[samples]]
 # suffix = "another-setting"
-# sequence = "@EnterServ, R3*4, L3, WAIT(1.0), @Close"
+# sequence = "@EnterServ, SERVICE*4, TEST, WAIT(1.0), @Close"

@@ -1,0 +1,572 @@
+---
+schema_version: 1
+game:
+  set: fvipers2
+  parent: fvipers2
+  title: Fighting Vipers 2
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: match_count_1p
+      label: Match Count(1P)
+      native_label_raw: MATCH COUNT(1P)
+      position: 1
+      catalogue_position: 1
+      native_default: '2'
+      implemented: false
+      values:
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      photographed_cycle:
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '2'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-1p-000.png"
+        sha256: 77d88ac515342196f7a8c8b273f3d0e7f38d8f96976dd71e42e97fce79c5d75c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-1p-001.png"
+        sha256: f83232bd77b0767b1c2c03f81814f96d40c488e013cc6e52f7f1a1b5e465ae51
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-1p-002.png"
+        sha256: 38f20f3129850352c5fa1658e280361d8d1e81b9b821098e2073db9293a57c85
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-1p-003.png"
+        sha256: '008cc2fd92060db9fdd9bdf5b8f5fee756bc047941f37cc340981fac857ece46'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-1p-004.png"
+        sha256: 77d88ac515342196f7a8c8b273f3d0e7f38d8f96976dd71e42e97fce79c5d75c
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: match_count_vs
+      label: Match Count(VS)
+      native_label_raw: MATCH COUNT(VS)
+      position: 2
+      catalogue_position: 2
+      native_default: '3'
+      implemented: false
+      values:
+      - '3'
+      - '4'
+      - '5'
+      - '2'
+      photographed_cycle:
+      - '3'
+      - '4'
+      - '5'
+      - '2'
+      - '3'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-vs-000.png"
+        sha256: a3462548f056daa052c046a0597327d57b62d6bb8468a328303bb0791d8816b6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-vs-001.png"
+        sha256: 40478290d293454750ec014e64edfc0b383b5363a196486aff0fcdfec01a3f04
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-vs-002.png"
+        sha256: 2091345a9b4fecaa5df262886756e9a6838de67f6b937df4bf862d5b7d3812de
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-vs-003.png"
+        sha256: f3165fbbc6785c2bbaf3e72234f336de9117677dbc2f29323d75ac7c3c8a7f8c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-match-count-vs-004.png"
+        sha256: e8271f35b659fb07a106c7c2b864a28cf43ad849055d8a04d60d2cdcb744ce22
+      dependent_effect: The completed Match Count (VS) cycle starts with Super K.O.
+        On and ends with Super K.O. Off, although Match Count (VS) returns to 3. The
+        runner detects the changed other-value region and restarts the immutable baseline
+        before continuing.
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: round_time_1p
+      label: Round Time(1P)
+      native_label_raw: ROUND TIME(1P)
+      position: 3
+      catalogue_position: 3
+      native_default: '30'
+      implemented: false
+      values:
+      - '30'
+      - '35'
+      - '40'
+      - '45'
+      - '50'
+      - '55'
+      - '60'
+      - '20'
+      - '25'
+      photographed_cycle:
+      - '30'
+      - '35'
+      - '40'
+      - '45'
+      - '50'
+      - '55'
+      - '60'
+      - '20'
+      - '25'
+      - '30'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-000.png"
+        sha256: fef1e4afe120005c661270a4114b0d1722b912d7cec4b443fbd062ac51c8bec3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-001.png"
+        sha256: 9d43e2a099fc54fd1961771da0e2f92c265d359f82922ad7337ec76cde9dd3b5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-002.png"
+        sha256: 9b06080bb448ca39c0519ec39fa35494543ee0f23aaed91d909e8e023de94ef5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-003.png"
+        sha256: a77fc89b7e80aba31363c42adc09ee790feb767051f9b54c7b543549bd37c4d9
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-004.png"
+        sha256: afe156b0032b01b773c56caff615feb16b3135b202f09e75e5c4c912a675f168
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-005.png"
+        sha256: 66ca03ec361243b8d5d3b3b4e4d7aa12420d87303c94800445496761ed25d80b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-006.png"
+        sha256: 80ee1fa17edcfa930833640ceb7fbdc1c88fabe3b248303dc308a3ca9496c09d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-007.png"
+        sha256: 59a3708dc7207d3c9bd09c07ce3d74682d448d957ad07dca02db43663c6ca4fd
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-008.png"
+        sha256: 8e75d0ccecf42004e914c5b0c05a04ddafcfdaf66217bfd366e93e0810171075
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-1p-009.png"
+        sha256: fef1e4afe120005c661270a4114b0d1722b912d7cec4b443fbd062ac51c8bec3
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: round_time_vs
+      label: Round Time(VS)
+      native_label_raw: ROUND TIME(VS)
+      position: 4
+      catalogue_position: 4
+      native_default: '45'
+      implemented: false
+      values:
+      - '45'
+      - '50'
+      - '55'
+      - '60'
+      - '20'
+      - '25'
+      - '30'
+      - '35'
+      - '40'
+      photographed_cycle:
+      - '45'
+      - '50'
+      - '55'
+      - '60'
+      - '20'
+      - '25'
+      - '30'
+      - '35'
+      - '40'
+      - '45'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-000.png"
+        sha256: ab503605b5d09cebf1b211aee2c4001abf6adc0ee5f180a246bc3dfff6707f6e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-001.png"
+        sha256: f23984362673c35a7ee556452547d956969fd60fdb33ef362886ac3fc9ae9fa9
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-002.png"
+        sha256: 0bd66a19bf37f6fcdb505d567d632d5fc28e235d280da0b946ed5149b8429033
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-003.png"
+        sha256: 74dc741caca2249a80f094f0056ef07689393e73a7a3727b3bb056e09b3de4fb
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-004.png"
+        sha256: 229f692ef980cba4d02446f45ea37d975d03353e35f6baf5707a439d7b355211
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-005.png"
+        sha256: c02946cad00712906f8df8875c4050ed3c73fd5385b1f760ea0887c63cf3be16
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-006.png"
+        sha256: 317ee527a8e8407843c44ce58aa6503127a24c387e25b9a42133d58e012f8b51
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-007.png"
+        sha256: 34d63434198d4943d49803acb11c6d77ae89bb135dea83cbc391ffe477a22c07
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-008.png"
+        sha256: 57a5e4920368764e5776ced1f768744ad4dbfadfb9567e66786f144d4f1e2358
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-round-time-vs-009.png"
+        sha256: ab503605b5d09cebf1b211aee2c4001abf6adc0ee5f180a246bc3dfff6707f6e
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 5
+      catalogue_position: 5
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, VERY HARD, VERY EASY, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: energy_max_1p
+      label: Energy Max(1P)
+      native_label_raw: ENERGY MAX(1P)
+      position: 6
+      catalogue_position: 6
+      native_default: '210'
+      implemented: false
+      values:
+      - '210'
+      - '220'
+      - '230'
+      - '240'
+      - '250'
+      - '260'
+      - '270'
+      - '280'
+      - '290'
+      - '300'
+      - '310'
+      - '320'
+      - '330'
+      - '340'
+      - '350'
+      - '360'
+      - '160'
+      - '170'
+      - '180'
+      - '190'
+      - '200'
+      photographed_cycle:
+      - '210'
+      - '220'
+      - '230'
+      - '240'
+      - '250'
+      - '260'
+      - '270'
+      - '280'
+      - '290'
+      - '300'
+      - '310'
+      - '320'
+      - '330'
+      - '340'
+      - '350'
+      - '360'
+      - '160'
+      - '170'
+      - '180'
+      - '190'
+      - '200'
+      - '210'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-000.png"
+        sha256: 92afc06c647bfd6c7a344f336cbda1d98e6d2e18d617d715d88437342b60ef39
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-001.png"
+        sha256: 557151d28684f1fe04b6177ff9a9fc5bd8a7a965a9c16c6ff764fe80bf9a82db
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-002.png"
+        sha256: 5eed76bb30459f45334b4e491260794e22d189e6da12ab2a5d793c69b7405eff
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-003.png"
+        sha256: 2fe1fe34650551f55163ea8e71b14c181d7a5b924264d8f2a553769b723fe345
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-004.png"
+        sha256: 6ff8abeb8fd4ce36904f57b844bee420d81c0d7ef585a1cfc7c430aff38fbd29
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-005.png"
+        sha256: b92cd155ffd98f764e80410193909574b3e2b965e147906bce1911869e7ffe33
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-006.png"
+        sha256: c1f4ceb5b0a593831a8c73dcd7c5a4dcf52a31608c272e038b6a0364cbb2bfc6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-007.png"
+        sha256: 6226d40de4a0807e4dbcb886690298c7c85bff71ebd0d91c5a93b669b16c6706
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-008.png"
+        sha256: ba3b98efc46382b155b8b3c45da153d1de318ad8e77905064a94878997fc842c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-009.png"
+        sha256: 20f76b150adf4f5710e1191f709b195a80531cdd6c6f4cf7a9b5327f60ef3324
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-010.png"
+        sha256: bd86ca00a21403219108649731c71b3b5c9af8080eda3006187e84503b45bbe4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-011.png"
+        sha256: 38040d6477920eb92075839bb7a88fd5bc9449fa97234205ac170c14784c50ea
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-012.png"
+        sha256: 96b1a53d2888eaba381992c2d7ce28485266a36c5c9c16fb5efa39847539b525
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-013.png"
+        sha256: c9cd1ab4687ae7d51ad04491c0b1d34780c1a39ae2a5907a25517edf76abb266
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-014.png"
+        sha256: 8e9860c072144cf45ba3384fd372574a1b93c6eedda9c60bb3912e44669c2bf3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-015.png"
+        sha256: 6326c39be9009061fe7a96d1fae109f1acaefc87fbafd227b69a5b63e84a8d1f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-016.png"
+        sha256: 5e4d1989c4eb8b966a07c694ab8d2359dc00b24626cdc7c9406bd7ba4e29856b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-017.png"
+        sha256: 55306271de3030d80bb4bccd8756c019f6af556231c31603f25f4654c714b66f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-018.png"
+        sha256: e11e13d3399d128c475b2c8186a4a710c79212a9089fafd6ca63199eee250b16
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-019.png"
+        sha256: 8eb55a816c396326a0bc438434feebe7d4a976b6ca83db463dc26de1256d49d4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-020.png"
+        sha256: f6b135e16455f3c0d45cee1445cb50af0da61aafcf4e418006ee7c51f578da1a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-1p-021.png"
+        sha256: 92afc06c647bfd6c7a344f336cbda1d98e6d2e18d617d715d88437342b60ef39
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: energy_max_vs
+      label: Energy Max(VS)
+      native_label_raw: ENERGY MAX(VS)
+      position: 7
+      catalogue_position: 7
+      native_default: '210'
+      implemented: false
+      values:
+      - '210'
+      - '220'
+      - '230'
+      - '240'
+      - '250'
+      - '260'
+      - '270'
+      - '280'
+      - '290'
+      - '300'
+      - '310'
+      - '320'
+      - '330'
+      - '340'
+      - '350'
+      - '360'
+      - '370'
+      - '380'
+      - '390'
+      - '400'
+      - '180'
+      - '190'
+      - '200'
+      photographed_cycle:
+      - '210'
+      - '220'
+      - '230'
+      - '240'
+      - '250'
+      - '260'
+      - '270'
+      - '280'
+      - '290'
+      - '300'
+      - '310'
+      - '320'
+      - '330'
+      - '340'
+      - '350'
+      - '360'
+      - '370'
+      - '380'
+      - '390'
+      - '400'
+      - '180'
+      - '190'
+      - '200'
+      - '210'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-000.png"
+        sha256: f634aaef6ceca2d14151a18a01556c8ea0abb25284551ef27f17fa99bc8f2758
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-001.png"
+        sha256: 1cec2df3c1d08a9e9887cf1440ff6c6c4681406c2477ed5b1cc5537213cf7017
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-002.png"
+        sha256: ff928b5c328333a5724814f4e95f65289777a16863889bd8cc6f73cb36d61e32
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-003.png"
+        sha256: d14f946797c889f6cb1102431679818c43b562e484d17da3226c60b17b4b4fcb
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-004.png"
+        sha256: 9da304d3111bd89ae5a67dafb7cd419416bff5233eab592ae4f220051e226aac
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-005.png"
+        sha256: c4c6a7e76d2043afcd5521b22cc7c39592b5ac73ac4db7011fda4a4cc059f4c0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-006.png"
+        sha256: e1723a4f29b370b05189d7d8e3659cf6d874c7835b713d23657c0e097b9b25db
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-007.png"
+        sha256: 74f8c0da4449ce2b1039e459289eeea20a93760bb565ec4aab7bbfe4eb77bcf6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-008.png"
+        sha256: 4b39cb6b4254d95b6fa62beeef884b7f16d1e06d131892e4c9d37972a8388943
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-009.png"
+        sha256: e923b85870c9ac477a847ff7b4244e86d7105584d9c708689858a360bf565e42
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-010.png"
+        sha256: 8f83c8f1cea975d2f3a9cf650128abfec8c9fd93f8183a758a15185f041b615d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-011.png"
+        sha256: adc5a606e1160a382a9e52f93edec377cf9083ce0ae12039edd7a1f6240f5709
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-012.png"
+        sha256: 0e135a77cb566c89fdeb4e41a59b747330ad8d5550e0351a7919aab2b68ebc09
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-013.png"
+        sha256: cdcd19a45f59a9bf1fb7c24824d520f374eb289d51beb866498991347e95fc10
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-014.png"
+        sha256: 90e956657f1354e2b5184421cc2bfb761e427babe8220600a4baa0ebafff27b0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-015.png"
+        sha256: 87340c2be32c2b9660c8f3a1d107f49247670033a8899b76eddd8339fc74fe23
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-016.png"
+        sha256: aaf3a5442b0b610691c89631113bff99243c24ceb962dfdeb21be67ea11f8a6d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-017.png"
+        sha256: f44ee4f9f4eb9c6faef480b73da9910fe9937dfb4d39e618ae246656dc43ac58
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-018.png"
+        sha256: 03b7577072e9e963de6a90668069b738585d1077dc8698157be8b2a972af877a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-019.png"
+        sha256: 686c73319973454de65de0530a607d4766491afb3cae0fc0f8d530a196b14115
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-020.png"
+        sha256: f1056e4b71c424b3a7172a2b919bf8d5a7e58172cfb4ba7917e94a43b3ae9660
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-021.png"
+        sha256: 66bf6b8454d306a41b7e497b122a6bdbf38bf87bab7e46f39b09d17b81eeb9a6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-022.png"
+        sha256: 8ddae12f3c3b2d6d49779ec25e7039fb571fab76404643f2ef1bd6a4e3d06224
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-energy-max-vs-023.png"
+        sha256: f634aaef6ceca2d14151a18a01556c8ea0abb25284551ef27f17fa99bc8f2758
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 8
+      catalogue_position: 8
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-advertise-sound-000.png"
+        sha256: e0a46d4d886ebad350f97a1de30cb25172017c35ce3935900c5a453290cd9b0b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-advertise-sound-001.png"
+        sha256: 44baf802b4cb43f46b421f6ec7002335f1f0bceeb8d07910d582de9498a6c544
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-advertise-sound-002.png"
+        sha256: e0a46d4d886ebad350f97a1de30cb25172017c35ce3935900c5a453290cd9b0b
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: survival_mode
+      label: Survival Mode
+      native_label_raw: SURVIVAL MODE
+      position: 9
+      catalogue_position: 9
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-survival-mode-000.png"
+        sha256: b064540e677a7278432068341eabd3463b41e4f6c161ed0779f1c6ae769373d2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-survival-mode-001.png"
+        sha256: c69781dfde37eb8f1bdc4879e41c428f8eb69264d59b836c3b5a2fa00924b05c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-survival-mode-002.png"
+        sha256: b064540e677a7278432068341eabd3463b41e4f6c161ed0779f1c6ae769373d2
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 10
+      catalogue_position: 10
+      native_default: JAPAN
+      implemented: true
+      observed_values_raw: JAPAN, USA, EXPORT, ASIA
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: vs_finish
+      label: VS Finish
+      native_label_raw: VS FINISH
+      position: 11
+      catalogue_position: 11
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-vs-finish-000.png"
+        sha256: 16323f46771c582e538b4c3cb819ef3e24cff5a2b5b437cb57fa38e82b8e0fbc
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-vs-finish-001.png"
+        sha256: 251fd0b86cb8e87728e1c661a1c7176b543b69fc594b07b825571ffff2a940e6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-vs-finish-002.png"
+        sha256: 16323f46771c582e538b4c3cb819ef3e24cff5a2b5b437cb57fa38e82b8e0fbc
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: super_k_o
+      label: Super K.O.
+      native_label_raw: SUPER K.O.
+      position: 12
+      catalogue_position: 12
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-super-k-o-000.png"
+        sha256: 9f72c7c7a1862cd1d3b82efca47db9c07309951b41d84006f3e003253db7837f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-super-k-o-001.png"
+        sha256: 43e2c7193c296af4dced59c40b4f0d85f5e50526f0e258f86e8a6638f7b149c9
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-super-k-o-002.png"
+        sha256: 9f72c7c7a1862cd1d3b82efca47db9c07309951b41d84006f3e003253db7837f
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: bike_logo
+      label: Bike Logo
+      native_label_raw: BIKE LOGO
+      position: 13
+      catalogue_position: 13
+      native_default: 'ON'
+      implemented: false
+      dependency: On/Off Captured In Japan; Native -- Remains Documented In Asia
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-bike-logo-000.png"
+        sha256: dc382e7d02c4847d0ba4e3adbfbb7f383e24144831f863c98f6c051a8fd17ab8
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-bike-logo-001.png"
+        sha256: d3f848993252dfb58acd69713c6b155b268adcd0cf1e11fe40d6e1fadc1f9131
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/fvipers2/screenshots/fvipers2-20261018-cycle-bike-logo-002.png"
+        sha256: dc382e7d02c4847d0ba4e3adbfbb7f383e24144831f863c98f6c051a8fd17ab8
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested

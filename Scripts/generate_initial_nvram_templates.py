@@ -8,24 +8,32 @@ import struct
 from pathlib import Path
 
 
-# Every released set for which Automatic Initial NVRAM Setup changes Link Mode,
-# the two released Star Wars Trilogy Arcade sets whose cabinet is forced to
-# Upright, and gun games requiring normalized Service-menu calibration.
-# Prototypes and location tests are intentionally excluded.
+# Released sets whose current Automatic Initial NVRAM route has been validated
+# for Country, Link Mode, an approved cabinet default, or analog calibration.
+# Prototypes, location tests, other pre-release sets and sets without an
+# automatic field are excluded. Fixed-country releases may still have a
+# reviewed automatic network-role field (for example, scudau).
 GAMES = (
+    "bassdx", "getbassdx", "getbassur", "getbass",
     "daytona2", "dayto2pe",
     "dirtdvls", "dirtdvlsu", "dirtdvlsau", "dirtdvlsj", "dirtdvlsg",
+    "fvipers2", "fvipers2o",
     "harley", "harleya",
     "lamachin",
     "lemans24",
     "lostwsga",
+    "magtruck",
     "oceanhun", "oceanhuna",
     "scud", "scudau", "scuddx", "scuddxo", "scudplus", "scudplusa",
     "skichamp",
     "spikeofe", "spikeout",
     "srally2", "srally2dx",
     "swtrilgy", "swtrilgya",
+    "vf3", "vf3a", "vf3c", "vf3tb",
     "von2", "von254g", "von2a", "von2o",
+    "vs2", "vs215",
+    "vs298",
+    "vs2v991", "vs299a", "vs299", "vs29915", "vs29915a",
 )
 
 def block_data(blob: bytes, wanted: bytes) -> bytes:

@@ -55,6 +55,8 @@ public:
     static const std::string& GetGameXMLPath() { return s_gameXMLFilePath; }
     void SetWidescreen(bool enabled, bool wideBackground);
     void SetCrosshairs(unsigned mask);
+    void SetNetworkBoard(bool connected);
+    void SetNetworkCabinets(unsigned cabinets);
     void setXRes(unsigned val) { xRes = val; }
     void setYRes(unsigned val) { yRes = val; }
     void setXOffset(unsigned val) { xOffset = val; }
@@ -67,7 +69,8 @@ public:
     void setHwRender(retro_hw_render_callback val) { hw_render = val; }
     void InitializePaths(const std::string& systemPath);
     void UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
-                          unsigned outputWidth, unsigned outputHeight);
+                          unsigned outputWidth, unsigned outputHeight,
+                          bool widescreen, bool wideBackground);
     void SetSoundVolume(int volume);
     void SetMusicVolume(int volume);
     int Emulate(const char* romPath);

@@ -1,0 +1,248 @@
+---
+schema_version: 1
+game:
+  set: daytona2
+  parent: daytona2
+  title: Daytona USA 2 - Battle on the Edge
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 1
+      native_default: JAPAN
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      read_only_display:
+        menu: game_assignments
+        position: 1
+      observed_values_raw: JAPAN, USA, EXPORT, AUSTRALIA, KOREA
+      historical_photo_evidence: base + ciclo completo nella schermata nascosta Country
+        Assignments
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  game_assignments:
+    options:
+    - key: link_id
+      label: Link ID
+      native_label_raw: LINK ID
+      position: 2
+      catalogue_position: 2
+      native_default: MASTER
+      implemented: true
+      observed_values_raw: MASTER, SLAVE, LIVE, SINGLE
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: car_number
+      label: Car Number
+      native_label_raw: CAR NUMBER
+      position: 3
+      catalogue_position: 3
+      native_default: '1'
+      implemented: true
+      observed_values_raw: da 1 a 16
+      historical_photo_evidence: base + ciclo completo; disponibile con LINK ID MASTER
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: cabinet_type
+      label: Cabinet Type
+      native_label_raw: CABINET TYPE
+      position: 4
+      catalogue_position: 4
+      native_default: TWIN
+      implemented: true
+      observed_values_raw: TWIN, DELUXE
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 5
+      catalogue_position: 5
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, HARDER, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 6
+      catalogue_position: 6
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-advertise-sound-000.png"
+        sha256: d680b2fd5f6b4fdc36fbc830bd878ef9f63e07cafd5386e7ea3ab257a03b2f3a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-advertise-sound-001.png"
+        sha256: 4666c04f2a520d103dceefc7c67979048a1d96a353885b144ce976f62e8c17ed
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-advertise-sound-002.png"
+        sha256: d680b2fd5f6b4fdc36fbc830bd878ef9f63e07cafd5386e7ea3ab257a03b2f3a
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: vocal
+      label: Vocal
+      native_label_raw: VOCAL
+      position: 7
+      catalogue_position: 7
+      native_default: DENNIS
+      implemented: true
+      observed_values_raw: DENNIS, MITSUYOSHI
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: game_mode
+      label: Game Mode
+      native_label_raw: GAME MODE
+      position: 8
+      catalogue_position: 8
+      native_default: NORMAL(SPRINT)
+      implemented: false
+      values:
+      - NORMAL(SPRINT)
+      - GRAND PRIX
+      - 100 MILES
+      - 200 MILES
+      - 300 MILES
+      - 400 MILES
+      - 500 MILES
+      photographed_cycle:
+      - NORMAL(SPRINT)
+      - GRAND PRIX
+      - 100 MILES
+      - 200 MILES
+      - 300 MILES
+      - 400 MILES
+      - 500 MILES
+      - NORMAL(SPRINT)
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-game-mode-000.png"
+        sha256: 55647aa1e2e56eba8360e58742b63f758dcce6c18a7e6f616491070acb5050e2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-game-mode-001.png"
+        sha256: 41a5322302efc0977db3d6a5fc7bcce9701eca18775b6c5f02ed1b15ad7cf11d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-game-mode-002.png"
+        sha256: d08803cc70530ac67289cdfda418853ce765ba08cca136b0b85f07bafa5f75ae
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-game-mode-003.png"
+        sha256: 23f64cfd301d30026f5e898258f87fce2aeaa21673274e37130a1bf20df78d94
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-game-mode-004.png"
+        sha256: 8f2461209e65542bc79f6f010bafc102814f7ebc419a33cfc1a5531e989ad1b7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-game-mode-005.png"
+        sha256: 775ecf80e1eca428b9fcc4110ab61a2e8db719aea0ce73f3967c342ff60cd5cf
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-game-mode-006.png"
+        sha256: f40f452e77f5335cc725024b8c3f56ff235ef1b161dfd636c604ffb6d567dcee
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-game-mode-007.png"
+        sha256: 55647aa1e2e56eba8360e58742b63f758dcce6c18a7e6f616491070acb5050e2
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: motor_power
+      label: Motor Power
+      native_label_raw: MOTOR POWER
+      position: 9
+      catalogue_position: 9
+      native_default: 80%
+      implemented: false
+      values:
+      - 80%
+      - 90%
+      - 100%
+      - 50%
+      - 60%
+      - 70%
+      photographed_cycle:
+      - 80%
+      - 90%
+      - 100%
+      - 50%
+      - 60%
+      - 70%
+      - 80%
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-motor-power-000.png"
+        sha256: 20182427caeaeca8da3c709cb19767230013140b760c7824ace7c3d54fa1ade2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-motor-power-001.png"
+        sha256: 5adc357150ce3003424c1d4c47fb83b90c36e161969f0e3075e8cdbb7cdbde84
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-motor-power-002.png"
+        sha256: 6a22a6a3b026ce682897a8222cf42a5740bbfa19f585e0f6da01e43a35929cff
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-motor-power-003.png"
+        sha256: edd0274b7050d9a716d410d232462a93a98bbf9eef37e77b87a0cc26ac5b9114
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-motor-power-004.png"
+        sha256: 249a93806b920ad692772efc04ae1d42108c19f37e9d6a723655021d6cd6a28d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-motor-power-005.png"
+        sha256: 753f49c998661b93ddfe80d25ad4f33dfde1865265c1e2eca664450701615cb0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-motor-power-006.png"
+        sha256: 20182427caeaeca8da3c709cb19767230013140b760c7824ace7c3d54fa1ade2
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: ranking_mode
+      label: Ranking Mode
+      native_label_raw: RANKING MODE
+      position: 10
+      catalogue_position: 10
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - CAMPAIGN
+      photographed_cycle:
+      - NORMAL
+      - CAMPAIGN
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-ranking-mode-000.png"
+        sha256: 5e7843b83d76acc632c17e9ae82594c1afc7a839786fd3f587c336c081c8cf99
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-ranking-mode-001.png"
+        sha256: d55578adcf107ecc17ac592def9beacd2ad4df2dc0baa687ee5894eb1564e9ac
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/daytona2/screenshots/daytona2-20261018-cycle-ranking-mode-002.png"
+        sha256: 5e7843b83d76acc632c17e9ae82594c1afc7a839786fd3f587c336c081c8cf99
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested

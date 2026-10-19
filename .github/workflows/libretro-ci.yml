@@ -4,7 +4,7 @@ name: Libretro Core CI
 on:
   push:
     branches:
-      - supermodel-modern
+      - main
   pull_request:
   workflow_dispatch:
 
@@ -76,10 +76,20 @@ jobs:
           update: true
           install: >-
             file
+            git
             make
             mingw-w64-x86_64-binutils
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-python
+
+      - name: Preserve committed line endings on Windows
+        if: runner.os == 'Windows'
+        run: |
+          # Fresh CI checkout only: avoid autocrlf changing mixed-ending upstream files.
+          git config core.autocrlf false
+          git checkout-index --force --all
+          git diff --exit-code
 
       - name: Build Libretro core
         env:
@@ -98,10 +108,8 @@ jobs:
         env:
           CORE_TARGET: ${{ matrix.target }}
         run: |
-          mkdir -p artifact/system/supermodel
-          cp "$CORE_TARGET" artifact/
-          cp supermodel_libretro.info artifact/
-          cp Config/Games.xml Config/Music.xml artifact/system/supermodel/
+          git diff --exit-code
+          python3 .github/scripts/package-libretro-core.py "$CORE_TARGET" artifact
 
       - name: Upload core artifact
         uses: actions/upload-artifact@v7

@@ -1,0 +1,98 @@
+---
+schema_version: 1
+game:
+  set: lostwsga
+  parent: lostwsga
+  title: The Lost World
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: No New Acquisition Required
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lostwsga/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: game_difficulty
+      label: Game Difficulty
+      native_label_raw: GAME DIFFICULTY
+      position: 1
+      catalogue_position: 1
+      native_default: barra 8 / 16
+      implemented: true
+      observed_values_raw: barre da 1 / 16 a 16 / 16
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 2
+      catalogue_position: 2
+      native_default: 'ON'
+      implemented: false
+      observed_values_raw: ON, OFF
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: life
+      label: Life
+      native_label_raw: LIFE
+      position: 3
+      catalogue_position: 3
+      native_default: '3'
+      implemented: false
+      observed_values_raw: 1, 2, 3, 4, 5, 6, 7, 8, 9
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: boss_action
+      label: Boss Action
+      native_label_raw: BOSS ACTION
+      position: 5
+      catalogue_position: 5
+      native_default: NORMAL
+      implemented: false
+      observed_values_raw: NORMAL, MILD
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 4
+      native_default: JAPAN
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      read_only_display:
+        menu: game_assignments
+        position: 4
+      observed_values_raw: JAPAN, USA, EXPORT, AUSTRALIA
+      historical_photo_evidence: riga non modificabile in Game Assignments; ciclo
+        completo in Country Select Mode
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

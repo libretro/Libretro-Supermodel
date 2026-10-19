@@ -102,7 +102,7 @@ private:
   std::vector<uint8_t> BuildPacket(uint8_t type, uint32_t frame,
                                    const uint8_t *payload,
                                    size_t payloadSize) const;
-  void SendHello();
+  void SendHello(bool request = true);
   bool TryCompleteHandshake();
   void EnterReadyState();
   void ExchangeFrame();

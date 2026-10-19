@@ -1,0 +1,94 @@
+---
+schema_version: 1
+game:
+  set: spikeofe
+  parent: spikeofe
+  title: Spikeout Final Edition
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/spikeofe/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 1
+      native_default: EXPORT
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      read_only_display:
+        menu: game_assignments
+        position: 1
+      observed_values_raw: EXPORT, AUSTRALIA, JAPAN, USA
+      historical_photo_evidence: base + ciclo completo nella schermata Country Setting
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  game_assignments:
+    options:
+    - key: game_difficulty
+      label: Game Difficulty
+      native_label_raw: GAME DIFFICULTY
+      position: 2
+      catalogue_position: 2
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, HARDEST, EASIEST, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 3
+      catalogue_position: 3
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/spikeofe/screenshots/spikeofe-20261018-cycle-advertise-sound-000.png"
+        sha256: 452dbbc9ea76742eb90e94af6ce7ebc68851d85bb9dd5eaca963fe25bbb676a1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/spikeofe/screenshots/spikeofe-20261018-cycle-advertise-sound-001.png"
+        sha256: 2130acfa563a2a2ca879bee47d5f7d86b54341c5565017a25c7f9acc3f6d2fe0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/spikeofe/screenshots/spikeofe-20261018-cycle-advertise-sound-002.png"
+        sha256: 452dbbc9ea76742eb90e94af6ce7ebc68851d85bb9dd5eaca963fe25bbb676a1
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: comm_id
+      label: COMM ID
+      native_label_raw: COMM ID
+      position: 4
+      catalogue_position: 4
+      native_default: SINGLE
+      implemented: true
+      observed_values_raw: SINGLE, MASTER, SLAVE
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

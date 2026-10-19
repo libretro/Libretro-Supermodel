@@ -1,0 +1,211 @@
+---
+schema_version: 1
+game:
+  set: magtruck
+  parent: magtruck
+  title: Magical Truck Adventure
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: game_difficulty
+      label: Game Difficulty
+      native_label_raw: GAME DIFFICULTY
+      position: 1
+      catalogue_position: 1
+      native_default: barra 8 / 16
+      implemented: true
+      observed_values_raw: barre da 1 / 16 a 16 / 16
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: damage_recovery
+      label: Damage Recovery
+      native_label_raw: DAMAGE RECOVERY
+      position: 2
+      catalogue_position: 2
+      native_default: 8/16 Bars
+      implemented: false
+      values:
+      - 8/16 Bars
+      - 9/16 Bars
+      - 10/16 Bars
+      - 11/16 Bars
+      - 12/16 Bars
+      - 13/16 Bars
+      - 14/16 Bars
+      - 15/16 Bars
+      - 16/16 Bars
+      - 1/16 Bars
+      - 2/16 Bars
+      - 3/16 Bars
+      - 4/16 Bars
+      - 5/16 Bars
+      - 6/16 Bars
+      - 7/16 Bars
+      photographed_cycle:
+      - 8/16 Bars
+      - 9/16 Bars
+      - 10/16 Bars
+      - 11/16 Bars
+      - 12/16 Bars
+      - 13/16 Bars
+      - 14/16 Bars
+      - 15/16 Bars
+      - 16/16 Bars
+      - 1/16 Bars
+      - 2/16 Bars
+      - 3/16 Bars
+      - 4/16 Bars
+      - 5/16 Bars
+      - 6/16 Bars
+      - 7/16 Bars
+      - 8/16 Bars
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-000.png"
+        sha256: 9a67f24bf4c75474e78a89244b8768b5a8610d1af180fe62a7e1abc04f3bcd12
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-001.png"
+        sha256: 22fcd4a8e075c6c4fef8b45b9978c7957f0e1c0f245e49fc8eae2cbb1095d7fc
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-002.png"
+        sha256: 4f3625c758a7688cc1500ae6454a25ef1767df1efce71ac1198c76fd73630ddb
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-003.png"
+        sha256: 5a3910e804a190c12d27a058e8681884751526212359b95586f38897e40f1309
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-004.png"
+        sha256: 1c50ab82135b86c422ce29314dcd0ae1c67814c7f98f9d9279313f407fd19a7d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-005.png"
+        sha256: ed628b33e75dfe44ebb9ec5790734ddc17f75b48560d8eb2ec13709197fd842f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-006.png"
+        sha256: 69253b4589337a4a24313ea413608a685c68f041cac1fc042ad3ca40fa893b34
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-007.png"
+        sha256: a7c97e7d9dddd0c81eb3c7c57820a1a3d34442f2902b892d5a36fe0cc6b70e6d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-008.png"
+        sha256: 5839aa5df342cd45204b7b9024706e8ec3b351e301d80cdd8f65657fb08539b0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-009.png"
+        sha256: df8ec8bf43478369acfedbd4a5108e21bbcbe8b58818135b7a01d35b23ac4457
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-010.png"
+        sha256: 3419c6afacb4fd0757288e8839e305b277cf771e24398ad93c9855046f2c49ce
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-011.png"
+        sha256: d38880ce270d79c4650d014e6f2e36a7fcf747ffb67b0c5a36483c4f9a0eaeb3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-012.png"
+        sha256: 8f32113955278514f8fef6aefd9dc03afe7eb76ec95c8e664cf10324d5bff8ed
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-013.png"
+        sha256: 868b126b9c9e25ef46eab6d7617bbdf652dc1834f614154eb516e71edb2488f4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-014.png"
+        sha256: 4a8e5df9a0043e4c9be7bb7c59b05d60cf6ac6296c8c847bca64b882538faa51
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-015.png"
+        sha256: 7847e0325b7b450710e9b3a77dc35d89dcff25f490c5c4961fee44edd715e08b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-damage-recovery-016.png"
+        sha256: 9a67f24bf4c75474e78a89244b8768b5a8610d1af180fe62a7e1abc04f3bcd12
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: boss_difficulty
+      label: Boss Difficulty
+      native_label_raw: BOSS DIFFICULTY
+      position: 3
+      catalogue_position: 3
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - HARD
+      - VERY HARD
+      - VERY EASY
+      - EASY
+      photographed_cycle:
+      - NORMAL
+      - HARD
+      - VERY HARD
+      - VERY EASY
+      - EASY
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-boss-difficulty-000.png"
+        sha256: ef676553561a93af107c214c079b024a50406e697194609c38bcee4f0bfdd729
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-boss-difficulty-001.png"
+        sha256: ecee6f3f2559d4dd865b40924f638caf60e2eb347cb7a6e94fa4e4621ef18dc0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-boss-difficulty-002.png"
+        sha256: 83cfad8dcb7d2c95a587e96a27fcb5d69ad7d9c88028b00c1b0614b33f391d8c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-boss-difficulty-003.png"
+        sha256: 438a91e3b60a8dfb890796551e58b81996a24a88871ca657b6062284957960a7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-boss-difficulty-004.png"
+        sha256: cf9d751139a5c0e5899e05533f77c6cc2cbb86d2c517b3e196fbb1f470886b39
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-boss-difficulty-005.png"
+        sha256: ef676553561a93af107c214c079b024a50406e697194609c38bcee4f0bfdd729
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 4
+      catalogue_position: 4
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-advertise-sound-000.png"
+        sha256: de519696b909336156dfca8eb7d9b0ff576d848b7a42dcf3df2bcc33530ccd12
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-advertise-sound-001.png"
+        sha256: 8ed60bad8f33f934d60d297a256aed1d41100d7ca907cbc842b1eacb293e984d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/magtruck/screenshots/magtruck-20261018-cycle-advertise-sound-002.png"
+        sha256: de519696b909336156dfca8eb7d9b0ff576d848b7a42dcf3df2bcc33530ccd12
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: christmas_mode
+      label: Christmas Mode
+      native_label_raw: CHRISTMAS MODE
+      position: 5
+      catalogue_position: 5
+      native_default: 'OFF'
+      implemented: true
+      observed_values_raw: OFF, ON
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  country_assignments:
+    options:
+    - key: country_country_code
+      label: Country / Country Code
+      native_label_raw: COUNTRY / COUNTRY CODE
+      position: 1
+      catalogue_position: 6
+      native_default: EXPORT
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      observed_values_raw: EXPORT, AUSTRALIA, USA
+      historical_photo_evidence: base + ciclo completo in Country Select Mode
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

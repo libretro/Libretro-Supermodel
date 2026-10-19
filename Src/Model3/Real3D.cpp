@@ -1073,6 +1073,12 @@ void CReal3D::AttachRenderer(IRender3D *Render3DPtr)
 
   Render3D->SetStepping(step);
 
+  // A replacement renderer has no cached textures or persistent mode registers.
+  // Restore them from native state, as LoadState does, before its first frame.
+  Render3D->UploadTextures(0, 0, 0, 2048, 2048);
+  Render3D->SetSunClamp((m_modeword[static_cast<int>(CASIC::Name::Mars)] & 0x40000) == 0);
+  Render3D->SetBlockCulling((m_modeword[static_cast<int>(CASIC::Name::Mercury)] & 4) == 4);
+
   DebugLog("Real3D attached a Render3D object\n");
 }
 

@@ -176,10 +176,10 @@ CInputs::CInputs(std::shared_ptr<CInputSystem> system)
 
 	analogJoyX         = AddAxisInput  ("AnalogJoyX",        "Analog X-Axis",    Game::INPUT_ANALOG_JOYSTICK, "NONE", analogJoyLeft, analogJoyRight);
 	analogJoyY         = AddAxisInput  ("AnalogJoyY",        "Analog Y-Axis",    Game::INPUT_ANALOG_JOYSTICK, "NONE", analogJoyUp,   analogJoyDown);
-	analogJoyTrigger1  = AddSwitchInput("AnalogJoyTrigger",  "Trigger Button 1", Game::INPUT_ANALOG_JOYSTICK, "NONE");
-	analogJoyTrigger2  = AddSwitchInput("AnalogJoyTrigger2", "Trigger Button 2", Game::INPUT_ANALOG_JOYSTICK, "NONE");
-	analogJoyEvent1    = AddSwitchInput("AnalogJoyEvent",    "Event Button 1",   Game::INPUT_ANALOG_JOYSTICK, "NONE");
-	analogJoyEvent2    = AddSwitchInput("AnalogJoyEvent2",   "Event Button 2",   Game::INPUT_ANALOG_JOYSTICK, "NONE");
+	analogJoyTrigger1  = AddSwitchInput("AnalogJoyTrigger",  "Trigger 1 (Index Button)", Game::INPUT_ANALOG_JOYSTICK, "NONE");
+	analogJoyTrigger2  = AddSwitchInput("AnalogJoyTrigger2", "Trigger 2 (Thumb Button)", Game::INPUT_ANALOG_JOYSTICK, "NONE");
+	analogJoyEvent1    = AddSwitchInput("AnalogJoyEvent",    "Event Button 1 (Left)",    Game::INPUT_ANALOG_JOYSTICK, "NONE");
+	analogJoyEvent2    = AddSwitchInput("AnalogJoyEvent2",   "Event Button 2 (Right)",   Game::INPUT_ANALOG_JOYSTICK, "NONE");
 
 	// Light guns
 	auto gun1Left  = AddAnalogInput("GunLeft",  "P1 Gun Left",  Game::INPUT_GUN1, "NONE");

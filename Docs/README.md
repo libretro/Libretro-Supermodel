@@ -1,412 +1,311 @@
-# Supermodel (Sega Model 3) - Libretro Port (Modernized)
+# Supermodel — Sega Model 3 Libretro Core
 
-A modernized fork of the Sega Model 3 (Supermodel) Libretro core, optimized for modern Linux distributions and updated to C++17 standards.
+[![Libretro Core CI](https://github.com/Zer0one/Libretro-Supermodel/actions/workflows/libretro-ci.yml/badge.svg?branch=main)](https://github.com/Zer0one/Libretro-Supermodel/actions/workflows/libretro-ci.yml)
 
-## Project lineage and review status
+A C++17 Libretro port of Supermodel for running Sega Model 3 arcade games in
+RetroArch. The active development branch is `main`.
 
-This branch is based on the official
-[`libretro/Libretro-Supermodel`](https://github.com/libretro/Libretro-Supermodel)
-repository. Much of the modern Libretro frontend was originally developed by
-[`sgiannop/Libretro-Supermodel`](https://github.com/sgiannop/Libretro-Supermodel);
-that work remains the foundation of this integration and should be credited as
-such.
+This port builds on [libretro/Libretro-Supermodel](https://github.com/libretro/Libretro-Supermodel)
+and the frontend work of [sgiannop/Libretro-Supermodel](https://github.com/sgiannop/Libretro-Supermodel),
+using [standalone Supermodel](https://github.com/trzy/Supermodel) as the machine
+and renderer reference. Upstream changes are reviewed selectively; see the
+[integration ledger](UPSTREAM_INTEGRATION.md) for the exact scope.
 
-The subsequent integration, feature work, diagnosis, and validation were
-developed with assistance from **ChatGPT 5.6 Sol** as part of a study project.
-This disclosure is not a substitute for review: every change should be
-independently inspected and tested before it is accepted into an official
-release.
+## Downloads And Installation
 
-## 🚀 Key Improvements
-- **Unified Makefile:** Single build configuration supporting 6 platforms (Linux, Windows, macOS, Android, RPi64, aarch64) following libretro/skeletor standards.
-- **Platform Auto-Detection:** Automatic platform detection with sensible defaults; platform-specific source filtering for incompatible features.
-- **Native Libretro Audio:** Removed legacy SDL audio dependency in favor of native `audio_batch_cb` synchronization at either the default 60 Hz cadence or native Model 3 timing.
-- **C++17 Migration:** Replaced legacy SDL-based threading and synchronization with native C++17 `std::mutex`, `std::lock_guard`, and atomic operations.
-- **Ubuntu 24.04 Compatibility:** Fixed header conflicts and link-time errors present in the original codebase specifically for modern GCC versions.
-- **Synchronous A/V Timing:** Matches standalone Supermodel's default 60 Hz cadence and 735-sample stereo audio packets; RetroArch owns final A/V synchronization.
-- **Improved Input Mapping:** Full support for Analog/Digital gamepads and keyboard out of the box with improved deadzone handling.
-- **Configurable Service & Test Buttons:** Service and Test buttons are now mappable through the RetroArch input configuration.
-- **Force Feedback / Rumble:** Full force feedback support for steering wheel games via the Libretro rumble interface.
-- **Linked Cabinets:** Experimental API-native Model 3 networking through the Libretro Netpacket interface, without core-owned sockets or discovery.
-- **Game-aware NVRAM:** Optional per-game Service Menu settings and first-boot Single/Stand Alone/No Link initialization while preserving ordinary frontend `.srm` ownership.
-- **True Widescreen:** Expands the 3D horizontal field of view into a native
-  16:9 framebuffer, with an optional wide lower-background layer. Plain 4:3
-  stretching remains the frontend's responsibility.
-- **Libretro Portability:** Remapped configuration, NVRAM, and asset paths to follow official Libretro standards (`system` and `save` directories).
-- **No External GL Dependency:** GLEW replaced with `glsym` from libretro-common — no system GL extension library required on any platform.
-- **Android Support:** Full NDK integration with architecture-specific optimization (arm64, arm with NEON, x86_64, x86) and OpenGL ES 3.0.
-- **macOS Universal Binary:** Builds for both Intel (x86_64) and Apple Silicon (arm64) via osxcross with automatic CPU tuning.
-- **Raspberry Pi Optimized:** GLES3 rendering with CPU-specific tuning for RPi5 (Cortex-A76), RPi4 (Cortex-A72), and generic aarch64.
-- **Windows Support:** Full cross-platform support with dedicated Windows build targets using MinGW — no vendored prebuilt libraries required.
+[GitHub Actions](https://github.com/Zer0one/Libretro-Supermodel/actions/workflows/libretro-ci.yml)
+builds Linux x86_64, Windows x86_64, macOS ARM64 and macOS Intel artifacts from
+this branch. Open a successful run and download the artifact for your platform
+(a GitHub account is required). Native macOS builds are separate binaries for
+each architecture.
 
-## 📂 Required Assets
-The core follows standard Libretro conventions and uses the following location:
+Tagged packages are available under
+[Releases](https://github.com/Zer0one/Libretro-Supermodel/releases).
+The current port release is `v0.3a-20261012-git-ed608de-libretro.1`, based on the selectively integrated
+2026-10-12 upstream snapshot. See the [release notes](RELEASE_NOTES.md) for
+changes, platform coverage and limitations.
 
-* **Preferred path:** `[RetroArch System Directory]/supermodel/`
-* **Files:**
-    * `Games.xml` is required to identify ROM sets. The official embedded copy
-      is extracted on first use when no external file exists.
-    * `Music.xml` is optional and enables the corresponding music metadata.
-    * `Supermodel.ini` is an optional advanced, read-only override. The
-      official embedded copy is extracted on first use; an existing file is
-      always authoritative and is never updated by the core.
+1. Copy `supermodel_libretro.so`, `.dll` or `.dylib` to RetroArch's configured
+   **Cores** directory.
+2. Copy `supermodel_libretro.info` to its configured **Core Info** directory.
+3. Copy the package's `system/supermodel/` files to
+   `[RetroArch System Directory]/supermodel/`.
+4. Load a compatible ROM-set ZIP using the Supermodel core.
 
-The initial port's `[System]/supermodel/Config/` layout remains a compatibility
-fallback, but new installations should use the preferred flat directory.
+Packages include the core, `.info`, `Games.xml`, `Music.xml`, license notices,
+source provenance and SHA-256 checksums. ROMs are not included. Linux and
+Windows packages can be checked with `sha256sum -c SHA256SUMS`; on macOS use
+`shasum -a 256 -c SHA256SUMS`.
 
-## Video geometry
+## Features
 
-`Widescreen Mode` reproduces Supermodel's native widescreen behavior instead
-of stretching the 4:3 image:
+- Game-specific controller profiles, keyboard, mouse and Lightgun input;
+  remappable Service/Test controls and native drive-board rumble.
+- Optional per-game NVRAM settings and validated first-boot initialization,
+  with normal frontend-owned `.srm` persistence.
+- Experimental linked-cabinet play through the official Libretro Netpacket
+  interface, including independent native role selection.
+- OpenGL New3D rendering, optional native Quad interpolation on desktop
+  OpenGL 4.1, internal resolution scaling and widescreen enhancements.
+- Native Libretro audio callbacks, C++17 threading, selectable 60 FPS/native
+  Model 3 timing and a diagnostic timing overlay.
+- Core Options API 2, 1 and legacy registration, with reviewed menu grouping,
+  help text and game-specific visibility.
 
-* `Disabled` renders the original 496x384 view.
-* `Widescreen` expands full-screen 3D viewports horizontally inside a 16:9
-  framebuffer (683x384 at native resolution), while keeping 2D layers at their
-  original geometry.
-* `Widescreen + Wide Background` also stretches the lower 2D background layer
-  to fill the side areas. HUD and upper overlays retain their original aspect.
+## Recent Development Changes
 
-Supermodel's standalone `Stretch` setting is intentionally not exposed: final
-4:3-to-16:9 stretching is already provided by RetroArch's aspect-ratio and
-scaling controls. True widescreen renders about 37.7% more horizontal pixels
-than the native 4:3 mode, so its performance should be measured separately.
-Changes to `Widescreen Mode` take effect after restarting the content, matching
-the renderer-initialization semantics of standalone Supermodel.
+The development branch selectively incorporates newer standalone corrections:
 
-At resolutions above native, `2D Layer Upscaling Filter` selects Supermodel's
-own filter for tile layers before they are composited with the 3D scene. At
-496x384 the engine deliberately uses nearest-neighbor filtering regardless of
-this option.
+- Native wheel drive-board servo gain, vibration decoding, idle stop and command
+  ordering, with compatibility for states lacking the optional servo block.
+- PowerPC interpreter arithmetic/carry, FPSCR and conversion edge-case fixes.
+- Quad triangle interpolation, bounded polygon/list traversal, LOD handling,
+  decal depth/order and LOS sampling after transparency rendering. The port's
+  OpenGL 4.1 support, asynchronous LOS and live renderer reattachment are retained.
 
-`SCSP DSP Engine` defaults to the current MAME-derived implementation. The
-legacy ElSemi engine is retained as a compatibility choice for titles such as
-Fighting Vipers 2. Both this setting and the 2D filter require a content
-restart. Sound and DSB music volume follow standalone's full 0–200% range.
+These changes are newer than the tagged release above. Local macOS ARM64 checks
+cover targeted CPU/native renderer cases, representative game startup/state/reset
+and live video-option transitions; other-platform gameplay and physical rumble
+are not implied. See the [integration ledger](UPSTREAM_INTEGRATION.md) for scope,
+upstream provenance and exclusions. Standalone GUI and Pro-1000 expansion are
+outside this project's scope.
 
-## Timing and synchronization
+## System Files And Saves
 
-`Model 3 Timing Mode` offers the same default `60 FPS` cadence used by
-standalone Supermodel and a native `57.524160 Hz` mode. Both report `44100 Hz`
-stereo audio. The default submits 735 samples per `retro_run`; native timing
-uses a deterministic fractional 766/767-sample cadence so the long-term audio
-rate remains exact. Native timing requires a multi-threaded emulation mode and
-is most useful with a display able to follow the reported refresh rate.
+The preferred support-file location is
+`[RetroArch System Directory]/supermodel/`. The older `supermodel/Config/`
+layout remains a compatibility fallback.
 
-The core does not expose its own VSync setting: the Libretro frontend owns the
-display swapchain, video presentation, audio synchronization, and final sample
-rate conversion.
+| File | Purpose |
+| --- | --- |
+| `Games.xml` | ROM identification and machine definitions. An embedded copy is extracted when no external file exists. |
+| `Music.xml` | Optional music metadata. |
+| `Supermodel.ini` | Optional advanced, read-only override. An embedded default is extracted when missing. Existing files are never overwritten. |
 
-For objective performance checks, enable `Frame Timing Overlay`. Besides the
-engine's PPC, renderer, GPU, synchronization and sound timings, it shows
-61-frame averages for the engine, frontend audio submission, overlay, final
-blit, miscellaneous core work, frontend presentation, total `retro_run`, the
-worst frame, actual frontend cadence, engine capacity, and callback capacity. At 60 Hz,
-sustained `retro_run` time must remain
-below the 16.67 ms frame budget; `Present` may include the frontend's VSync wait.
-`Actual` measures the real cadence between calls from the frontend, while
-`Engine cap` is derived from Supermodel's frame execution alone. `Callback cap`
-is the theoretical rate implied by all time spent inside `retro_run` and is not
-the displayed frame rate. `Audio/pacing` may include intentional frontend
-waiting when RetroArch audio synchronization is enabled.
+Existing external catalogues are authoritative. When upgrading, install the
+package's `Games.xml` if you want the updated definitions; the core does not
+silently replace an existing copy. The current catalogue removes `mgtrkbad`,
+restores Scud Australia's normal operator menu and expects `vs298` component
+`epr-20917.17` with CRC `969E4BDA`.
 
-Controller mappings and RetroArch input labels are selected automatically from
-the control signature declared by the loaded game. See
-[Libretro control profiles](CONTROL_PROFILES.md) for the complete catalog and
-the fallback rules.
+RetroArch normally stores NVRAM as `<content>.srm`. To import a standalone
+Supermodel save, place `<rom-set>.nv` in the configured save directory. It is
+read only when no `.srm` data was supplied; `.srm` takes precedence. Invalid
+native saves are ignored, and the core never writes the imported `.nv` file.
 
-NVRAM is normally persisted by the frontend as `<content>.srm`. To import a
-standalone Supermodel save, place `<rom-set>.nv` directly in the frontend save
-directory. The core reads `.nv` only when no `.srm` data was supplied. If both
-are present, `.srm` takes precedence and the ignored `.nv` path is reported in
-the log. An invalid `.nv` is ignored and replaced by default machine settings
-in a new `.srm`. The core never writes or overwrites the native `.nv` file.
+**Automatic Initial NVRAM Setup** affects newly created saves and supplies
+validated initial settings, including Single/Stand Alone/No Link where
+applicable. **NVRAM Settings** is separately disabled by default and exposes
+only reviewed fields for the loaded set. Existing valid saves are preserved by
+initialization; enabled overrides deliberately apply the selected fields.
 
-`Automatic Initial NVRAM Setup` affects only a newly created save and supplies
-validated Single, Stand Alone, or No Link defaults for games that otherwise
-stop at a network check. `NVRAM Settings` is separate and disabled by default;
-when enabled, it exposes only the fields and values validated for the current
-ROM set and reapplies those per-game choices at startup.
+Effective operator or network changes are combined into one machine reset on
+the next emulation frame. In a paused Quick Menu this occurs on **Resume**;
+**Restart** also consumes pending choices once. In non-pausing Netplay menus,
+emulation continues and changes can therefore reset immediately. Reliable
+menu-exit deferral is not implemented in that context. Unchanged or equivalent
+choices do not reset the machine.
 
-## Linked-cabinet networking
+## Controls
 
-`Network Board` controls whether supported games see the emulated connection
-board. During RetroArch Netplay, the core uses only the official Libretro
-Netpacket interface; it does not open its own sockets or perform peer
-discovery.
+Profiles and labels follow the loaded game's controls. **Controller Profile
+Type** defaults to Normal + Test/Service, including **L3 = Service** and
+**R3 = Test**; Normal
+omits those cabinet slots. Single-View profiles map both D-Pad Up and Down to
+Change View where there is no conflicting action. See the
+[control profiles](CONTROL_PROFILES.md) for per-game mappings.
 
-The frontend and emulated-cabinet roles are deliberately paired. RetroArch
-assigns participant ID 0 to the host, which the core uses as the first Model 3
-cabinet and network initiator. Therefore:
+Standard Gun input combines gamepad, mouse and Lightgun sources. The Lost
+World supports the optional reload shortcuts; the other Model 3 gun titles do
+not require that reload action. Existing dedicated input modes remain
+available. Automatic crosshairs show the core reticle for Lost World and hide
+it for the two gun titles with native reticles.
 
-* start the RetroArch Netplay host before its clients;
-* configure the RetroArch host as `Master` in the game's NVRAM settings or
-  Service Menu;
-* never configure a RetroArch client as `Master`;
-* configure every Type 1 client as `Slave`; Type 2 clients may use a supported
-  `Slave / Satellite` role.
+Rumble forwards emulated drive-board commands to the frontend's rumble API.
+It does not synthesize a separate cornering effect.
 
-Every peer must use the same ROM set, core version, `Linked Cabinets` value,
-and compatible timing settings. Changes made through `NVRAM Settings` take
-effect when the content is restarted.
+## Video And Audio
 
-## 🛠 Build Instructions
+Desktop New3D requests an **OpenGL 4.1 core profile**. GLES targets use
+**OpenGL ES 3.0**. Quad Rendering uses New3D's quadrilateral interpolation and
+is available on desktop OpenGL 4.1, including macOS; it is disabled by default
+and requires a content restart. It is unavailable on GLES and ignored by
+Legacy3D.
 
-**Unified Makefile System:** This core uses a single unified `Makefile` supporting 6 platforms:
-- **Linux/Unix** (native)
-- **Windows** (MinGW cross-compile or native MSYS2)
-- **macOS** (osxcross universal binary: x86_64 + arm64)
-- **Android** (NDK: arm64, arm, x86_64, x86)
-- **Raspberry Pi 64-bit** (RPi5, RPi4, generic aarch64)
-- **Generic aarch64** (ARM64 Linux)
+Quad Rendering can be substantially slower on Apple's OpenGL-to-Metal path.
+The completed [performance investigation](QUAD_RENDERING_PERFORMANCE_2026-10-13.md)
+and [shader follow-up](QUAD_SHADER_INSTRUCTION_REVIEW_2026-10-13.md) reproduce the
+penalty and document the tested alternatives. No safe production workaround
+was adopted; keep Quad Rendering disabled when performance is insufficient.
 
-### Quick Start (All Platforms)
+**Aspect Ratio** offers Auto (default), 4:3 and 16:9. Auto uses the presentation
+selected by Widescreen Mode; explicit 4:3 suppresses expansion. With Widescreen
+Mode Disabled, 16:9 stretches the original complete image. Aspect Ratio changes
+apply when returning to the game without a machine reset.
 
-```bash
-# Linux (default platform)
-make -j$(nproc)
+**Widescreen Mode** keeps native rendering when Disabled. Either Expand mode
+widens the 3D view and reports 16:9 only when Aspect Ratio is Auto or 16:9. There is no verified native
+Model 3 widescreen setting on which to base automatic aspect selection.
 
-# Windows (cross-compile from Linux)
-make platform=win -j$(nproc)
+| Mode | Result |
+| --- | --- |
+| Disabled (Default) | Original 496 × 384 rendering. Aspect Ratio 16:9 stretches the complete image; Auto and 4:3 retain 4:3. |
+| Expand 3D View Only | Wider full-screen 3D viewports in a 16:9 framebuffer, keeping original 2D geometry. |
+| Expand 3D View + Stretch 2D Background | Also widens the lower background layer; HUD/upper overlays retain their original geometry. |
 
-# macOS (osxcross from Linux)
-make platform=osx -j$(nproc)
+These labels retain the saved values `disabled`, `enabled` and `wide_background`
+respectively. They do not change rendering behavior or the default. Unlike
+TGPulse's Stretch 2D mode, Supermodel stretches only its lower background layer.
 
-# Android (all architectures default to arm64)
-make platform=android -j$(nproc)
+Aspect Ratio and Widescreen Mode changes apply when returning to the game, without a machine reset or content reload. Use RetroArch's Core Provided aspect setting to honor the core selector. Final output stretching and
+scaling remain frontend controls. **2D Layer Upscaling Filter** affects tile
+layers above native resolution; native rendering uses nearest-neighbor.
 
-# Raspberry Pi 64-bit
-make platform=rpi64 -j$(nproc)
+**SCSP DSP Engine** defaults to the MAME-derived implementation, with the
+legacy ElSemi engine retained as a compatibility choice. This setting and the
+2D filter require a content restart. Sound and DSB music volume range from
+0 to 200%.
 
-# Generic aarch64
-make platform=aarch64 -j$(nproc)
+**A/V Timing** defaults to 60 FPS, submitting 735 stereo samples per frame at
+44,100 Hz. Native 57.524160 Hz timing uses a fractional 766/767-sample cadence
+and requires multi-threaded emulation. RetroArch owns presentation, VSync,
+audio synchronization and final resampling. Insufficient emulation speed can
+cause audio stuttering.
 
-# Debug build (any platform)
-make DEBUG=1 platform=<platform> -j$(nproc)
+**Timing / FPS Overlay** separates engine, GPU, frontend submission and
+presentation costs. Engine/callback capacity are diagnostic estimates, not
+measured displayed FPS. The current branch also fixes persistent silent audio
+after a machine reset by restoring the startup audio-queue initialization.
 
-# Clean build artifacts
-make clean
+## Linked-Cabinet Networking
+
+Networking is experimental and requires a frontend with Libretro Netpacket
+support. The core opens no sockets and performs no peer discovery.
+
+Exactly two controls are visible: **Linked Cabinets** and **Auto Network Role
+Settings (ANRS)**. Unsupported games show Not Supported. There is no separate
+Network Board switch.
+
+**Linked Cabinets** defaults to Disabled (`-1`; `0` and `1` are accepted
+aliases). All currently reviewed Model 3 boards are optional, so Disabled
+disconnects the emulated board. Numeric choices specify the total participants,
+including a special-role cabinet where supported.
+
+| Game Family | Selectable Total |
+| --- | --- |
+| Daytona USA 2 | 2–17 |
+| Scud Race | 2–8 |
+| Dirt Devils, Le Mans 24, Sega Rally 2, Virtual On 2 | 2–5 |
+| Harley-Davidson, Ski Champ, Spikeout | 2–4 |
+
+These are reviewed theoretical limits; every total and role combination has
+not been qualified in multiplayer gameplay.
+
+**ANRS** defaults to the native Single, Stand Alone or No Link role (`0`).
+Disabled (`-1`) restores manual management. Numeric presets select native
+Master/Slave and the game's identity; `r` selects a supported Live, Relay or
+Satellite role. Native Master is independent of the RetroArch host/client ID.
+Topology and native role remain independent, so the user must choose a valid
+combination.
+
+ANRS operates even with NVRAM Settings disabled. It hides only managed native
+role/identity fields and keeps their selectors synchronized. Disabling it
+returns the last applied values to manual management; unrelated fields and
+native integrity are preserved. Scud Australia's Link ID and Car Number now
+have directly verified mappings.
+
+Machine resets preserve the frontend lobby, transport callbacks and connected
+clients. Peers require compatible content, protocol-v3 cores, participant
+totals and timing. Actual Scud two-peer checks establish roster completion and
+initial data exchange, including native Master on the frontend client.
+Synchronized racing, all role combinations, maximum totals, linked-board Save
+States and cross-platform runtime behavior remain unqualified. See the
+[networking report](NETWORK_TWO_OPTION_2026-10-17.md) for evidence and limits.
+
+## Building
+
+The unified Makefile contains desktop, Android and ARM Linux targets. The
+normal CI matrix validates Linux x86_64, Windows x86_64 and separate macOS ARM64
+and Intel builds, exported Libretro API, dependencies and package contents.
+Android/Raspberry Pi/other ARM targets are not covered by that CI matrix;
+build-target availability does not establish runtime compatibility or speed.
+
+### Linux x86_64
+
+```sh
+sudo apt-get install build-essential libgl-dev libglu1-mesa-dev zlib1g-dev
+make platform=unix -j"$(nproc)"
 ```
 
----
+Output: `supermodel_libretro.so`.
 
-### Linux (Native Build)
+### macOS
 
-#### 1. Install Dependencies (Ubuntu/Debian)
-```bash
-sudo apt update
-sudo apt install build-essential libgl1-mesa-dev libglu1-mesa-dev zlib1g-dev
+Install Xcode Command Line Tools, then build natively:
+
+```sh
+make platform=osx -j"$(sysctl -n hw.ncpu)"
 ```
 
-#### 2. Compile
-```bash
-make -j$(nproc)
+Output: `supermodel_libretro.dylib` for the host architecture. CI builds Intel
+and Apple Silicon separately. The Makefile also retains an osxcross path for
+Linux cross-compilation; it is not the current native CI workflow.
+
+### Windows x86_64
+
+In an MSYS2 **MINGW64** shell:
+
+```sh
+pacman -S --needed make mingw-w64-x86_64-gcc mingw-w64-x86_64-zlib
+make platform=win -j"$(nproc)"
 ```
 
-#### 3. Install
-```bash
-cp supermodel_libretro.so ~/.config/retroarch/cores/
+Output: `supermodel_libretro.dll`. Linux-to-Windows cross-compilation requires
+MinGW-w64 and matching zlib headers/libraries.
+
+### Additional Targets
+
+```sh
+# Android NDK; arch can also be arm, x86_64 or x86
+NDK_ROOT=/path/to/ndk make platform=android arch=arm64 -j4
+
+# ARM Linux cross-compilation with the matching toolchain and dependencies
+make platform=rpi64 -j4
+make platform=aarch64 -j4
+
+# Debug build / cleanup
+make platform=osx DEBUG=1 -j4
+make platform=osx clean
 ```
 
----
+Use `.github/scripts/validate-libretro-core.sh CORE FORMAT_REGEX` for the
+binary gate and `python3 .github/scripts/package-libretro-core.py CORE OUTPUT`
+to assemble a package into an empty directory. `--check` verifies an existing
+package.
 
-### Windows
+## Project Status And References
 
-You can build the core either natively on Windows or via cross-compilation from Linux.
+The [roadmap](ROADMAP.md) distinguishes implemented features, runtime evidence
+and remaining work. The [Service Menu and NVRAM summary](Service_Menu_NVRAM_Summary.xlsx)
+is the single current campaign workbook, covering the native inventory,
+implemented options/defaults/encodings, initialization templates and evidence.
+[Diagnostic recipes](diagnostic-menus/) retain the native menu routes.
 
-#### Option A: Native Windows Build (MSYS2)
+The released-clone binary campaign is complete at 472 values across 35 clones.
+Ten visual value cycles for `vs298` remain blocked by the local old ROM dump;
+this does not invalidate accepted samples. Prototype NVRAM campaigns remain
+outside the established scope. Workbook notes distinguish direct clone proof,
+parent evidence, binary validation and actual frontend reloads.
 
-1. **Install MSYS2**: Download and install from [msys2.org](https://www.msys2.org/).
-2. **Open the "MSYS2 MinGW 64-bit" terminal** (avoid the default MSYS terminal).
-3. **Install Dependencies**:
-    ```bash
-    pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-make mingw-w64-x86_64-zlib
-    ```
-4. **Compile**:
-    ```bash
-    make platform=win -j%NUMBER_OF_PROCESSORS%
-    ```
+Shared frontend conventions follow the Libretro Core Framework as a
+documentation reference, not a runtime dependency. This repository's
+[menu audit](CORE_OPTIONS_ORDER_AUDIT_2026-10-18.md),
+[Core Options interchange](CORE_OPTIONS_UPDATE_FRAMEWORK_INTERCHANGE_2026-10-13.md)
+and roadmap record the implemented scope and Supermodel-specific limits.
 
-#### Option B: Cross-Compilation (from Linux)
+Subsequent integration, feature work, diagnosis and validation were developed
+with assistance from **ChatGPT 5.6 Sol** as part of a study project. This
+historical disclosure does not replace independent review or testing.
 
-1. **Install the MinGW-w64 toolchain**:
-    ```bash
-    sudo apt update
-    sudo apt install binutils-mingw-w64-x86-64 g++-mingw-w64-x86-64 libz-mingw-w64-dev
-    ```
-2. **Compile**:
-    ```bash
-    make platform=win -j$(nproc)
-    ```
-
-**Output:** `supermodel_libretro.dll` → Copy to RetroArch `cores/` directory.
-
----
-
-### macOS (Intel & Apple Silicon Universal Binary)
-
-This core generates a universal binary supporting both Intel (x86_64) and Apple Silicon (arm64 M1/M2/M3+).
-
-#### Option A: Native macOS Build
-
-If building on a macOS system with Xcode installed:
-
-```bash
-# Install dependencies via Homebrew
-brew install zlib
-
-# Compile (generates universal binary)
-make platform=osx -j$(sysctl -n hw.ncpu)
-
-# Install
-cp supermodel_libretro.dylib ~/.config/retroarch/cores/
-```
-
-#### Option B: Cross-Compilation from Linux (Recommended for CI/CD)
-
-1. **Install osxcross toolchain** (to `/opt/osxcross`):
-    ```bash
-    sudo mkdir -p /opt
-    sudo git clone https://github.com/tpoechtrager/osxcross /opt/osxcross
-    cd /opt/osxcross
-    
-    # Download macOS SDK (follow osxcross documentation for MacOSX12.0.sdk)
-    wget -nc https://github.com/rtrussell/osxcross-build/releases/download/12.0/MacOSX12.0.sdk.tar.xz
-    mv MacOSX12.0.sdk.tar.xz tarballs/
-    
-    # Build osxcross
-    sudo ./build.sh
-    ```
-
-2. **Compile** (Makefile auto-detects osxcross):
-    ```bash
-    # Universal binary (x86_64 + arm64)
-    make platform=osx -j$(nproc)
-    
-    # With debug symbols
-    make platform=osx DEBUG=1 -j$(nproc)
-    ```
-    
-    The Makefile automatically:
-    - Detects osxcross at `/opt/osxcross`
-    - Uses `o64-clang`/`o64-clang++` compilers
-    - Configures SDK and deployment target
-    - Generates universal binary for both architectures
-    
-    To override osxcross location:
-    ```bash
-    make platform=osx OSXCROSS_ROOT=/custom/path -j$(nproc)
-    ```
-
-3. **Transfer to macOS** (if building on Linux):
-    ```bash
-    scp supermodel_libretro.dylib user@mac:~/Downloads/
-    # On Mac: cp ~/Downloads/supermodel_libretro.dylib ~/.config/retroarch/cores/
-    ```
-
-**Build Details:**
-- **Deployment Target:** macOS 10.15 (Catalina) and newer
-- **Architecture:** Universal binary (x86_64 + arm64)
-- **Renderer:** Modern OpenGL 3.2+ (Legacy3D excluded)
-- **Build Time:** ~90 seconds on 4 cores
-
----
-
-### Android (NDK)
-
-Requires Android NDK. The Makefile checks `~/Android/Sdk/ndk/28.2.13676358` by default.
-
-```bash
-# arm64 (default and recommended)
-make platform=android -j$(nproc)
-
-# 32-bit ARM (armv7-a with NEON)
-make platform=android arch=arm -j$(nproc)
-
-# x86_64
-make platform=android arch=x86_64 -j$(nproc)
-
-# x86 (32-bit)
-make platform=android arch=x86 -j$(nproc)
-
-# Custom NDK path
-NDK_ROOT=/path/to/ndk make platform=android -j$(nproc)
-```
-
-**Build Features:**
-- Automatic NEON optimization for ARM architectures
-- Position-independent code (PIC) for all binaries
-- Static C++ runtime linking
-- API level 24 (NDK Clang toolchain)
-- GLES 3.0 rendering support
-
-**Output:** `supermodel_libretro_android.so` → Copy to Android RetroArch cores directory (usually `/data/data/com.retroarch/cores/`)
-
----
-
-### Raspberry Pi 64-bit (RPi5, RPi4, aarch64)
-
-Build for Raspberry Pi 4/5 with OpenGL ES 3.0 support.
-
-#### 1. Install Cross-Compilation Toolchain (on build machine)
-
-```bash
-sudo apt update
-sudo apt install aarch64-linux-gnu-gcc aarch64-linux-gnu-g++ zlib1g-dev:arm64
-```
-
-#### 2. Compile
-
-```bash
-# Raspberry Pi 5 (cortex-a76)
-make platform=rpi64 -j$(nproc)
-
-# or generic aarch64
-make platform=aarch64 -j$(nproc)
-```
-
-The Makefile auto-tunes the CPU based on platform:
-- **rpi5**: Cortex-A76 optimizations
-- **rpi4-64**: Cortex-A72 optimizations
-- **rpi64 (default)**: Cortex-A53 optimizations
-- **aarch64**: Generic aarch64 (no CPU-specific tuning)
-
-#### 3. Transfer to Raspberry Pi
-
-```bash
-scp supermodel_libretro_aarch64.so pi@raspberrypi:~/.config/retroarch/cores/supermodel_libretro.so
-```
-
-**Platform Features:**
-- GLES 3.0 rendering via `glsym_es3`
-- Legacy3D renderer excluded (GLES incompatible)
-- Optimized for aarch64 ARM architecture
-- Full force feedback support
-- Synchronous 60 Hz audio (735 stereo samples per frame)
-
-**Performance Notes:** On Raspberry Pi, performance varies by game and model:
-- **RPi 5:** Can handle most games at native resolution
-- **RPi 4:** Older/simpler titles (VF3, Daytona) run well; may need scaling for demanding titles
-- **RPi 3:** Limited performance; resolution scaling recommended
-
----
-
-### Generic aarch64 (Standalone ARM64 Linux)
-
-For generic ARM64 Linux systems (not Raspberry Pi):
-
-```bash
-make platform=aarch64 -j$(nproc)
-```
-
-Same as RPi64 but without CPU-specific tuning. Suitable for:
-- ARM64 servers
-- Generic ARM development boards
-- Amazon Graviton instances
-- Other aarch64 Linux systems
-
----
-
-## 🎮 Performance Notes
-For performance-heavy titles (e.g., Sega Rally 2 or Daytona USA 2), ensure you are running the core in Release mode. This core uses synchronous audio; if your CPU cannot maintain the full 60 Hz emulation speed, you may experience audio stuttering.
-
-On Raspberry Pi, performance depends on the specific model and game. Older titles (e.g., Virtua Fighter 3) run well on Pi 4/5, while demanding titles may require resolution scaling adjustments via RetroArch core options.
+The project is distributed under [GPLv3+](LICENSE.txt); see also
+[third-party notices](THIRD_PARTY_NOTICES.txt).

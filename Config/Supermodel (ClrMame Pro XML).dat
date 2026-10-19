@@ -686,7 +686,7 @@
     <rom name='epr-18022.ic2' crc='0ca70f80'/>
   </game>
   <game name='fvipers2o' sourcefile='Games.xml' cloneof='fvipers2' romof='fvipers2'>
-    <description>Fighting Vipers 2 (Japan)</description>
+    <description>Fighting Vipers 2 (?)</description>
     <year>1998</year>
     <manufacturer>Sega</manufacturer>
     <rom name='epr-20599.20' crc='69a0009d'/>
@@ -1020,40 +1020,6 @@
     <rom name='mpr-21428.24' crc='162d1e43'/>
     <rom name='mpr-21431.23' crc='0ef8f7bb'/>
     <rom name='mpr-21432.25' crc='59c0f6df'/>
-  </game>
-  <game name='mgtrkbad' sourcefile='Games.xml' cloneof='magtruck' romof='magtruck'>
-    <description>Magical Truck Adventure (Japan)</description>
-    <year>1998</year>
-    <manufacturer>Sega</manufacturer>
-    <rom name='epr-21434.20' crc='e028d7ca'/>
-    <rom name='epr-21436.19' crc='22bcbca3' merge='epr-21436.19'/>
-    <rom name='epr-21433.18' crc='60aa9d76'/>
-    <rom name='epr-21435.17' crc='9b169446' merge='epr-21435.17'/>
-    <rom name='mpr-21426.4' crc='ce77e26e' merge='mpr-21426.4'/>
-    <rom name='mpr-21425.3' crc='ad235849' merge='mpr-21425.3'/>
-    <rom name='mpr-21424.2' crc='25358fdf' merge='mpr-21424.2'/>
-    <rom name='mpr-21423.1' crc='4ee0060a' merge='mpr-21423.1'/>
-    <rom name='mpr-21407.26' crc='3ffb416c' merge='mpr-21407.26'/>
-    <rom name='mpr-21408.27' crc='3e00a7ef' merge='mpr-21408.27'/>
-    <rom name='mpr-21409.28' crc='a4673bbf' merge='mpr-21409.28'/>
-    <rom name='mpr-21410.29' crc='c9f43b4a' merge='mpr-21410.29'/>
-    <rom name='mpr-21411.30' crc='f14957c7' merge='mpr-21411.30'/>
-    <rom name='mpr-21412.31' crc='ec24091f' merge='mpr-21412.31'/>
-    <rom name='mpr-21413.32' crc='ea9049e0' merge='mpr-21413.32'/>
-    <rom name='mpr-21414.33' crc='79bc5ffd' merge='mpr-21414.33'/>
-    <rom name='mpr-21415.34' crc='f96fe7a2' merge='mpr-21415.34'/>
-    <rom name='mpr-21416.35' crc='84a08b3e' merge='mpr-21416.35'/>
-    <rom name='mpr-21417.36' crc='6094975c' merge='mpr-21417.36'/>
-    <rom name='mpr-21418.37' crc='7bb868ba' merge='mpr-21418.37'/>
-    <rom name='mpr-21419.38' crc='be7325c2' merge='mpr-21419.38'/>
-    <rom name='mpr-21420.39' crc='8b577e7b' merge='mpr-21420.39'/>
-    <rom name='mpr-21421.40' crc='71e4e9fc' merge='mpr-21421.40'/>
-    <rom name='mpr-21422.41' crc='feca77a5' merge='mpr-21422.41'/>
-    <rom name='epr-21438.21' crc='6815af9e' merge='epr-21438.21'/>
-    <rom name='mpr-21427.22' crc='884566f6' merge='mpr-21427.22'/>
-    <rom name='mpr-21428.24' crc='162d1e43' merge='mpr-21428.24'/>
-    <rom name='mpr-21431.23' crc='0ef8f7bb' merge='mpr-21431.23'/>
-    <rom name='mpr-21432.25' crc='59c0f6df' merge='mpr-21432.25'/>
   </game>
   <game name='oceanhun' sourcefile='Games.xml'>
     <description>The Ocean Hunter (Japan, Revision A)</description>
@@ -2401,7 +2367,7 @@
     <rom name='epr-20920.20' crc='428d05fc'/>
     <rom name='epr-20919.19' crc='7a0713d2'/>
     <rom name='epr-20918.18' crc='0e9cdc5b'/>
-    <rom name='epr-20917.17' crc='c3bbb270'/>
+    <rom name='epr-20917.17' crc='969e4bda'/>
     <rom name='mpr-20894.4' crc='09c065cc'/>
     <rom name='mpr-20893.3' crc='5c83dcaa'/>
     <rom name='mpr-20892.2' crc='8e5d3fe7'/>

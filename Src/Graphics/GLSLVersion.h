@@ -57,7 +57,7 @@ public:
 
     /**
      * @brief Get GLSL version string for R3D shader with quad support
-     * On desktop, supports both 410 core and 450 core based on quad rendering flag
+     * On desktop, both triangle and quad rendering use 410 core
      * On GLES, always returns 300 es with advanced precision
      */
     static std::string GetR3D(bool useQuads = false);

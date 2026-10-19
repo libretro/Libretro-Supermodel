@@ -27,21 +27,21 @@ window_height = 384
 # reference other macros; *N repeats a button or macro. CLOSE performs the
 # exact clean shutdown sequence Esc, wait, Esc on this RetroArch process only.
 [macros]
-EnterServ = "L3, WAIT(0.7)"
-OpenGameAssignments = "R3*7, L3, WAIT(0.5)"
-ExitServfromGame = "R3*6, L3, WAIT(4.0)"
-SelectDifficultyType = "R3*1"
-ExitDifficultyType = "R3*10, L3, WAIT(0.5)"
-# SelectCabinetType = "R3*3"
-# ExitCabinetType = "R3*7, L3, WAIT(0.5)"
-# SelectLinkType = "R3*7"
-# ExitLinkType = "R3*3, L3, WAIT(0.5)"
-# SelectLinkId = "R3*8"
-# ExitLinkId = "R3*2, L3, WAIT(0.5)"
-# OpenCountryAssignments = "START*2, R3, START*3, R3, L3, WAIT(0.5)"
-# ExitServfromCountry = "L3, WAIT(4.0)"
+EnterServ = "TEST, WAIT(0.7)"
+OpenGameAssignments = "SERVICE*7, TEST, WAIT(0.5)"
+ExitServfromGame = "SERVICE*6, TEST, WAIT(4.0)"
+SelectDifficultyType = "SERVICE*1"
+ExitDifficultyType = "SERVICE*10, TEST, WAIT(0.5)"
+# SelectCabinetType = "SERVICE*3"
+# ExitCabinetType = "SERVICE*7, TEST, WAIT(0.5)"
+# SelectLinkType = "SERVICE*7"
+# ExitLinkType = "SERVICE*3, TEST, WAIT(0.5)"
+# SelectLinkId = "SERVICE*8"
+# ExitLinkId = "SERVICE*2, TEST, WAIT(0.5)"
+# OpenCountryAssignments = "START*2, SERVICE, START*3, SERVICE, TEST, WAIT(0.5)"
+# ExitServfromCountry = "TEST, WAIT(4.0)"
 # SelectCountryType = ""
-# ExitCountryType = "L3, WAIT(0.5)"
+# ExitCountryType = "TEST, WAIT(0.5)"
 Close = "CLOSE"
 
 # Starting from the immutable DELUXE standard above, one press on Cabinet Type
@@ -51,7 +51,7 @@ suffix = "difficulty-00-normal"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*0, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*0, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -62,7 +62,7 @@ suffix = "difficulty-01-hard"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*1, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*1, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -73,7 +73,7 @@ suffix = "difficulty-02-very-hard"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*2, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*2, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -84,7 +84,7 @@ suffix = "difficulty-03-very-easy"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*3, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*3, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -95,7 +95,7 @@ suffix = "difficulty-04-easy"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*4, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*4, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -106,7 +106,7 @@ sequence = [
 # sequence = [
 #   "@EnterServ",
 #   "@OpenCountryAssignments",
-#   "@SelectCountryType, R3*0, WAIT(0.5)",
+#   "@SelectCountryType, SERVICE*0, WAIT(0.5)",
 #   "@ExitCountryType",
 #   "@ExitServfromCountry",
 #   "@Close",
@@ -117,7 +117,7 @@ sequence = [
 # sequence = [
 #   "@EnterServ",
 #   "@OpenGameAssignments",
-#   "@SelectCabinetType, L3*0, WAIT(0.5)",
+#   "@SelectCabinetType, TEST*0, WAIT(0.5)",
 #   "@ExitCabinetType",
 #   "@ExitServfromGame",
 #   "@Close",
@@ -128,7 +128,7 @@ sequence = [
 # sequence = [
 #   "@EnterServ",
 #   "@OpenGameAssignments",
-#   "@SelectLinkType, L3*0, WAIT(0.5)",
+#   "@SelectLinkType, TEST*0, WAIT(0.5)",
 #   "@ExitLinkType",
 #   "@ExitServfromGame",
 #   "@Close",
@@ -139,7 +139,7 @@ sequence = [
 # sequence = [
 #   "@EnterServ",
 #   "@OpenGameAssignments",
-#   "@SelectLinkId, L3*0, WAIT(0.5)",
+#   "@SelectLinkId, TEST*0, WAIT(0.5)",
 #   "@ExitLinkId",
 #   "@ExitServfromGame",
 #   "@Close",
@@ -150,4 +150,4 @@ sequence = [
 #
 # [[samples]]
 # suffix = "another-setting"
-# sequence = "@EnterServ, R3*4, L3, WAIT(1.0), @Close"
+# sequence = "@EnterServ, SERVICE*4, TEST, WAIT(1.0), @Close"

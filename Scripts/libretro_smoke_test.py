@@ -239,6 +239,7 @@ def build_capture_helper(source: Path, destination: Path) -> None:
         "xcrun", "clang", "-fobjc-arc", "-fblocks", "-O2",
         "-framework", "Foundation", "-framework", "AppKit",
         "-framework", "CoreGraphics",
+        "-framework", "ImageIO",
         "-framework", "CoreMedia", "-framework", "ScreenCaptureKit",
         "-framework", "AVFoundation", str(source), "-o", str(destination),
     ]

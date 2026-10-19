@@ -1,0 +1,425 @@
+---
+schema_version: 1
+game:
+  set: vs2v991
+  parent: vs2v991
+  title: Virtua Striker 2 '99.1
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 1
+      native_default: EXPORT
+      implemented: true
+      observed_values_raw: EXPORT, U.S.A
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 2
+      catalogue_position: 2
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-advertise-sound-000.png"
+        sha256: 236c172562bfb418e00deaed73f8d2e50a238896968cf118567922a9ae154174
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-advertise-sound-001.png"
+        sha256: 0a9fd9820feed429a945d88e6c34e17073f43d64b4489a8fc093ba7f0c6cf9e1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-advertise-sound-002.png"
+        sha256: 236c172562bfb418e00deaed73f8d2e50a238896968cf118567922a9ae154174
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 3
+      catalogue_position: 3
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, HARDEST, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: virtual_time
+      label: Virtual Time
+      native_label_raw: VIRTUAL TIME
+      position: 4
+      catalogue_position: 4
+      native_default: REAL
+      implemented: false
+      values:
+      - REAL
+      - 2 hour
+      - 4 hour
+      photographed_cycle:
+      - REAL
+      - 2 hour
+      - 4 hour
+      - REAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-virtual-time-000.png"
+        sha256: c6333341c9671dda8dacec67025da50de65b22f2316f237207ace11adf46f8d2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-virtual-time-001.png"
+        sha256: ad5ec91249e01236edb627631def87b3d012dbaeddc6494fa39a6ed9bd1bb843
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-virtual-time-002.png"
+        sha256: 3562f9725d725e682830009c773cef9f1e8e78adb7cb553784c3a25c7cce00ff
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-virtual-time-003.png"
+        sha256: c6333341c9671dda8dacec67025da50de65b22f2316f237207ace11adf46f8d2
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: billboard
+      label: Billboard
+      native_label_raw: BILLBOARD
+      position: 5
+      catalogue_position: 5
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-billboard-000.png"
+        sha256: 59c5610550be1c8aa94360049ee88bf26c36ffff00597d297819039dcef17670
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-billboard-001.png"
+        sha256: 4a52d6754ce2512849b9fbf101844355b34a379046a37339191f23664bbaab74
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-billboard-002.png"
+        sha256: 59c5610550be1c8aa94360049ee88bf26c36ffff00597d297819039dcef17670
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: one_match_mode
+      label: One Match Mode
+      native_label_raw: ONE MATCH MODE
+      position: 6
+      catalogue_position: 6
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-one-match-mode-000.png"
+        sha256: cd9cf7269c63b6588fff076b8f8945f1fdf349ae76fba4b4bd1f3c57caaf62b1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-one-match-mode-001.png"
+        sha256: 697a5e93d27fd2cab98c92e344016c812647e34de0da25ba16c3ef7e69875b98
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-one-match-mode-002.png"
+        sha256: cd9cf7269c63b6588fff076b8f8945f1fdf349ae76fba4b4bd1f3c57caaf62b1
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: 1p_time_set
+      label: 1P Time Set
+      native_label_raw: 1P TIME SET
+      position: 7
+      catalogue_position: 7
+      native_default: 2'00"
+      implemented: false
+      values:
+      - 2'00"
+      - 2'15"
+      - 2'30"
+      - 2'45"
+      - 3'00"
+      - 1'15"
+      - 1'30"
+      - 1'45"
+      photographed_cycle:
+      - 2'00"
+      - 2'15"
+      - 2'30"
+      - 2'45"
+      - 3'00"
+      - 1'15"
+      - 1'30"
+      - 1'45"
+      - 2'00"
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-time-set-000.png"
+        sha256: 46afc7be30dc02bb5d92b9092f87d45cb150189d0b654a7561f63a751e9d4e13
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-time-set-001.png"
+        sha256: 2f407000a044f5804f44f7ce7ea919d750a7ad1c831e8e64e9433ddd685ed915
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-time-set-002.png"
+        sha256: e423120f4bd930340aabccc8096f3b3a58b49839245418d3dce39425ad431581
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-time-set-003.png"
+        sha256: 8580fdd6dc83f9e2115f58d705e22a16ee630190416017a4f06da2232d7d7e0c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-time-set-004.png"
+        sha256: 6ddbce159d6d886ba342342b45f339a15719a8f6824abccf4460f105ec0e2319
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-time-set-005.png"
+        sha256: 1dd690bb2a4c005c7cc6e9192bc0753ce414e89e0de9bbb869442e432a94e87f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-time-set-006.png"
+        sha256: 3aeec17512218597ea039f4f822027fe614f127271e240dd5a81275359fe8c8f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-time-set-007.png"
+        sha256: b8202787b726f2ebb20fdb96ad93fd77ff8df1b7563993079a67e22ac79498e1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-time-set-008.png"
+        sha256: 46afc7be30dc02bb5d92b9092f87d45cb150189d0b654a7561f63a751e9d4e13
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: 1p_g_goal_system
+      label: 1P G Goal System
+      native_label_raw: 1P G GOAL SYSTEM
+      position: 8
+      catalogue_position: 8
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - ON [TIME 0'15"]
+      - ON [TIME 0'20"]
+      - ON [TIME 0'30"]
+      - ON [TIME 0'45"]
+      - ON [TIME 1'00"]
+      - ON [TIME FREE]
+      photographed_cycle:
+      - 'OFF'
+      - ON [TIME 0'15"]
+      - ON [TIME 0'20"]
+      - ON [TIME 0'30"]
+      - ON [TIME 0'45"]
+      - ON [TIME 1'00"]
+      - ON [TIME FREE]
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-g-goal-system-000.png"
+        sha256: a87f906e50b5f22c8273ffe7cec01e22b2ed5dcd2893dab532ea65ad26a98047
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-g-goal-system-001.png"
+        sha256: 91c121326e7f428bcb139d9cd17b8c2bf2f36da2649ff64b2fe1bf307ce2ebd5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-g-goal-system-002.png"
+        sha256: 5d8e5a013390034ae0ab4e9a01eac1b8f4e02235d7693ae540df9db6d8848c25
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-g-goal-system-003.png"
+        sha256: 9b323910b72430a1121909dc064e4b907956794782b0f14c42015be22ae4455f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-g-goal-system-004.png"
+        sha256: 13a927d07b79c9b20addd7d80d2c1d0de8002d5faf54119ba14ffbbb76474a43
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-g-goal-system-005.png"
+        sha256: 86430fec73f61334f74faa8bf63d02ac8540b7a112f1340f2b7c59f9e4cfd9a5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-g-goal-system-006.png"
+        sha256: 25791f2611359891c5a50b934dd861e1d2efe517075b3a3d2ae310742bccdda5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-g-goal-system-007.png"
+        sha256: a87f906e50b5f22c8273ffe7cec01e22b2ed5dcd2893dab532ea65ad26a98047
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: 1p_pk_system
+      label: 1P Pk System
+      native_label_raw: 1P PK SYSTEM
+      position: 9
+      catalogue_position: 9
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - ON [MEMBER 3]
+      - ON [MEMBER 4]
+      - ON [MEMBER 5]
+      - ON [REAL PK]
+      photographed_cycle:
+      - 'OFF'
+      - ON [MEMBER 3]
+      - ON [MEMBER 4]
+      - ON [MEMBER 5]
+      - ON [REAL PK]
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-pk-system-000.png"
+        sha256: b8cbd1ad9677f85ea8ba7523bda39766624b9aa955005515cce12c916b1b1f3b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-pk-system-001.png"
+        sha256: 783ec0c529ee80c4fdff389e30b42a0fb8d2f1b19561f59c06c4f376654fe284
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-pk-system-002.png"
+        sha256: 152d9fa30332afe095f63c449f4e8abfd7339bf43e7e7782c9d3198ce8d500de
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-pk-system-003.png"
+        sha256: 80ad6579c33588c5cae680270a1c9b9400833929b85787112659c0759f0a387d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-pk-system-004.png"
+        sha256: 4dd55cc6a2e75e9911606eb8972a8c7c5b69c00c2952f669ccd4951778bec466
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-1p-pk-system-005.png"
+        sha256: b8cbd1ad9677f85ea8ba7523bda39766624b9aa955005515cce12c916b1b1f3b
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: vs_time_set
+      label: VS Time Set
+      native_label_raw: VS TIME SET
+      position: 10
+      catalogue_position: 10
+      native_default: 2'00"
+      implemented: false
+      values:
+      - 2'00"
+      - 2'15"
+      - 2'30"
+      - 2'45"
+      - 3'00"
+      - 1'15"
+      - 1'30"
+      - 1'45"
+      photographed_cycle:
+      - 2'00"
+      - 2'15"
+      - 2'30"
+      - 2'45"
+      - 3'00"
+      - 1'15"
+      - 1'30"
+      - 1'45"
+      - 2'00"
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-time-set-000.png"
+        sha256: 341a7e45d62587f77a4c88fbfc0c467dedc6e6900b2abdcc6a6d6b9897078074
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-time-set-001.png"
+        sha256: 3794f08c03b79b175aa8de820feebe1dffe229edae22ef1dbb9a110828254dde
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-time-set-002.png"
+        sha256: 7d1b1f93c9afffef637f1de6662469c6049d11ddf16a0cb155e2d58b9c8f02ad
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-time-set-003.png"
+        sha256: 7e63955211e99c121061c442a8e330281fd100588bbb717ef5651d388b45a76d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-time-set-004.png"
+        sha256: 37b0b5737abf374083b6dd5f560f2c320d5c407b1246229efcc47fd77b1c2269
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-time-set-005.png"
+        sha256: 6f9b3ea443dea60800d0addbbd49283e5946037af00c9c70f9b6765de4b64622
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-time-set-006.png"
+        sha256: 21592dc461d975d3e43f8913dc3f71f637b7abf03859c1da61d1d57c4afcbfe7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-time-set-007.png"
+        sha256: 913b86068bc6a24cb68bfca37f90aa2a6e75a6ed6202e80d63078073f641fb44
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-time-set-008.png"
+        sha256: 341a7e45d62587f77a4c88fbfc0c467dedc6e6900b2abdcc6a6d6b9897078074
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: vs_g_goal_system
+      label: VS G Goal System
+      native_label_raw: VS G GOAL SYSTEM
+      position: 11
+      catalogue_position: 11
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - ON [TIME 0'15"]
+      - ON [TIME 0'20"]
+      - ON [TIME 0'30"]
+      - ON [TIME 0'45"]
+      - ON [TIME 1'00"]
+      - ON [TIME FREE]
+      photographed_cycle:
+      - 'OFF'
+      - ON [TIME 0'15"]
+      - ON [TIME 0'20"]
+      - ON [TIME 0'30"]
+      - ON [TIME 0'45"]
+      - ON [TIME 1'00"]
+      - ON [TIME FREE]
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-g-goal-system-000.png"
+        sha256: 789b991dc8c3849fea53c9bf1868df869d6824a65dfb960566a71d3436cc6b83
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-g-goal-system-001.png"
+        sha256: 8cec4ce4ea5ce6c8e2ce47e129c3377258e48e1fc5b1150c934425e1be5a4450
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-g-goal-system-002.png"
+        sha256: 7198d62bf1bdead7593bf786014df452d0b159a47662ba3282fa76624ead3265
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-g-goal-system-003.png"
+        sha256: 853f2a88386677cde8149e2a03e3a43ff4fceee8b9102340398220dd221723eb
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-g-goal-system-004.png"
+        sha256: a90f2a736795bb0dd1d29185c8558c682c9b2a40eccdf784e740ceed85791d56
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-g-goal-system-005.png"
+        sha256: 8fd47a9f76c5079b19750f097b2e8106c50ad577d97f18ad9fbaa4e3b01e9d7f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-g-goal-system-006.png"
+        sha256: d4a27775acce6c06d9ed91964bf3eb84ca9369e5c3cb5e23ccdf8cf6d6198706
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-g-goal-system-007.png"
+        sha256: 789b991dc8c3849fea53c9bf1868df869d6824a65dfb960566a71d3436cc6b83
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: vs_pk_system
+      label: VS Pk System
+      native_label_raw: VS PK SYSTEM
+      position: 12
+      catalogue_position: 12
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - ON [MEMBER 3]
+      - ON [MEMBER 4]
+      - ON [MEMBER 5]
+      - ON [REAL PK]
+      photographed_cycle:
+      - 'OFF'
+      - ON [MEMBER 3]
+      - ON [MEMBER 4]
+      - ON [MEMBER 5]
+      - ON [REAL PK]
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-pk-system-000.png"
+        sha256: db347421e425c88188b93e4a2b2eb60853bed70f339805d4208622983a28c601
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-pk-system-001.png"
+        sha256: c7a22530a79847da5b5d483ee440b772303f78c540f6f0cd8f147b48de01468d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-pk-system-002.png"
+        sha256: dd4ac77a4cd3cead3c6bc21ff954759772b47298d7573a40a81f3621ea6263cb
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-pk-system-003.png"
+        sha256: 179ea662530386d9c95640f92773d26e78b79037da7861fd5cb496a9c5bc6a11
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-pk-system-004.png"
+        sha256: ac54d716dac9a20ed63bb106b4d1667744d36fbcdfea78a3f6461ca9fbc56f72
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs2v991/screenshots/vs2v991-20261018-cycle-vs-pk-system-005.png"
+        sha256: db347421e425c88188b93e4a2b2eb60853bed70f339805d4208622983a28c601
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested

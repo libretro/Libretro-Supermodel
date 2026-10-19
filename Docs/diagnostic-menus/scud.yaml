@@ -1,0 +1,212 @@
+---
+schema_version: 1
+game:
+  set: scud
+  parent: scud
+  title: Scud Race
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: link_id
+      label: Link ID
+      native_label_raw: LINK ID
+      position: 1
+      catalogue_position: 1
+      native_default: MASTER
+      implemented: true
+      observed_values_raw: MASTER, SLAVE, SINGLE
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: car_number
+      label: Car Number
+      native_label_raw: CAR NUMBER
+      position: 2
+      catalogue_position: 2
+      native_default: '1'
+      implemented: true
+      observed_values_raw: da 1 a 8
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: cabinet_type
+      label: Cabinet Type
+      native_label_raw: CABINET TYPE
+      position: 3
+      catalogue_position: 3
+      native_default: TWIN
+      implemented: true
+      observed_values_raw: TWIN, DELUXE
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 4
+      catalogue_position: 4
+      native_default: JAPAN
+      implemented: true
+      observed_values_raw: JAPAN, USA, EXPORT
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 5
+      catalogue_position: 5
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, HARDEST, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 6
+      catalogue_position: 6
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-advertise-sound-000.png"
+        sha256: f81038754f285c4fe23bfa594157e1a272e6240accde1dbcdf80411d589305b5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-advertise-sound-001.png"
+        sha256: b2f67990fabe2e70927c8e8a53f005bac0cfd9cafdc2c2c8f2190660a2d265aa
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-advertise-sound-002.png"
+        sha256: f81038754f285c4fe23bfa594157e1a272e6240accde1dbcdf80411d589305b5
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: game_mode
+      label: Game Mode
+      native_label_raw: GAME MODE
+      position: 7
+      catalogue_position: 7
+      native_default: NORMAL(SPRINT)
+      implemented: false
+      values:
+      - NORMAL(SPRINT)
+      - GRAND PRIX
+      - ENDURANCE
+      photographed_cycle:
+      - NORMAL(SPRINT)
+      - GRAND PRIX
+      - ENDURANCE
+      - NORMAL(SPRINT)
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-game-mode-000.png"
+        sha256: 3dcab1b60d028dc0bf55cb6ad1a11b6b505cee1226326f86d9544b4d3d9cc804
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-game-mode-001.png"
+        sha256: 9b0285c71b64d9ea3431e9eacc25838059c6dcb030a6189266455d33f41f2b75
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-game-mode-002.png"
+        sha256: 6e40619a35eb5bd04727b825e9c5fca868824f39101adc60e7de9d70a8ff772d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-game-mode-003.png"
+        sha256: 3dcab1b60d028dc0bf55cb6ad1a11b6b505cee1226326f86d9544b4d3d9cc804
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: motor_power
+      label: Motor Power
+      native_label_raw: MOTOR POWER
+      position: 8
+      catalogue_position: 8
+      native_default: 80%
+      implemented: false
+      values:
+      - 80%
+      - 90%
+      - 100%
+      - 50%
+      - 60%
+      - 70%
+      photographed_cycle:
+      - 80%
+      - 90%
+      - 100%
+      - 50%
+      - 60%
+      - 70%
+      - 80%
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-motor-power-000.png"
+        sha256: f2d20d3902eae6b0a536921084de29a9bbdc68f61a242eaef827c5434dc81dc3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-motor-power-001.png"
+        sha256: 51a5c58bb709d2bde0787aefc39da4a4e4a44d0affdc5faae580b04e87e01d72
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-motor-power-002.png"
+        sha256: 9220dc2385dd73e800ab0f4e35f7b0edd10248bbd1c2b54765e5b41f106ff71f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-motor-power-003.png"
+        sha256: 0dfe71bc16014b4c508760a0a8882d7975b61abbff36bd86064f3d561480d7b4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-motor-power-004.png"
+        sha256: 8d896c790dc0c5de052567929a73e54257d00a4941721ebe34290db3f5b69e77
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-motor-power-005.png"
+        sha256: 4a35013461d156a9ac20e573537e5dd32082efdb52ac89e2d1309626761e6ae1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-motor-power-006.png"
+        sha256: f2d20d3902eae6b0a536921084de29a9bbdc68f61a242eaef827c5434dc81dc3
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: multi_display
+      label: Multi Display
+      native_label_raw: MULTI DISPLAY
+      position: 9
+      catalogue_position: 9
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-multi-display-000.png"
+        sha256: 65b6c4bab49634cdaa2f45f7e832e6b8457249460ebdfcd3a1e65ec1020cf5e5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-multi-display-001.png"
+        sha256: b00c6f0fc2bbc98167a28b95d8c3a5e30f8271ac4587ed8c9bc943023e309660
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/scud/screenshots/scud-20261018-cycle-multi-display-002.png"
+        sha256: 65b6c4bab49634cdaa2f45f7e832e6b8457249460ebdfcd3a1e65ec1020cf5e5
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
