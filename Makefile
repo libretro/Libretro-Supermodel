@@ -206,7 +206,7 @@ LEGACY3D_SOURCES := %/Legacy3D/Error.cpp %/Legacy3D/Legacy3D.cpp %/Legacy3D/Mode
 # These platforms deliberately omit the fixed-function Legacy3D sources.
 # Reject an explicit legacy build instead of accepting the selector and later
 # failing with missing renderer objects or symbols.
-ifneq ($(filter osx android,$(platform)),)
+ifneq ($(filter osx android ios-arm64 tvos-arm64,$(platform)),)
 ifeq ($(RENDERER),legacy)
     $(error RENDERER=legacy is not supported for platform=$(platform))
 endif
@@ -251,6 +251,14 @@ ifdef DROP_LEGACY3D
     SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
 endif
 endif
+# iOS and tvOS are GLES too, and there is no desktop GL on either to fall back
+# on, so Legacy3D goes whatever RENDERER says - the block further up rejects an
+# explicit legacy build for them the same way it does for osx and android.
+ifneq ($(filter $(platform),ios-arm64 tvos-arm64),)
+    SOURCES_C := $(filter-out %/glsym/glsym_gl.c,$(SOURCES_C))
+    SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/glsym_es3.c
+    SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
+endif
 
 # Renderer capabilities exposed to the Libretro option layer. Keep these as
 # feature defines rather than platform tests so future ports only need to
@@ -259,11 +267,11 @@ ifneq ($(filter $(CORE_DIR)/Src/Graphics/Legacy3D/Legacy3D.cpp,$(SOURCES_CXX)),)
     RENDERER_DEFINES += -DHAVE_LEGACY3D
 endif
 
-ifneq ($(filter $(platform),osx android rpi64 aarch64 linux-aarch64),$(platform))
+ifneq ($(filter $(platform),osx android rpi64 aarch64 linux-aarch64 ios-arm64 tvos-arm64),$(platform))
     RENDERER_DEFINES += -DHAVE_QUAD_RENDERING
 endif
 
-ifneq ($(filter $(platform),android rpi64 aarch64 linux-aarch64),$(platform))
+ifneq ($(filter $(platform),android rpi64 aarch64 linux-aarch64 ios-arm64 tvos-arm64),$(platform))
     RENDERER_DEFINES += -DHAVE_CRT_COLOURS
     RENDERER_DEFINES += -DHAVE_SUPERSAMPLING
 endif
@@ -310,6 +318,57 @@ ifeq ($(platform),linux-aarch64)
     PLATFORM_DEFINES += -DGLES -Dgles -DHAVE_OPENGLES=1 -DHAVE_OPENGLES3=1 -DCORE_GLES -D__glext_h_ -D__GLEXT_H_
 
     CXXFLAGS += -std=c++17
+endif
+
+# ============ iOS / tvOS (arm64) ============
+# Both are the GLES build with Apple's SDK in front of it: the renderer resolves
+# every entry point through glsym, so nothing links against a GL framework here
+# any more than it does on the other GLES platforms, and OpenGLES is deprecated
+# on these systems anyway.
+#
+# No PPC JIT. Writing and then executing the same page needs an entitlement that
+# a libretro core cannot ask for on stock iOS or tvOS, so the recompiler is out
+# and Model 3 runs on the interpreter. That is the same bargain every emulator
+# on these systems makes, and it is the reason to be honest about what the
+# artifact is rather than to leave the platform unbuilt.
+#
+# The dylib names are what the libretro ios-arm64 and tvos-arm64 templates look
+# for, and their after_script checks the platform recorded in the Mach-O, which
+# is what -isysroot and the version-min flag put there.
+ifneq ($(filter $(platform),ios-arm64 tvos-arm64),)
+    ifeq ($(platform),ios-arm64)
+        TARGET     := $(TARGET_NAME)_libretro_ios.dylib
+        APPLE_SDK  := $(shell xcrun -sdk iphoneos -show-sdk-path)
+        APPLE_MIN  := -miphoneos-version-min=13.0
+        PLATFORM_DEFINES += -DIOS
+    else
+        TARGET     := $(TARGET_NAME)_libretro_tvos.dylib
+        APPLE_SDK  := $(shell xcrun -sdk appletvos -show-sdk-path)
+        APPLE_MIN  := -mappletvos-version-min=13.0
+        PLATFORM_DEFINES += -DTVOS
+    endif
+
+    # Same lesson as the bundled headers above: a tool that is not there should
+    # stop the build where it is missing, not hand the compiler an empty
+    # -isysroot and let it fail later on a header it cannot find.
+    ifeq ($(APPLE_SDK),)
+        $(error xcrun found no SDK for $(platform) - is Xcode installed and selected?)
+    endif
+
+    CC  := clang
+    CXX := clang++
+
+    ARCHFLAGS := -arch arm64 -isysroot $(APPLE_SDK) $(APPLE_MIN)
+    CFLAGS   += -fPIC $(ARCHFLAGS)
+    CXXFLAGS += -fPIC $(ARCHFLAGS) -std=c++17
+    LDFLAGS  += -dynamiclib -fPIC $(ARCHFLAGS)
+
+    # dlopen lives in libc on these systems, so there is no -ldl to link.
+    LIBS += -lm -lz
+
+    PLATFORM_DEFINES += -DARM -D__aarch64__ -DLSB_FIRST -DGL_GLEXT_PROTOTYPES
+    PLATFORM_DEFINES += -DGLES -Dgles -DHAVE_OPENGLES=1 -DHAVE_OPENGLES3=1 -DCORE_GLES -D__glext_h_ -D__GLEXT_H_
+    PLATFORM_DEFINES += -DGL_SILENCE_DEPRECATION
 endif
 
 # ============ macOS / osxcross ============
