@@ -139,6 +139,15 @@ bool CLibretroInputSystem::Poll()
                                                  RETRO_DEVICE_INDEX_ANALOG_BUTTON,
                                                  RETRO_DEVICE_ID_JOYPAD_R2);
 
+        // Touch overlays (and some pads) press L2/R2 only digitally and report 0 on the
+        // analog channel, which would leave the pedals dead. Treat that as full travel.
+        if (m_joyAxes[joy][AXIS_Z] == 0 &&
+            input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2))
+            m_joyAxes[joy][AXIS_Z] = 0x7FFF;
+        if (m_joyAxes[joy][AXIS_RZ] == 0 &&
+            input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2))
+            m_joyAxes[joy][AXIS_RZ] = 0x7FFF;
+
         // ----- D-Pad -----
         bool d_up    = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
         bool d_down  = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
