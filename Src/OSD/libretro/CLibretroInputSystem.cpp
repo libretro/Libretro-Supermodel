@@ -62,7 +62,6 @@ bool CLibretroInputSystem::Poll()
     int16_t lightgunX[2] = {};
     int16_t lightgunY[2] = {};
     bool lightgunOffscreen[2] = {};
-    bool lightgunPositionMoved[2] = {};
 
     // ----- RetroMouse ports (Supermodel MOUSE and MOUSE2) -----
     for (int port = 0; port < 2; ++port)
@@ -355,7 +354,6 @@ bool CLibretroInputSystem::Poll()
             (!m_lightgunPositionInitialized[port] ||
              lightgunX[port] != m_previousLightgunX[port] ||
              lightgunY[port] != m_previousLightgunY[port]);
-        lightgunPositionMoved[port] = lightgunMoved;
         const bool lightgunAction = allowLightgun && lightgunValid &&
             (m_mouseButtons[lightgunDev][0] ||
              m_mouseButtons[lightgunDev][2] ||
