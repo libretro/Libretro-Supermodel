@@ -1,3 +1,4 @@
+#include <cctype>
 #include <cstring>
 #include <libretro.h>
 #include "CLibretroInputSystem.h"
@@ -554,38 +555,174 @@ bool CLibretroInputSystem::IsJoyPOVInDir(int joyNum, int povNum, int povDir) con
 }
 
 
+// Supermodel key names (CInputSystem::s_validKeyNames, without the KEY_ prefix,
+// which CInputSystem strips before calling GetKeyIndex) to libretro key codes.
+// The generic SHIFT, CTRL and ALT names have no single libretro key and are
+// not mapped, as in the SDL build.
+struct KeyMapEntry
+{
+    const char *name;
+    int code;
+};
+
+static const KeyMapEntry s_keyMap[] = {
+    { "BACKSPACE",      RETROK_BACKSPACE },
+    { "TAB",            RETROK_TAB },
+    { "CLEAR",          RETROK_CLEAR },
+    { "RETURN",         RETROK_RETURN },
+    { "PAUSE",          RETROK_PAUSE },
+    { "ESCAPE",         RETROK_ESCAPE },
+    { "SPACE",          RETROK_SPACE },
+    { "EXCLAIM",        RETROK_EXCLAIM },
+    { "DBLQUOTE",       RETROK_QUOTEDBL },
+    { "HASH",           RETROK_HASH },
+    { "DOLLAR",         RETROK_DOLLAR },
+    { "AMPERSAND",      RETROK_AMPERSAND },
+    { "QUOTE",          RETROK_QUOTE },
+    { "LEFTPAREN",      RETROK_LEFTPAREN },
+    { "RIGHTPAREN",     RETROK_RIGHTPAREN },
+    { "ASTERISK",       RETROK_ASTERISK },
+    { "PLUS",           RETROK_PLUS },
+    { "COMMA",          RETROK_COMMA },
+    { "MINUS",          RETROK_MINUS },
+    { "PERIOD",         RETROK_PERIOD },
+    { "SLASH",          RETROK_SLASH },
+    { "0",              RETROK_0 },
+    { "1",              RETROK_1 },
+    { "2",              RETROK_2 },
+    { "3",              RETROK_3 },
+    { "4",              RETROK_4 },
+    { "5",              RETROK_5 },
+    { "6",              RETROK_6 },
+    { "7",              RETROK_7 },
+    { "8",              RETROK_8 },
+    { "9",              RETROK_9 },
+    { "COLON",          RETROK_COLON },
+    { "SEMICOLON",      RETROK_SEMICOLON },
+    { "LESS",           RETROK_LESS },
+    { "EQUALS",         RETROK_EQUALS },
+    { "GREATER",        RETROK_GREATER },
+    { "QUESTION",       RETROK_QUESTION },
+    { "AT",             RETROK_AT },
+    { "LEFTBRACKET",    RETROK_LEFTBRACKET },
+    { "BACKSLASH",      RETROK_BACKSLASH },
+    { "RIGHTBRACKET",   RETROK_RIGHTBRACKET },
+    { "CARET",          RETROK_CARET },
+    { "UNDERSCORE",     RETROK_UNDERSCORE },
+    { "BACKQUOTE",      RETROK_BACKQUOTE },
+    { "A",              RETROK_a },
+    { "B",              RETROK_b },
+    { "C",              RETROK_c },
+    { "D",              RETROK_d },
+    { "E",              RETROK_e },
+    { "F",              RETROK_f },
+    { "G",              RETROK_g },
+    { "H",              RETROK_h },
+    { "I",              RETROK_i },
+    { "J",              RETROK_j },
+    { "K",              RETROK_k },
+    { "L",              RETROK_l },
+    { "M",              RETROK_m },
+    { "N",              RETROK_n },
+    { "O",              RETROK_o },
+    { "P",              RETROK_p },
+    { "Q",              RETROK_q },
+    { "R",              RETROK_r },
+    { "S",              RETROK_s },
+    { "T",              RETROK_t },
+    { "U",              RETROK_u },
+    { "V",              RETROK_v },
+    { "W",              RETROK_w },
+    { "X",              RETROK_x },
+    { "Y",              RETROK_y },
+    { "Z",              RETROK_z },
+    { "DEL",            RETROK_DELETE },
+    { "KEYPAD0",        RETROK_KP0 },
+    { "KEYPAD1",        RETROK_KP1 },
+    { "KEYPAD2",        RETROK_KP2 },
+    { "KEYPAD3",        RETROK_KP3 },
+    { "KEYPAD4",        RETROK_KP4 },
+    { "KEYPAD5",        RETROK_KP5 },
+    { "KEYPAD6",        RETROK_KP6 },
+    { "KEYPAD7",        RETROK_KP7 },
+    { "KEYPAD8",        RETROK_KP8 },
+    { "KEYPAD9",        RETROK_KP9 },
+    { "KEYPADPERIOD",   RETROK_KP_PERIOD },
+    { "KEYPADDIVIDE",   RETROK_KP_DIVIDE },
+    { "KEYPADMULTIPLY", RETROK_KP_MULTIPLY },
+    { "KEYPADMINUS",    RETROK_KP_MINUS },
+    { "KEYPADPLUS",     RETROK_KP_PLUS },
+    { "KEYPADENTER",    RETROK_KP_ENTER },
+    { "KEYPADEQUALS",   RETROK_KP_EQUALS },
+    { "UP",             RETROK_UP },
+    { "DOWN",           RETROK_DOWN },
+    { "RIGHT",          RETROK_RIGHT },
+    { "LEFT",           RETROK_LEFT },
+    { "INSERT",         RETROK_INSERT },
+    { "HOME",           RETROK_HOME },
+    { "END",            RETROK_END },
+    { "PGUP",           RETROK_PAGEUP },
+    { "PGDN",           RETROK_PAGEDOWN },
+    { "F1",             RETROK_F1 },
+    { "F2",             RETROK_F2 },
+    { "F3",             RETROK_F3 },
+    { "F4",             RETROK_F4 },
+    { "F5",             RETROK_F5 },
+    { "F6",             RETROK_F6 },
+    { "F7",             RETROK_F7 },
+    { "F8",             RETROK_F8 },
+    { "F9",             RETROK_F9 },
+    { "F10",            RETROK_F10 },
+    { "F11",            RETROK_F11 },
+    { "F12",            RETROK_F12 },
+    { "F13",            RETROK_F13 },
+    { "F14",            RETROK_F14 },
+    { "F15",            RETROK_F15 },
+    { "NUMLOCK",        RETROK_NUMLOCK },
+    { "CAPSLOCK",       RETROK_CAPSLOCK },
+    { "SCROLLLOCK",     RETROK_SCROLLOCK },
+    { "RIGHTSHIFT",     RETROK_RSHIFT },
+    { "LEFTSHIFT",      RETROK_LSHIFT },
+    { "RIGHTCTRL",      RETROK_RCTRL },
+    { "LEFTCTRL",       RETROK_LCTRL },
+    { "RIGHTALT",       RETROK_RALT },
+    { "LEFTALT",        RETROK_LALT },
+    { "RIGHTMETA",      RETROK_RMETA },
+    { "LEFTMETA",       RETROK_LMETA },
+    { "RIGHTWINDOWS",   RETROK_RSUPER },
+    { "LEFTWINDOWS",    RETROK_LSUPER },
+    { "ALTGR",          RETROK_MODE },
+    { "COMPOSE",        RETROK_COMPOSE },
+    { "HELP",           RETROK_HELP },
+    { "PRINT",          RETROK_PRINT },
+    { "SYSREQ",         RETROK_SYSREQ },
+    { "BREAK",          RETROK_BREAK },
+    { "MENU",           RETROK_MENU },
+    { "POWER",          RETROK_POWER },
+};
+
+static const size_t kNumKeyMapEntries = sizeof(s_keyMap) / sizeof(s_keyMap[0]);
+
+static bool KeyNameEquals(const char *a, const char *b)
+{
+    for (; *a && *b; ++a, ++b) {
+        if (std::toupper((unsigned char)*a) != std::toupper((unsigned char)*b))
+            return false;
+    }
+    return *a == *b;
+}
+
 int CLibretroInputSystem::GetKeyIndex(const char *keyName)
 {
     if (!keyName) return -1;
-    
-    // Map Supermodel KEY_* to libretro RETROK_* codes
-    if (std::strcmp(keyName, "KEY_1") == 0) return RETROK_1;
-    if (std::strcmp(keyName, "KEY_2") == 0) return RETROK_2;
-    if (std::strcmp(keyName, "KEY_3") == 0) return RETROK_3;
-    if (std::strcmp(keyName, "KEY_4") == 0) return RETROK_4;
-    if (std::strcmp(keyName, "KEY_5") == 0) return RETROK_5;  // Service A
-    if (std::strcmp(keyName, "KEY_6") == 0) return RETROK_6;  // Test A
-    if (std::strcmp(keyName, "KEY_7") == 0) return RETROK_7;  // Service B
-    if (std::strcmp(keyName, "KEY_8") == 0) return RETROK_8;  // Test B
-    if (std::strcmp(keyName, "KEY_UP") == 0) return RETROK_UP;
-    if (std::strcmp(keyName, "KEY_DOWN") == 0) return RETROK_DOWN;
-    if (std::strcmp(keyName, "KEY_LEFT") == 0) return RETROK_LEFT;
-    if (std::strcmp(keyName, "KEY_RIGHT") == 0) return RETROK_RIGHT;
-    if (std::strcmp(keyName, "KEY_A") == 0) return RETROK_a;
-    if (std::strcmp(keyName, "KEY_S") == 0) return RETROK_s;
-    if (std::strcmp(keyName, "KEY_D") == 0) return RETROK_d;
-    if (std::strcmp(keyName, "KEY_F") == 0) return RETROK_f;
-    if (std::strcmp(keyName, "KEY_Q") == 0) return RETROK_q;
-    if (std::strcmp(keyName, "KEY_W") == 0) return RETROK_w;
-    if (std::strcmp(keyName, "KEY_E") == 0) return RETROK_e;
-    if (std::strcmp(keyName, "KEY_R") == 0) return RETROK_r;
-    if (std::strcmp(keyName, "KEY_H") == 0) return RETROK_h;
-    if (std::strcmp(keyName, "KEY_T") == 0) return RETROK_t;
-    if (std::strcmp(keyName, "KEY_X") == 0) return RETROK_x;
-    if (std::strcmp(keyName, "KEY_Y") == 0) return RETROK_y;
-    if (std::strcmp(keyName, "KEY_Z") == 0) return RETROK_z;
-    if (std::strcmp(keyName, "KEY_SPACE") == 0) return RETROK_SPACE;
-    
+
+    // Supermodel indexes its key source arrays with this value, so it must be
+    // a position in s_keyMap (fewer entries than s_validKeyNames), not a
+    // RETROK code.
+    for (size_t i = 0; i < kNumKeyMapEntries; i++) {
+        if (KeyNameEquals(keyName, s_keyMap[i].name))
+            return (int)i;
+    }
     return -1;
 }
 
@@ -593,10 +730,11 @@ bool CLibretroInputSystem::IsKeyPressed(int kbdNum, int keyIndex) const
 {
     if (kbdNum != 0) return false;
 
-    if (keyIndex >= 0 && keyIndex < 512)
-        return m_keyState[keyIndex];
+    if (keyIndex < 0 || (size_t)keyIndex >= kNumKeyMapEntries)
+        return false;
 
-    return false;
+    int code = s_keyMap[keyIndex].code;
+    return code >= 0 && code < 512 && m_keyState[code];
 }
 
 
@@ -778,4 +916,9 @@ bool CLibretroInputSystem::Initialize()
     bool result = CInputSystem::Initialize(); // let base do its thing
     return result;
 }
-const char *CLibretroInputSystem::GetKeyName(int keyIndex) { return "NONE"; }
+const char *CLibretroInputSystem::GetKeyName(int keyIndex)
+{
+    if (keyIndex >= 0 && (size_t)keyIndex < kNumKeyMapEntries)
+        return s_keyMap[keyIndex].name;
+    return "NONE";
+}
