@@ -68,6 +68,7 @@ public:
     void UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
                           unsigned outputWidth, unsigned outputHeight);
     void SetServiceOnSticks(bool enabled);
+    void ApplyDrivingLayout();
     void SetCrosshairs(unsigned mask);
     void SetSoundVolume(int volume);
     void SetMusicVolume(int volume);

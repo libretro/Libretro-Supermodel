@@ -1026,6 +1026,24 @@ void LibretroWrapper::SetServiceOnSticks(bool enabled)
         libretroInput->SetServiceOnSticks(enabled);
 }
 
+// Re-applies the Driving Controls Layout to a running game: rewrite the gear/pedal
+// mappings in the runtime config, then have Supermodel re-parse its input mappings, as
+// it does when content is loaded. RetroArch's Restart (retro_reset) only resets the
+// board, so without this a layout change needed the content to be closed and reloaded.
+void LibretroWrapper::ApplyDrivingLayout()
+{
+    LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
+    if (!Inputs)
+        return;
+
+    const bool pauseThreads = Model3 && !paused;
+    if (pauseThreads)
+        Model3->PauseThreads();
+    Inputs->LoadFromConfig(s_runtime_config);
+    if (pauseThreads)
+        Model3->ResumeThreads();
+}
+
 void LibretroWrapper::SetCrosshairs(unsigned mask)
 {
     mask &= 3u;

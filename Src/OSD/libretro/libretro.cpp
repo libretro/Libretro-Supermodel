@@ -654,6 +654,7 @@ void retro_run(void)
       bool old_sound_enable = g_options.sound_enable;
       EmulationThreading old_emulation_threading = g_options.emulation_threading;
       unsigned old_crosshairs = g_options.crosshairs;
+      DrivingLayout old_driving_layout = g_options.driving_layout;
 
       update_core_options();
       ppc_set_jit_enabled(g_options.jit_enable);
@@ -697,6 +698,9 @@ void retro_run(void)
 
       if (g_options.crosshairs != old_crosshairs)
          wrapper.SetCrosshairs(g_options.crosshairs);
+
+      if (g_options.driving_layout != old_driving_layout)
+         wrapper.ApplyDrivingLayout();
 
       if (g_options.sound_enable != old_sound_enable)
       {

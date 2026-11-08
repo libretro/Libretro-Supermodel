@@ -148,7 +148,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_driving_layout",
       "Driving Controls Layout",
       NULL,
-      "Pad layout for driving games. L/R shift down/up and L2/R2 are analog brake/accelerator in every layout. The optional layouts also use the right stick as a 4-gear gate (up/down/left/right select gears 1-4), a sequential lever, or an H-pattern gearbox (the diagonals up-left/down-left/up-right/down-right select gears 1-4). Takes effect when the game is reloaded.",
+      "Pad layout for driving games. L/R shift down/up and L2/R2 are analog brake/accelerator in every layout. The optional layouts also use the right stick as a 4-gear gate (up/down/left/right select gears 1-4), a sequential lever, or an H-pattern gearbox (the diagonals up-left/down-left/up-right/down-right select gears 1-4). Changes apply immediately.",
       NULL,
       "input",
       {
