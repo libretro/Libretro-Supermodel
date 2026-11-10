@@ -1338,7 +1338,10 @@ Result CLegacy3D::Init(unsigned xOffset, unsigned yOffset, unsigned xRes, unsign
 
     m_aaTarget = aaTarget;
 
-    return Result::OKAY;
+    // The constructor builds the shaders and texture maps. If that failed,
+    // rendering would dereference the missing texture sheets, so report it
+    // here and let the caller abandon this renderer.
+    return m_glObjectsResult;
 }
 
 void CLegacy3D::SetSunClamp(bool enable)
@@ -1401,7 +1404,7 @@ CLegacy3D::CLegacy3D(const Util::Config::Node &config)
     PolyCache.ListTail[i] = NULL;
   }
 
-  SetupGLObjects();
+  m_glObjectsResult = SetupGLObjects();
   
   DebugLog("Built Legacy3D\n");
 }
