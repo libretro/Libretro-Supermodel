@@ -907,6 +907,9 @@ int LibretroWrapper::Emulate(const char* romPath)
             g_options.renderer_3d == Renderer3D::Legacy3D && g_options.legacy_multi_texture);
         s_runtime_config.Get("Supersampling").SetValue(g_options.supersampling);
         s_runtime_config.Get("NoWhiteFlash").SetValue(g_options.no_white_flash);
+        // Sound emulation is fixed for the session: Model3 reads EmulateSound
+        // when content starts (Sound Enable is restart-dependent).
+        s_runtime_config.Get("EmulateSound").SetValue(g_options.sound_enable);
         // The drive board only generates force effects when Supermodel's
         // ForceFeedback is set; it reads this when the board is reset.
         s_runtime_config.Get("ForceFeedback").SetValue(g_options.force_feedback);
