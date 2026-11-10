@@ -855,42 +855,50 @@ const MouseDetails *CLibretroInputSystem::GetMouseDetails(int mseNum)
 
 bool CLibretroInputSystem::ProcessForceFeedbackCmd(int joyNum, int /*axisNum*/, ForceFeedbackCmd ffCmd)
 {
-    if (!m_rumbleInterface.set_rumble_state)
-    {
-        return false;
-    }
-
     // If the user disabled FFB in the menu, or we have no interface, abort early
     if (!m_ffbEnabled || !m_rumbleInterface.set_rumble_state)
         return false;
-        
-    // 2. Map the float force (-1.0 to 1.0) to Libretro's uint16_t (0 to 65535)
-    // Most gamepads only support vibration strength, not direction, so we use absolute value.
-    uint16_t strength = (uint16_t)(std::min(std::abs(ffCmd.force), 1.0f) * 65535);
+    if (joyNum < 0 || joyNum >= 2)
+        return false;
+
+    // A gamepad has two rumble motors, not a motorised wheel. Follow standalone
+    // Supermodel's XInput mapping (XInputConstForceThreshold 30,
+    // XInputConstForceMax 100, XInputVibrateMax 100, XInputStereoVibration):
+    // self-centre and friction are steady wheel resistance held for the whole
+    // race, so they are not mapped; a constant force rumbles only above 30%.
+    constexpr float kConstForceThreshold = 0.30f;
+    const auto toStrength = [](float force) -> uint16_t {
+        return static_cast<uint16_t>(std::min(std::abs(force), 1.0f) * 65535.0f);
+    };
 
     switch (ffCmd.id)
     {
+        case FFStop:
+            m_ffConstForce[joyNum] = 0;
+            m_ffVibrate[joyNum] = 0;
+            break;
+
         case FFConstantForce:
-        case FFSelfCenter:
-            // High torque effects go to the Strong (Low-Frequency) motor
-            m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_STRONG, strength);
+            m_ffConstForce[joyNum] = std::abs(ffCmd.force) < kConstForceThreshold
+                ? 0 : toStrength(ffCmd.force);
             break;
 
         case FFVibrate:
-        case FFFriction:
-            // High frequency effects go to the Weak (High-Frequency) motor
-            m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_WEAK, strength);
+            m_ffVibrate[joyNum] = toStrength(ffCmd.force);
             break;
 
-        case FFStop:
-            m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_STRONG, 0);
-            m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_WEAK, 0);
-            break;
+        case FFSelfCenter:
+        case FFFriction:
+            return false;
 
         default:
             return false;
     }
 
+    const uint16_t strength = static_cast<uint16_t>(std::min<unsigned>(
+        static_cast<unsigned>(m_ffConstForce[joyNum]) + m_ffVibrate[joyNum], 65535u));
+    m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_STRONG, strength);
+    m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_WEAK, strength);
     return true;
 }
 
@@ -901,6 +909,8 @@ void CLibretroInputSystem::StopAllRumble()
 
     for (unsigned port = 0; port < 2; ++port)
     {
+        m_ffConstForce[port] = 0;
+        m_ffVibrate[port] = 0;
         m_rumbleInterface.set_rumble_state(port, RETRO_RUMBLE_STRONG, 0);
         m_rumbleInterface.set_rumble_state(port, RETRO_RUMBLE_WEAK, 0);
     }

@@ -75,6 +75,10 @@ private:
     bool m_serviceOnSticks = false;
     retro_rumble_interface m_rumbleInterface;
     bool m_ffbEnabled = false; // Guard flag
+    // Gamepad rumble state per port, as in standalone Supermodel's XInput
+    // path: the constant-force and vibrate effects are summed on both motors.
+    uint16_t m_ffConstForce[2] = { 0, 0 };
+    uint16_t m_ffVibrate[2] = { 0, 0 };
 };
 
 #endif

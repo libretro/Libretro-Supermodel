@@ -44,6 +44,8 @@ static LibretroWrapper wrapper = LibretroWrapper();
 // Star Wars Trilogy Upright cabinets wire the yoke's horizontal axis the
 // opposite way to Deluxe. Set from the game's NVRAM on the first frame.
 bool g_star_wars_invert_x = false;
+// Whether the drive board was started with force feedback for this content.
+static bool g_ffb_drive_board_enabled = false;
 void set_input_descriptors(bool service_on_sticks);
 
 // GPU timer queries (double-buffered: write slot N, read slot N-1)
@@ -629,6 +631,7 @@ bool retro_load_game(const struct retro_game_info *info)
 
    log_cb(RETRO_LOG_INFO, "[Supermodel] Loading ROM: %s\n", info->path);
       
+   g_ffb_drive_board_enabled = g_options.force_feedback;
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
    wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
@@ -710,6 +713,7 @@ void retro_run(void)
       int old_crt_colors = g_options.crt_colors;
       int old_supersampling = g_options.supersampling;
       bool old_no_white_flash = g_options.no_white_flash;
+      bool old_force_feedback = g_options.force_feedback;
 
       update_core_options();
       ppc_set_jit_enabled(g_options.jit_enable);
@@ -788,6 +792,17 @@ void retro_run(void)
          // If we just disabled it, kill any active vibration immediately
          if (!g_options.force_feedback)
             libretroInput->StopAllRumble();
+      }
+
+      // Turning it off applies immediately; turning it on needs the drive
+      // board restarted with ForceFeedback set.
+      if (g_options.force_feedback && !old_force_feedback &&
+          !g_ffb_drive_board_enabled)
+      {
+         static const struct retro_message message = {
+            "Force Feedback will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
    }
 
