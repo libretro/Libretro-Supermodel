@@ -628,6 +628,14 @@ namespace LibretroConfigProvider {
             config.Set<std::string>("InputCoin2", "KEY_4,JOY2_BUTTON10,MOUSE6_BUTTON5");
         }
 
+        // The digital half inputs stay on the keyboard: mapped to the stick's
+        // threshold switches (JOY1_BUTTON12-14), they override the axis with a
+        // full deflection beyond a quarter of the stick's travel and bypass the
+        // yoke's cabinet orientation.
+        config.Set<std::string>("InputAnalogJoyUp", "KEY_UP");
+        config.Set<std::string>("InputAnalogJoyDown", "KEY_DOWN");
+        config.Set<std::string>("InputAnalogJoyLeft", "KEY_LEFT");
+        config.Set<std::string>("InputAnalogJoyRight", "KEY_RIGHT");
         config.Set<std::string>("InputAnalogJoyX", "MOUSE7_XAXIS");
         config.Set<std::string>("InputAnalogJoyY", "MOUSE7_YAXIS");
         config.Set<std::string>("InputAnalogJoyTrigger", "MOUSE7_LEFT_BUTTON");
