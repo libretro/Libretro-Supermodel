@@ -331,7 +331,6 @@ CoreOptions g_options = {
    /* resolution_multiplier */ 1,
    /* renderer_3d          */ Renderer3D::New3D,
    /* legacy_multi_texture */ false,
-   /* quad_rendering       */ false,
    /* crt_colors           */ 0,
    /* supersampling        */ 1,
    /* upscale_mode          */ 2,
@@ -1025,35 +1024,26 @@ bool retro_load_game(const struct retro_game_info *info)
    hw_render.version_major = 3;
    hw_render.version_minor = 0;
 #else
-   // Legacy3D uses fixed-function compatibility entry points. New3D uses a
-   // core profile, raised from 4.1 to 4.5 when geometry-shader-based native
-   // quad rendering is requested.
-   const bool active_quad_rendering =
-      g_options.renderer_3d == Renderer3D::New3D &&
-      g_options.quad_rendering;
-#ifdef HAVE_LEGACY3D
    if (g_options.renderer_3d == Renderer3D::Legacy3D)
    {
+      // Legacy3D uses fixed-function entry points that a core profile removes.
       hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
       hw_render.version_major = 0;
       hw_render.version_minor = 0;
    }
    else
-#endif
    {
+      // The New3D renderer requires a desktop OpenGL 4.1 core profile.
+      // RETRO_HW_CONTEXT_OPENGL requests a legacy compatibility context
+      // (2.1 on macOS), which cannot compile its shaders.
       hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE;
       hw_render.version_major = 4;
-      hw_render.version_minor = active_quad_rendering ? 5 : 1;
+      hw_render.version_minor = 1;
    }
 #endif
-   log_cb(RETRO_LOG_INFO,
-          "[Supermodel] Renderer context: %s, OpenGL %u.%u%s\n",
-          g_options.renderer_3d == Renderer3D::Legacy3D ?
-             "Legacy3D compatibility" : "New3D core",
-          hw_render.version_major, hw_render.version_minor,
-          g_options.renderer_3d == Renderer3D::New3D &&
-             g_options.quad_rendering ?
-                ", Quad Rendering enabled" : "");
+   log_cb(RETRO_LOG_INFO, "[Supermodel] 3D renderer: %s, OpenGL context %u.%u\n",
+          g_options.renderer_3d == Renderer3D::Legacy3D ? "Legacy3D" : "New3D",
+          hw_render.version_major, hw_render.version_minor);
    if (!environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
        log_cb(RETRO_LOG_ERROR, "[Supermodel] HW Render Context negotiation failed.\n");
        return false;
@@ -1167,7 +1157,6 @@ void retro_run(void)
       unsigned old_network_cabinets = g_options.network_cabinets;
       Renderer3D old_renderer_3d = g_options.renderer_3d;
       bool old_legacy_multi_texture = g_options.legacy_multi_texture;
-      bool old_quad_rendering = g_options.quad_rendering;
       int old_crt_colors = g_options.crt_colors;
       int old_supersampling = g_options.supersampling;
       WidescreenMode old_widescreen_mode = g_options.widescreen_mode;
@@ -1199,7 +1188,6 @@ void retro_run(void)
 
       if (g_options.renderer_3d != old_renderer_3d ||
           g_options.legacy_multi_texture != old_legacy_multi_texture ||
-          g_options.quad_rendering != old_quad_rendering ||
           g_options.crt_colors != old_crt_colors ||
           g_options.supersampling != old_supersampling ||
           g_options.no_white_flash != old_no_white_flash)

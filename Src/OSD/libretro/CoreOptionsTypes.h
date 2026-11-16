@@ -1,6 +1,14 @@
 #ifndef SUPERMODEL_CORE_OPTIONS_TYPES_H
 #define SUPERMODEL_CORE_OPTIONS_TYPES_H
 
+// Renderer capabilities behind the 3D Renderer, CRT Colour and Supersampling options.
+// HAVE_LEGACY3D comes from the Makefile (Legacy3D sources in the build). The SuperAA
+// pass (CRT colour, supersampling) is only validated on desktop OpenGL.
+#if !defined(ANDROID) && !defined(CORE_GLES) && !defined(HAVE_OPENGLES)
+#define HAVE_CRT_COLOURS
+#define HAVE_SUPERSAMPLING
+#endif
+
 enum class GunInput {
    Hybrid,        // RetroLightgun, RetroMouse and RetroPad share one cursor
    Lightgun,      // RetroLightgun, absolute screen coordinates
@@ -52,7 +60,6 @@ struct CoreOptions {
    float resolution_multiplier;
    Renderer3D renderer_3d;
    bool legacy_multi_texture;
-   bool quad_rendering;
    int crt_colors;
    int supersampling;
    int upscale_mode;

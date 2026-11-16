@@ -2,6 +2,7 @@
 #include "libretro_cbs.h"
 #include <cstdlib>
 #include <cstring>
+#include "CoreOptionsTypes.h"   // renderer capability flags used by option_defs
 
 // --- Core Options ---
 static struct retro_core_option_v2_category option_cats[] = {
@@ -149,22 +150,6 @@ static struct retro_core_option_v2_definition option_defs[] = {
       {
          { "disabled", "Single Texture (Default)" },
          { "enabled",  "Eight Texture Maps" },
-         { NULL, NULL },
-      },
-      "disabled"
-   },
-#endif
-#ifdef HAVE_QUAD_RENDERING
-   {
-      "supermodel_quad_rendering",
-      "Quad Rendering",
-      NULL,
-      "Render Model 3 quadrilaterals as native quads through New3D's geometry-shader path instead of splitting them into triangles. Requires OpenGL 4.5 and takes effect after restarting content. Ignored by Legacy3D.",
-      NULL,
-      "video",
-      {
-         { "disabled", NULL },
-         { "enabled",  NULL },
          { NULL, NULL },
       },
       "disabled"
@@ -693,14 +678,6 @@ void update_core_options(void)
              "enabled") == 0;
 #else
    g_options.legacy_multi_texture = false;
-#endif
-
-#ifdef HAVE_QUAD_RENDERING
-   g_options.quad_rendering =
-      strcmp(option_get("supermodel_quad_rendering", "disabled"),
-             "enabled") == 0;
-#else
-   g_options.quad_rendering = false;
 #endif
 
 #ifdef HAVE_CRT_COLOURS

@@ -462,6 +462,7 @@ private:
 	GLint	viewportX, viewportY;
 	GLint	viewportWidth, viewportHeight;
 	GLuint  m_aaTarget;
+	Result  m_glObjectsResult;    // SetupGLObjects() outcome, reported by Init()
 	
 	// Scene graph processing
 	int		listDepth;	        // how many lists have we recursed into

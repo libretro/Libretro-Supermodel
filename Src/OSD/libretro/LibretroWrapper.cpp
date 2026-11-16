@@ -391,11 +391,11 @@ bool LibretroWrapper::InitRenderers()
 
     GLuint renderTarget = superAA->GetTargetID();
 
-    // Libretro always needs a base-resolution resolved target. With native
-    // supersampling/CRT colour active, SuperAA renders its high-resolution
-    // input down into this FBO. Without that pass, the Model 3 renderers draw
-    // here directly. Never submit SuperAA's high-resolution source FBO to the
-    // frontend: doing so crops the image to its lower-left base-size region.
+    // Libretro always needs a base-resolution resolved target. With supersampling
+    // or CRT colour active, SuperAA renders its high-resolution input down into
+    // this FBO. Without that pass, the Model 3 renderers draw here directly. Never
+    // submit SuperAA's high-resolution source FBO to the frontend: it is the
+    // unprocessed image, and at 2x or more only its lower-left part would show.
     glGenFramebuffers(1, &m_libretrFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, m_libretrFBO);
 
@@ -430,9 +430,9 @@ bool LibretroWrapper::InitRenderers()
         renderTarget = m_libretrFBO;
 
     Render2D = new CRender2D(s_runtime_config);
-    // Normal desktop builds can include both renderers and select at runtime.
-    // Platforms whose graphics API cannot build Legacy3D omit it entirely;
-    // explicit RENDERER=legacy builds remain fixed to that renderer.
+    // Builds that include both renderers (HAVE_LEGACY3D, from the Makefile) select
+    // one at runtime through the 3D Renderer option. Where Legacy3D is not built in,
+    // New3D is the only choice; RENDERER=legacy builds are fixed to Legacy3D.
     Render3D =
 #if defined(USE_LEGACY3D)
         (IRender3D*)new Legacy3D::CLegacy3D(s_runtime_config);

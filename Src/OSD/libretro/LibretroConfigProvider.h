@@ -337,8 +337,6 @@ namespace LibretroConfigProvider {
         config.Set("New3DEngine", !use_legacy_3d);
         config.Set("MultiTexture",
                    use_legacy_3d && g_options.legacy_multi_texture);
-        config.Set("QuadRendering",
-                   !use_legacy_3d && g_options.quad_rendering);
         config.Set("CRTcolors",
                    !use_legacy_3d ? g_options.crt_colors : 0);
         config.Set("Supersampling", g_options.supersampling);
