@@ -105,7 +105,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--list", action="store_true",
                         help="List selected games and ROM availability without launching RetroArch")
     parser.add_argument("--keep-workdirs", action="store_true",
-                        help="Preserve per-game temporary RetroArch environments for diagnosis")
+                        help="Keep each game's RetroArch environment under <output>/work; "
+                             "its smoke-test-overrides.cfg can be reused to rerun the game")
     return parser.parse_args()
 
 
@@ -158,6 +159,9 @@ def prepare_environment(work: Path, assets: Path, base_config: Path | None,
         "log_to_file": "true",
         "log_to_file_timestamp": "false",
         "log_verbosity": "true",
+        # RetroArch reads core_options_path only with global core options on;
+        # otherwise it uses <config dir>/Supermodel/Supermodel.opt, the real one.
+        "global_core_options": "true",
         "core_options_path": work / "config" / "core-options.cfg",
         "input_remapping_directory": work / "remaps",
         "content_history_path": work / "config" / "content_history.lpl",
@@ -223,8 +227,17 @@ def run_game(args: argparse.Namespace, game: Game, output: Path, frames: int) ->
             "", "", "", "", f"ROM not found: {rom}",
         )
 
-    temporary = tempfile.TemporaryDirectory(prefix=f"supermodel-smoke-{game.name}-")
-    work = Path(temporary.name)
+    # With --keep-workdirs the environment is built in place, so the absolute
+    # paths written into its overrides stay valid after the run.
+    temporary: tempfile.TemporaryDirectory[str] | None = None
+    if args.keep_workdirs:
+        work = output / "work" / game.name
+        if work.exists():
+            shutil.rmtree(work)
+        work.mkdir(parents=True)
+    else:
+        temporary = tempfile.TemporaryDirectory(prefix=f"supermodel-smoke-{game.name}-")
+        work = Path(temporary.name)
     config_args = prepare_environment(work, args.system_assets, args.base_config,
                                       args.fast_forward)
     frame_tmp = work / f"{game.name}.png"
@@ -283,12 +296,8 @@ def run_game(args: argparse.Namespace, game: Game, output: Path, frames: int) ->
     else:
         status, note = "ok", "inspect final frame for service/setup loops"
 
-    if args.keep_workdirs:
-        kept = output / "work" / game.name
-        if kept.exists():
-            shutil.rmtree(kept)
-        shutil.copytree(work, kept)
-    temporary.cleanup()
+    if temporary:
+        temporary.cleanup()
     return Result(game.name, game.title, game.version, status, exit_code, signal_name,
                   frames, args.seconds, round(elapsed, 3), args.fast_forward,
                   screenshot, save, log, str(console_out), note)
