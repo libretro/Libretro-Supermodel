@@ -382,13 +382,12 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_steering_response",
       "Driving Steering Response",
       NULL,
-      "Applied only to games recognized as Driving. Select the steering response curve; Progressive and FBNeo Logarithmic reduce sensitivity around the center while retaining the available output range.",
+      "Applied only to games recognized as Driving. Select the steering response curve; Progressive reduces sensitivity around the center while retaining the full output range.",
       NULL,
       "input",
       {
          { "linear",      "Linear" },
          { "progressive", "Progressive (Fine Center)" },
-         { "fbneo",       "FBNeo Logarithmic (Fine Center)" },
          { NULL, NULL },
       },
       "linear"
@@ -793,14 +792,8 @@ void update_core_options(void)
    g_options.force_feedback =
       strcmp(option_get("supermodel_force_feedback", "enabled"),
              "enabled") == 0;
-   {
-      const char *response = option_get("supermodel_steering_response", "linear");
-      g_options.steering_response = strcmp(response, "progressive") == 0
-                                      ? SteeringResponse::Progressive
-                                   : strcmp(response, "fbneo") == 0
-                                      ? SteeringResponse::FBNeoLogarithmic
-                                      : SteeringResponse::Linear;
-   }
+   g_options.steering_progressive =
+      strcmp(option_get("supermodel_steering_response", "linear"), "progressive") == 0;
    g_options.steering_output_range = atoi(option_get("supermodel_steering_output_range", "100"));
    {
       const char *accelerator_range = option_get("supermodel_accelerator_output_range", "100");

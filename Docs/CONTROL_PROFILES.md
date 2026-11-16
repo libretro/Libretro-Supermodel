@@ -43,8 +43,8 @@ Model 3 game list is effectively complete.
   is predictable in RetroArch, but the core applies them only to recognized
   Driving profiles. Steering processing occurs after Libretro polling and
   before Model 3 reads the 8-bit steering ADC. It incorporates the Rad
-  Mobile/Rad Rally MAME response work: Linear, Progressive, and FBNeo
-  Logarithmic response and 50-150% output range. `Linear / 100%` is a
+  Mobile/Rad Rally MAME response work: Linear and Progressive response and
+  50-150% output range. `Linear / 100%` is a
   transparent default and the processed position is always applied directly.
 - Output ranges above 100% saturate at the ADC limits, allowing full lock to be
   reached with less physical stick travel. Values below 100% reduce the
