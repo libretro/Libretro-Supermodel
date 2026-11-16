@@ -10,6 +10,8 @@ namespace LibretroConfigProvider {
      inline Util::Config::Node DefaultConfig(const std::string& gameXmlPath)
     {
         Util::Config::Node config("Global");
+        const float kDefaultFramesPerSecond = static_cast<float>(
+            LibretroTiming::FramesPerSecond(LibretroTiming::kDefaultFrameRateMicroHz));
         
         config.Set("GameXMLFile", gameXmlPath);
         config.Set("InitStateFile", "");
@@ -28,8 +30,9 @@ namespace LibretroConfigProvider {
         config.Set("BalanceLeftRight", 0.0f, "Sound", -100.f, 100.f);
         config.Set("BalanceFrontRear", 0.0f, "Sound", -100.f, 100.f);
         config.Set("NbSoundChannels", 4, "Sound", 0, 0, { 1,2,4 });
-        config.Set("SoundFreq", static_cast<float>(LibretroTiming::kDefaultFramesPerSecond),
-                   "Sound", 0.0f, 0.0f, { 57.524160f, 60.f });
+        // RefreshRate and SoundFreq are set from the Model 3 Timing Mode when the
+        // content loads (LibretroWrapper::Emulate); these are the 60 Hz defaults.
+        config.Set("SoundFreq", kDefaultFramesPerSecond, "Sound", 0.0f, 0.0f, { 57.524160f, 60.f });
         // CDSB
         
         config.Set("EmulateDSB", true, "Sound");
@@ -57,8 +60,7 @@ namespace LibretroConfigProvider {
         config.Set("WideBackground", false, "Video");
         config.Set("VSync", true, "Video");
         config.Set("Throttle", true, "Video");
-        config.Set("RefreshRate", static_cast<float>(LibretroTiming::kDefaultFramesPerSecond),
-                   "Video", 0.0f, 0.0f, { 57.524160f,60.f });
+        config.Set("RefreshRate", kDefaultFramesPerSecond, "Video", 0.0f, 0.0f, { 57.524160f, 60.f });
         config.Set("ShowFrameRate", false, "Video");
         config.Set("Crosshairs", int(0), "Video", 0, 0, { 0,1,2,3 });
         config.Set<std::string>("CrosshairStyle", "vector", "Video", "", "", { "bmp","vector" });
@@ -347,14 +349,6 @@ namespace LibretroConfigProvider {
                    g_options.widescreen_mode ==
                        WidescreenMode::WidescreenWideBackground);
         config.Set("NoWhiteFlash", g_options.no_white_flash);
-        // RefreshRate and SoundFreq form one Libretro timing mode. Never let
-        // an optional INI split video cadence from audio packet sizing.
-        const bool native_timing =
-            g_options.av_timing_mode == AVTimingMode::Native57524Hz;
-        const float frames_per_second = static_cast<float>(
-            LibretroTiming::FramesPerSecond(native_timing));
-        config.Set("RefreshRate", frames_per_second);
-        config.Set("SoundFreq", frames_per_second);
         config.Set("Crosshairs", static_cast<int>(g_options.crosshairs & 3u));
         config.Set<std::string>("CrosshairStyle", "vector");
         config.Set("Network", g_options.network_board);

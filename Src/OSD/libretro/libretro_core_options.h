@@ -2,6 +2,7 @@
 #include "libretro_cbs.h"
 #include <cstdlib>
 #include <cstring>
+#include <OSD/Audio.h>
 #include "CoreOptionsTypes.h"   // renderer capability flags used by option_defs
 
 // --- Core Options ---
@@ -260,7 +261,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_av_timing",
       "Model 3 Timing Mode",
       NULL,
-      "Select the video cadence and matching 44.1 kHz audio packetization. Native Model 3 timing reports 57.524160 FPS and uses a fractional 766/767-sample audio cadence; a display capable of matching this refresh rate provides the smoothest result. Native timing requires a multi-threaded emulation mode for continuous audio. Requires restarting content.",
+      "60 Hz, the default of standalone Supermodel, runs smoothly with correct audio pitch on ordinary 60 Hz and 120 Hz displays; the game runs about 4% faster than the arcade. Native reports the real Model 3 refresh rate (57.524160 Hz) for displays that can follow it (VRR/FreeSync/G-Sync); on a fixed 60 Hz display RetroArch then speeds up and re-pitches the audio, or the picture judders. Native needs a multi-threaded Emulation Threading mode, otherwise 60 Hz is used. Requires restarting the content.",
       NULL,
       "video",
       {

@@ -302,21 +302,9 @@ static bool   s_gpuQueryOK   = false;
 // Rolling frontend-side timings. CModel3's FrameTimings stop before the final
 // blit, shader chain, frontend presentation and VSync wait.
 static LibretroFrontendTimings s_frontendTimings;
-static float s_accRun = 0.0f;
-static float s_accCoreAndBlit = 0.0f;
-static float s_accPresent = 0.0f;
-static float s_accEngine = 0.0f;
-static float s_accAudioSubmit = 0.0f;
-static float s_accOverlay = 0.0f;
-static float s_accBlit = 0.0f;
-static float s_maxRun = 0.0f;
-static float s_accFrameInterval = 0.0f;
 static std::chrono::steady_clock::time_point s_previousFrameStart;
-static bool s_havePreviousFrameStart = false;
-static unsigned s_accPpc = 0;
-static unsigned s_accRender = 0;
-static unsigned s_renderedFrames = 0;
-static unsigned s_timingFrames = 0;
+static bool  s_havePreviousFrameStart = false;
+static float s_accFrameInterval = 0.0f;
 static unsigned s_frameIntervals = 0;
 
 // Path buffers
@@ -1001,13 +989,6 @@ bool retro_load_game(const struct retro_game_info *info)
    last_width = 0;
    last_height = 0;
    g_context_ready = false;
-   s_frontendTimings = {};
-   s_accRun = s_accCoreAndBlit = s_accPresent = s_maxRun = 0.0f;
-   s_accEngine = s_accAudioSubmit = s_accOverlay = s_accBlit = 0.0f;
-   s_accFrameInterval = 0.0f;
-   s_havePreviousFrameStart = false;
-   s_accPpc = s_accRender = s_renderedFrames = s_timingFrames = 0;
-   s_frameIntervals = 0;
 
    // The selected renderer determines which OpenGL profile the frontend must
    // create, so options have to be read before SET_HW_RENDER is negotiated.
@@ -1081,6 +1062,13 @@ bool retro_load_game(const struct retro_game_info *info)
       
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
+   if (wrapper.NativeTimingUnavailable())
+   {
+      static const struct retro_message message = {
+         "Native Model 3 timing needs a multi-threaded Emulation Threading mode; using 60 Hz.", 300
+      };
+      environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+   }
    const Game loaded_game = wrapper.getGame();
    g_active_input_game = loaded_game;
    g_has_active_input_game = true;
@@ -1532,71 +1520,59 @@ void retro_run(void)
       // with N always lands on the same phase of the cycle and lies to you.
       // renderTicks is also stale on skipped frames (Model3 only writes it when it
       // actually renders), so it is averaged over rendered frames only.
+      static float    acc_run = 0.0f, acc_emu = 0.0f, acc_present = 0.0f, max_run = 0.0f;
+      static float    acc_engine = 0.0f, acc_audio = 0.0f, acc_overlay = 0.0f, acc_blit = 0.0f;
+      static unsigned acc_ppc = 0, acc_render = 0, rendered = 0, log_frames = 0;
+
       const float emu     = ms(t_frame_start, t_post);
       const float present = ms(t_post, t_end);
 
-      s_accCoreAndBlit += emu;
-      s_accPresent += present;
-      s_accEngine += wrapper.GetLastEngineMs();
-      s_accAudioSubmit += wrapper.GetLastAudioSubmitMs();
-      s_accOverlay += ms(t_overlay_start, t_overlay_end);
-      s_accBlit += ms(t_blit_start, t_blit_end);
-      s_accRun += emu + present;
-      if (emu + present > s_maxRun) s_maxRun = emu + present;
-      s_accPpc += t.ppcTicks;
-      if (!skipRender) { s_accRender += t.renderTicks; s_renderedFrames++; }
+      acc_emu     += emu;
+      acc_present += present;
+      acc_run     += emu + present;
+      acc_engine  += wrapper.GetLastEngineMs();
+      acc_audio   += wrapper.GetLastAudioSubmitMs();
+      acc_overlay += ms(t_overlay_start, t_overlay_end);
+      acc_blit    += ms(t_blit_start, t_blit_end);
+      if (emu + present > max_run) max_run = emu + present;
+      acc_ppc += t.ppcTicks;
+      if (!skipRender) { acc_render += t.renderTicks; rendered++; }
 
-      if (++s_timingFrames >= 61) {   // 61: coprime with every frameskip cycle (1..4)
-         const float n = (float)s_timingFrames;
-         s_frontendTimings.engineMs = s_accEngine / n;
-         s_frontendTimings.audioSubmitMs = s_accAudioSubmit / n;
-         s_frontendTimings.overlayMs = s_accOverlay / n;
-         s_frontendTimings.blitMs = s_accBlit / n;
-         s_frontendTimings.coreAndBlitMs = s_accCoreAndBlit / n;
-         s_frontendTimings.otherMs = std::max(
-             0.0f, s_frontendTimings.coreAndBlitMs
-                 - s_frontendTimings.engineMs
-                 - s_frontendTimings.audioSubmitMs
-                 - s_frontendTimings.overlayMs
-                 - s_frontendTimings.blitMs);
-         s_frontendTimings.presentMs = s_accPresent / n;
-         s_frontendTimings.retroRunMs = s_accRun / n;
-         s_frontendTimings.worstRetroRunMs = s_maxRun;
-         s_frontendTimings.actualFps =
-             s_frameIntervals && s_accFrameInterval > 0.0f
-                 ? 1000.0f / (s_accFrameInterval /
-                              static_cast<float>(s_frameIntervals))
-                 : 0.0f;
+      if (++log_frames >= 61) {   // 61: coprime with every frameskip cycle (1..4)
+         const float n = (float)log_frames;
+         LibretroFrontendTimings &ft = s_frontendTimings;
+         ft.engineMs        = acc_engine / n;
+         ft.audioSubmitMs   = acc_audio / n;
+         ft.overlayMs       = acc_overlay / n;
+         ft.blitMs          = acc_blit / n;
+         ft.coreAndBlitMs   = acc_emu / n;
+         ft.otherMs         = std::max(0.0f, ft.coreAndBlitMs - ft.engineMs
+                                             - ft.audioSubmitMs - ft.overlayMs
+                                             - ft.blitMs);
+         ft.presentMs       = acc_present / n;
+         ft.retroRunMs      = acc_run / n;
+         ft.worstRetroRunMs = max_run;
+         ft.actualFps       = s_frameIntervals && s_accFrameInterval > 0.0f
+                                 ? 1000.0f / (s_accFrameInterval / (float)s_frameIntervals)
+                                 : 0.0f;
+         s_accFrameInterval = 0.0f;
+         s_frameIntervals = 0;
          if (g_options.timing_overlay)
             log_cb(RETRO_LOG_INFO,
                    "[Timing] avg over %u frames | PPC:%4.1f  Render:%4.1f (%u drawn)  "
                    "engine:%5.1f  audio:%4.1f  overlay:%4.1f  blit:%4.1f  other:%4.1f  "
                    "core+blit:%5.1f  present:%5.1f  retro_run:%5.1f  worst:%5.1f ms  "
-                   "actual:%5.1f FPS  engine-cap:%5.1f FPS  callback-cap:%5.1f FPS\n",
-                   s_timingFrames,
-                   s_accPpc / n,
-                   s_renderedFrames ? s_accRender / (float)s_renderedFrames : 0.0f,
-                   s_renderedFrames,
-                   s_frontendTimings.engineMs,
-                   s_frontendTimings.audioSubmitMs,
-                   s_frontendTimings.overlayMs,
-                   s_frontendTimings.blitMs,
-                   s_frontendTimings.otherMs,
-                   s_frontendTimings.coreAndBlitMs,
-                   s_frontendTimings.presentMs,
-                   s_frontendTimings.retroRunMs,
-                   s_frontendTimings.worstRetroRunMs,
-                   s_frontendTimings.actualFps,
-                   s_frontendTimings.engineMs > 0.0f
-                       ? 1000.0f / s_frontendTimings.engineMs : 0.0f,
-                   s_frontendTimings.retroRunMs > 0.0f
-                       ? 1000.0f / s_frontendTimings.retroRunMs : 0.0f);
-         s_timingFrames = s_renderedFrames = 0;
-         s_accRun = s_accCoreAndBlit = s_accPresent = s_maxRun = 0.0f;
-         s_accEngine = s_accAudioSubmit = s_accOverlay = s_accBlit = 0.0f;
-         s_accFrameInterval = 0.0f;
-         s_accPpc = s_accRender = 0;
-         s_frameIntervals = 0;
+                   "actual:%5.1f FPS\n",
+                   log_frames,
+                   acc_ppc / n,
+                   rendered ? acc_render / (float)rendered : 0.0f, rendered,
+                   ft.engineMs, ft.audioSubmitMs, ft.overlayMs, ft.blitMs, ft.otherMs,
+                   ft.coreAndBlitMs, ft.presentMs, ft.retroRunMs, ft.worstRetroRunMs,
+                   ft.actualFps);
+         log_frames = 0; rendered = 0;
+         acc_run = acc_emu = acc_present = max_run = 0.0f;
+         acc_engine = acc_audio = acc_overlay = acc_blit = 0.0f;
+         acc_ppc = acc_render = 0;
       }
    }
 }

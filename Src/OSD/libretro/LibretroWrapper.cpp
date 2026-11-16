@@ -28,7 +28,6 @@
 #include "OSD/FileSystemPath.h"
 #include "GameLoader.h"
 #include "libretro_cbs.h"
-#include "LibretroTiming.h"
 #include "vfs_ioapi.h"
 #include "Debugger/SupermodelDebugger.h"
 #if defined(HAVE_LEGACY3D) || defined(USE_LEGACY3D)
@@ -54,6 +53,8 @@
 
 // --- External Audio Hooks ---
 extern void PlayCallback(void *userdata, UINT8 *stream, int len);
+extern UINT32 GetAvailableAudioLen();
+extern int bytes_per_frame_host;
 extern retro_environment_t environ_cb;
 extern retro_log_printf_t log_cb;  // defined in libretro.cpp
 
@@ -150,12 +151,6 @@ LibretroWrapper::LibretroWrapper() :
 }
 
 LibretroWrapper::~LibretroWrapper() {}
-
-double LibretroWrapper::GetFramesPerSecond() const
-{
-    return static_cast<double>(m_frameRateMicroHz) /
-           static_cast<double>(LibretroTiming::kMicroHzScale);
-}
 
 FrameTimings LibretroWrapper::GetTimings() const
 {
@@ -482,7 +477,6 @@ int LibretroWrapper::SuperModelInit(const Game &game) {
   quit = false;
   paused = false;
   dumpTimings = false;
-  m_audioFrameRemainder = 0;
 
   // Initialize and load ROMs
   if (Result::OKAY != Model3->Init())
@@ -569,15 +563,21 @@ int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
         lastEngineMs = std::chrono::duration<float, std::milli>(
             audioStart - engineStart).count();
 
-        // Submit exactly 44.1 kHz over the selected video cadence. At 60 Hz
-        // this is a fixed 735-frame packet; native Model 3 timing uses a
-        // deterministic 766/767-frame sequence. Never derive the count from
-        // measured performance: that would create a pacing feedback loop.
-        const unsigned audio_frames = LibretroTiming::NextAudioFrames(
+        // One video frame carries exactly 44.1 kHz worth of audio for the selected
+        // Model 3 Timing Mode: a fixed 735 samples at 60 Hz (the sound board's own
+        // chunk), a 766/767 cadence at native 57.524 Hz. This used to be computed from the MEASURED
+        // framerate instead, which is a positive feedback loop under RetroArch's
+        // synchronous audio driver: fps dips -> 44100/fps sends MORE samples than
+        // real time -> the driver blocks in audio_batch_cb to absorb the excess ->
+        // fps dips further -> even more samples. Measured on Daytona 2: the sample
+        // count climbed 766 -> 1047 while audio_batch_cb blocked for up to 36 ms
+        // per frame, producing exactly the recurring 30-50 ms frame spikes.
+        // The frontend already resamples to keep audio and video in sync; the core
+        // must simply hand it one frame of audio per frame.
+        const unsigned audioFrames = LibretroTiming::NextAudioFrames(
             m_frameRateMicroHz, m_audioFrameRemainder);
         PlayCallback(NULL, NULL,
-                     static_cast<int>(audio_frames *
-                         LibretroTiming::kStereoAudioBytesPerFrame));
+                     static_cast<int>(audioFrames * LibretroTiming::kStereoAudioBytesPerFrame));
         lastAudioSubmitMs = std::chrono::duration<float, std::milli>(
             std::chrono::steady_clock::now() - audioStart).count();
     }
@@ -865,12 +865,23 @@ int LibretroWrapper::Emulate(const char* romPath)
 
         // Libretro options are authoritative over both defaults and the optional INI.
         LibretroConfigProvider::ApplyCoreOptions(s_runtime_config);
-        const bool native_timing =
-            g_options.av_timing_mode == AVTimingMode::Native57524Hz;
-        m_frameRateMicroHz = LibretroTiming::FrameRateMicroHz(native_timing);
+        // Native timing drains 766/767 samples per frame. Only the multi-threaded
+        // sound board produces audio on demand; single-threaded it runs one
+        // 735-sample chunk per frame, so native timing would underrun.
+        const bool wantNative = g_options.av_timing_mode == AVTimingMode::Native57524Hz;
+        const bool nativeTiming = wantNative &&
+            g_options.emulation_threading != EmulationThreading::SingleThread;
+        m_nativeTimingUnavailable = wantNative && !nativeTiming;
+        m_frameRateMicroHz = LibretroTiming::FrameRateMicroHz(nativeTiming);
         m_audioFrameRemainder = 0;
-        InfoLog("Libretro timing: %.6f Hz video, %u Hz audio",
-                GetFramesPerSecond(), LibretroTiming::kAudioSampleRate);
+        // Supermodel's RefreshRate and SoundFreq follow the timing mode, as in the
+        // standalone build; OpenAudio() sizes its per-frame buffer from SoundFreq.
+        const float framesPerSecond = static_cast<float>(GetFramesPerSecond());
+        s_runtime_config.Get("RefreshRate").SetValue(framesPerSecond);
+        s_runtime_config.Get("SoundFreq").SetValue(framesPerSecond);
+        InfoLog("Libretro timing: %.6f Hz video, %u Hz audio%s", GetFramesPerSecond(),
+                LibretroTiming::kAudioSampleRate,
+                m_nativeTimingUnavailable ? " (native needs multi-threading)" : "");
         InfoLog("Libretro emulation threading: MultiThreaded=%d, GPUMultiThreaded=%d",
                 s_runtime_config["MultiThreaded"].ValueAs<bool>(),
                 s_runtime_config["GPUMultiThreaded"].ValueAs<bool>());
