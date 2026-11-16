@@ -4,11 +4,10 @@
 #include <algorithm>
 #include <mutex>
 #include "libretro_cbs.h"
+#include "LibretroTiming.h"
 
-// Model3 audio output is 44.1KHz 4-channel sound and frame rate is 60fps
-#define SAMPLE_RATE_M3     (44100)
-#define SUPERMODEL_FPS     (60.0f)
-#define MODEL3_FPS         (57.53f)
+// Model 3 audio output is 44.1 kHz, mixed to stereo for Libretro.
+#define SAMPLE_RATE_M3     (LibretroTiming::kAudioSampleRate)
 #define MAX_SND_FREQ       (75)
 #define MIN_SND_FREQ       (45)
 #define MAX_LATENCY        (100)
@@ -17,7 +16,9 @@
 Game::AudioTypes AudioType;
 int nbHostAudioChannels = NUM_CHANNELS_M3;      // Number of channels on host
 
-#define SAMPLES_PER_FRAME_M3  (INT32)(SAMPLE_RATE_M3 / MODEL3_FPS)
+// Samples per video frame at the default 60 Hz; OpenAudio() recomputes it from SoundFreq.
+#define SAMPLES_PER_FRAME_M3  (INT32)(SAMPLE_RATE_M3 * LibretroTiming::kMicroHzScale / \
+                                      LibretroTiming::kDefaultFrameRateMicroHz)
 #define BYTES_PER_SAMPLE_M3   (NUM_CHANNELS_M3 * sizeof(INT16))
 #define BYTES_PER_FRAME_M3   (SAMPLES_PER_FRAME_M3 * BYTES_PER_SAMPLE_M3)
 

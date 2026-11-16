@@ -31,7 +31,7 @@
 #include "libretro_cbs.h"
 #include "vfs_ioapi.h"
 #include "Debugger/SupermodelDebugger.h"
-#if !defined(ANDROID) && !defined(CORE_GLES) || defined(USE_LEGACY3D)
+#if defined(HAVE_LEGACY3D) || defined(USE_LEGACY3D)
 #include "Graphics/Legacy3D/Legacy3D.h"
 #endif
 #include "Graphics/New3D/New3D.h"
@@ -933,6 +933,11 @@ int LibretroWrapper::Emulate(const char* romPath)
         m_nativeTimingUnavailable = wantNative && !nativeTiming;
         m_frameRateMicroHz = LibretroTiming::FrameRateMicroHz(nativeTiming);
         m_audioFrameRemainder = 0;
+        // Supermodel's RefreshRate and SoundFreq follow the timing mode, as in the
+        // standalone build; OpenAudio() sizes its per-frame buffer from SoundFreq.
+        const float framesPerSecond = static_cast<float>(GetFramesPerSecond());
+        s_runtime_config.Get("RefreshRate").SetValue(framesPerSecond);
+        s_runtime_config.Get("SoundFreq").SetValue(framesPerSecond);
         InfoLog("Libretro timing: %.6f Hz video, %u Hz audio%s", GetFramesPerSecond(),
                 LibretroTiming::kAudioSampleRate,
                 m_nativeTimingUnavailable ? " (native needs multi-threading)" : "");

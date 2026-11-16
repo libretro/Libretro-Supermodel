@@ -630,7 +630,7 @@
       <encryption_key>0x2923aa91</encryption_key>
     </hardware>
     <roms>
-    	<patches>
+      <patches>
         <!-- Skips over cabinet network error -->
         <patch region="crom" bits="32" offset="0x4a2b7c" value="0x60000000" />
       </patches>
@@ -2909,7 +2909,7 @@
       <encryption_key>0x29234e96</encryption_key>
     </hardware>
     <roms>
-    	<patches>
+      <patches>
         <!--
           Offset of program relative to CROM base: 0x600000 (0x200000 in the
           ROM itself). Inexplicably, at PC=AFC1C, a call is made to FC78, which

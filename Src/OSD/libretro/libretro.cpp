@@ -21,6 +21,7 @@
 #include "InitialNvramTemplates.h"
 #include "LibretroNvramSettings.h"
 #include "LibretroWrapper.h"
+#include "LibretroTiming.h"
 #include "LibretroNetBoard.h"
 #include <GL/glew.h>
 #include "../../Graphics/SuperAA.h"
@@ -877,7 +878,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
 
    info->timing.fps         = wrapper.GetFramesPerSecond();
-   info->timing.sample_rate = 44100.0;
+   info->timing.sample_rate = LibretroTiming::kAudioSampleRate;
 }
 
 // --- OpenGL Context Management ---
