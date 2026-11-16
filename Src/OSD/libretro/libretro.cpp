@@ -54,7 +54,6 @@ bool g_cabinet_controls_enabled[2] = { true, true };
 bool g_star_wars_invert_x = false;
 static GunInput g_active_gun_input = GunInput::Hybrid;
 static StarWarsInput g_active_star_wars_input = StarWarsInput::Hybrid;
-static WidescreenMode g_active_widescreen_mode = WidescreenMode::Disabled;
 // Game-aware NVRAM settings: one hidden core option per supported ROM set and
 // setting, generated from LibretroNvramSettings.h and shown only for the loaded
 // game while "NVRAM Settings" is enabled.
@@ -271,7 +270,8 @@ CoreOptions g_options = {
    /* initial_nvram_setup */ true,
    /* nvram_settings_enabled */ false,
    /* resolution_multiplier */ 1,
-   /* widescreen_mode      */ WidescreenMode::Disabled,
+   /* widescreen           */ false,
+   /* wide_background      */ false,
    /* upscale_mode         */ 2,
    /* no_white_flash       */ false,
    /* av_timing_mode       */ AVTimingMode::Default60Hz,
@@ -307,17 +307,7 @@ CoreOptions g_options = {
    /* network_cabinets    */ 2,
 };
 
-static bool widescreen_enabled()
-{
-   return g_active_widescreen_mode != WidescreenMode::Disabled;
-}
-
-static bool wide_background_enabled()
-{
-   return g_active_widescreen_mode ==
-          WidescreenMode::WidescreenWideBackground;
-}
-
+// Optimization: Cache last known resolution to avoid redundant updates
 static unsigned scaled_native_dimension(unsigned value)
 {
    const float multiplier = g_options.resolution_multiplier > 0.0f
@@ -327,28 +317,30 @@ static unsigned scaled_native_dimension(unsigned value)
 
 static unsigned widescreen_width(unsigned height)
 {
-   // Nearest integer to height * 16 / 9 without introducing a second scale
-   // factor. Native 384-line output therefore becomes 683x384.
+   // Nearest integer to height * 16 / 9: native 384-line output becomes 683x384.
    return std::max(1u, (height * 16u + 4u) / 9u);
 }
 
-static void get_video_dimensions(unsigned &view_width,
-                                 unsigned &view_height,
-                                 unsigned &output_width,
-                                 unsigned &output_height)
+// view: the 4:3 Model 3 screen; output: the frame handed to the frontend. In widescreen
+// the output is a real 16:9 frame with the 4:3 view centred in it, as in standalone
+// Supermodel, instead of a 4:3 frame the frontend stretches to 16:9.
+static void get_video_dimensions(unsigned &view_width, unsigned &view_height,
+                                 unsigned &output_width, unsigned &output_height)
 {
    view_width = scaled_native_dimension(496);
    view_height = scaled_native_dimension(384);
    output_height = view_height;
-   output_width = widescreen_enabled()
-      ? widescreen_width(output_height) : view_width;
+   output_width = g_options.widescreen ? widescreen_width(output_height) : view_width;
 }
 
-static constexpr unsigned kMaximumVideoHeight = 384u * 4u;
-static constexpr unsigned kMaximumVideoWidth =
-   (kMaximumVideoHeight * 16u + 4u) / 9u;
+// Large enough for the current multiplier in either aspect, so toggling widescreen
+// needs only SET_GEOMETRY. A multiplier change still sends SET_SYSTEM_AV_INFO.
+static void get_maximum_video_dimensions(unsigned &max_width, unsigned &max_height)
+{
+   max_height = scaled_native_dimension(384);
+   max_width = std::max(scaled_native_dimension(496), widescreen_width(max_height));
+}
 
-// Optimization: Cache last known resolution to avoid redundant updates
 static unsigned last_width = 0;
 static unsigned last_height = 0;
 #define NVRAM_BUFFER_SIZE (0x20000 + 2048) 
@@ -867,10 +859,8 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    get_video_dimensions(view_width, view_height, output_width, output_height);
    info->geometry.base_width   = output_width;
    info->geometry.base_height  = output_height;
-   info->geometry.max_width    = kMaximumVideoWidth;
-   info->geometry.max_height   = kMaximumVideoHeight;
-   info->geometry.aspect_ratio = widescreen_enabled()
-      ? (16.0f / 9.0f) : (4.0f / 3.0f);
+   get_maximum_video_dimensions(info->geometry.max_width, info->geometry.max_height);
+   info->geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
 
    info->timing.fps         = wrapper.GetFramesPerSecond();
    info->timing.sample_rate = LibretroTiming::kAudioSampleRate;
@@ -1008,7 +998,6 @@ bool retro_load_game(const struct retro_game_info *info)
    }
 
    
-   g_active_widescreen_mode = g_options.widescreen_mode;
    g_active_gun_input = g_options.gun_input;
    g_active_star_wars_input = g_options.star_wars_input;
    ppc_set_jit_enabled(g_options.jit_enable);
@@ -1035,7 +1024,7 @@ bool retro_load_game(const struct retro_game_info *info)
    update_nvram_option_visibility();
    set_input_descriptors(&loaded_game);
    set_controller_info(loaded_game);
-   wrapper.SetWidescreen(widescreen_enabled(), wide_background_enabled());
+   wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
    wrapper.SetCrosshairs(g_options.crosshairs);
    if (wrapper.SuperModelInit(wrapper.getGame()) != 0)
    {
@@ -1102,7 +1091,8 @@ void retro_run(void)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &options_updated) && options_updated)
    {
       float old_multiplier = g_options.resolution_multiplier;
-      WidescreenMode old_widescreen_mode = g_options.widescreen_mode;
+      bool old_widescreen = g_options.widescreen;
+      bool old_wide_background = g_options.wide_background;
       int old_upscale_mode = g_options.upscale_mode;
       bool old_legacy_sound_dsp = g_options.legacy_sound_dsp;
       bool old_sound_enable = g_options.sound_enable;
@@ -1135,12 +1125,16 @@ void retro_run(void)
          environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
 
-      if (g_options.widescreen_mode != old_widescreen_mode)
+      if (g_options.widescreen != old_widescreen)
       {
-         static const struct retro_message message = {
-            "Widescreen Mode will apply after restarting the content.", 180
-         };
-         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+         // The output width changes too: retro_run() below resizes the renderers and
+         // sends the new geometry (frame size and aspect ratio) to the frontend.
+         wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
+      }
+      else if (g_options.wide_background != old_wide_background)
+      {
+         // Render2D reads WideBackground every frame: no reinit needed.
+         wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
       }
 
       if (g_options.upscale_mode != old_upscale_mode ||
@@ -1337,6 +1331,7 @@ void retro_run(void)
       skipRender = (g_skip_counter != 0);  // Render only when counter == 0
    }
 
+   // target: the whole output frame; view: the 4:3 game area centred in it.
    unsigned view_w, view_h, target_w, target_h;
    get_video_dimensions(view_w, view_h, target_w, target_h);
 
@@ -1347,10 +1342,8 @@ void retro_run(void)
       struct retro_game_geometry geometry;
       geometry.base_width   = target_w;
       geometry.base_height  = target_h;
-      geometry.max_width    = kMaximumVideoWidth;
-      geometry.max_height   = kMaximumVideoHeight;
-      geometry.aspect_ratio = widescreen_enabled()
-         ? (16.0f / 9.0f) : (4.0f / 3.0f);
+      get_maximum_video_dimensions(geometry.max_width, geometry.max_height);
+      geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
 
       environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
       

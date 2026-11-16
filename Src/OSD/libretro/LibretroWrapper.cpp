@@ -230,8 +230,7 @@ void LibretroWrapper::InitializePaths(const std::string& systemPath)
 }
 
 void LibretroWrapper::UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
-                                       unsigned outputWidth,
-                                       unsigned outputHeight)
+                                       unsigned outputWidth, unsigned outputHeight)
 {
     // If dimensions match and renderers are initialized, skip costly re-init
     if (viewWidth == xRes && viewHeight == yRes &&
@@ -239,6 +238,10 @@ void LibretroWrapper::UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
         superAA != nullptr)
         return;
 
+    // As in standalone Supermodel: the 4:3 game area (xRes x yRes) is centred in the
+    // output frame. In widescreen the frame is wider; New3D widens full-screen
+    // viewports into the sides and Render2D keeps the 2D layers at 4:3 (or stretches
+    // the background layer with WideBackground).
     xRes = std::min(viewWidth, outputWidth);
     yRes = std::min(viewHeight, outputHeight);
     totalXRes = outputWidth;
@@ -994,24 +997,38 @@ GLuint LibretroWrapper::getSuperModelFBO() const
 
 void LibretroWrapper::SetWidescreen(bool enabled, bool wideBackground)
 {
-    const bool currentWide =
-        s_runtime_config["WideScreen"].ValueAsDefault<bool>(false);
-    const bool currentWideBackground =
-        s_runtime_config["WideBackground"].ValueAsDefault<bool>(false);
-    if (currentWide == enabled && currentWideBackground == wideBackground)
-        return;
+    // WideBackground is read by Render2D every frame, so it applies live.
+    try {
+        s_runtime_config.Get("WideBackground").SetValue(enabled && wideBackground);
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("WideBackground").SetValue(enabled && wideBackground);
+    }
 
-    const auto setBool = [](const char *key, bool value)
-    {
-        try {
-            s_runtime_config.Get(key).SetValue(value);
-        }
-        catch (const std::range_error&) {
-            s_runtime_config.Add(key).SetValue(value);
-        }
-    };
-    setBool("WideScreen", enabled);
-    setBool("WideBackground", enabled && wideBackground);
+    // Check if the value actually changed
+    bool current_value = s_runtime_config["WideScreen"].ValueAsDefault<bool>(false);
+    if (current_value == enabled) {
+        // No change, skip reinitialization
+        return;
+    }
+
+    try {
+        s_runtime_config.Get("WideScreen").SetValue(enabled);
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("WideScreen").SetValue(enabled);
+    }
+
+    // Only reinit renderers if they already exist (i.e. GL context is live).
+    // On initial load, InitRenderers() will be called later by context_reset()
+    // and will pick up the correct WideScreen value from s_runtime_config.
+    if (Render2D == nullptr) {
+        return;
+    }
+
+    if (Model3) Model3->PauseThreads();
+    InitRenderers();
+    if (Model3) Model3->ResumeThreads();
 }
 
 void LibretroWrapper::SetCrosshairs(unsigned mask)

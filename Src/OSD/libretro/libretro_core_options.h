@@ -230,14 +230,14 @@ static struct retro_core_option_v2_definition option_defs[] = {
 #endif
    {
       "supermodel_wide_screen",
-      "Widescreen Mode",
+      "Widescreen Hack",
       NULL,
-      "Expand full-screen 3D viewports horizontally to render a true 16:9 field of view. 'Widescreen + Wide Background' also stretches the lower 2D background layer to fill the sides; HUD and upper overlays remain at their original aspect ratio. Takes effect after restarting content. May expose geometry or background artifacts in some games.",
+      "Enable widescreen rendering for supported games. May cause graphical glitches. 'Widescreen + Wide Background' also stretches the lower 2D background layer to fill the sides; HUD and upper overlays keep their original aspect ratio.",
       NULL,
       "video",
       {
-         { "disabled", NULL },
-         { "enabled", "Widescreen" },
+         { "disabled",        "Disabled" },
+         { "enabled",         "Widescreen" },
          { "wide_background", "Widescreen + Wide Background" },
          { NULL, NULL },
       },
@@ -665,14 +665,9 @@ void update_core_options(void)
    g_options.timing_overlay = strcmp(option_get("supermodel_timing_overlay", "disabled"), "enabled") == 0;
 
    {
-      const char *widescreen = option_get(
-         "supermodel_wide_screen", "disabled");
-      g_options.widescreen_mode =
-         strcmp(widescreen, "wide_background") == 0
-            ? WidescreenMode::WidescreenWideBackground
-         : strcmp(widescreen, "enabled") == 0
-            ? WidescreenMode::Widescreen
-            : WidescreenMode::Disabled;
+      const char *widescreen = option_get("supermodel_wide_screen", "disabled");
+      g_options.widescreen = strcmp(widescreen, "disabled") != 0;
+      g_options.wide_background = strcmp(widescreen, "wide_background") == 0;
    }
 #if defined(USE_LEGACY3D)
    g_options.renderer_3d = Renderer3D::Legacy3D;

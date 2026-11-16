@@ -59,7 +59,7 @@ public:
     std::shared_ptr<CInputSystem> getInputSystem() const { return m_inputSystem; }
     retro_hw_render_callback getHwRender() const { return hw_render; }
     static const std::string& GetGameXMLPath() { return s_gameXMLFilePath; }
-    void SetWidescreen(bool enabled, bool wideBackground);
+    void SetWidescreen(bool enabled, bool wideBackground = false);
     void SetCrosshairs(unsigned mask);
     void setXRes(unsigned val) { xRes = val; }
     void setYRes(unsigned val) { yRes = val; }
@@ -72,6 +72,8 @@ public:
     void setCRTColors(CRTcolor val) { CRTcolors = val; }
     void setHwRender(retro_hw_render_callback val) { hw_render = val; }
     void InitializePaths(const std::string& systemPath);
+    // viewWidth/Height: the 4:3 game area; outputWidth/Height: the whole frame (wider in
+    // widescreen). The game area is centred in the frame.
     void UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
                           unsigned outputWidth, unsigned outputHeight);
     void SetSoundVolume(int volume);

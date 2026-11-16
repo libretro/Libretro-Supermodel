@@ -1,10 +1,13 @@
 #ifndef SUPERMODEL_CORE_OPTIONS_TYPES_H
 #define SUPERMODEL_CORE_OPTIONS_TYPES_H
 
-enum class WidescreenMode {
-   Disabled,
-   Widescreen,
-   WidescreenWideBackground
+// Pad layout for driving games. L/R always shift sequentially and L2/R2 are the pedals.
+// The optional layouts only decide whether the right stick also acts as a shifter.
+enum class DrivingLayout {
+   Default,            // right stick free
+   TriggersGate,       // gears 1-4 on the right stick
+   TriggersSequential, // sequential shift on the right stick
+   TriggersHGate       // gears 1-4 on the right stick diagonals (H-pattern)
 };
 
 // Renderer capabilities behind the 3D Renderer, CRT Colour and Supersampling options.
@@ -60,7 +63,8 @@ struct CoreOptions {
    bool initial_nvram_setup;
    bool nvram_settings_enabled;   // per-game NVRAM Settings options are applied at start
    float resolution_multiplier;
-   WidescreenMode widescreen_mode;
+   bool widescreen;
+   bool wide_background;     // stretch the lower 2D layer too (needs widescreen)
    int upscale_mode;         // Supermodel UpscaleMode: 0=Nearest 1=Biquintic 2=Bilinear 3=Bicubic
    bool no_white_flash;      // Supermodel NoWhiteFlash: no white screen while 3D is disabled
    AVTimingMode av_timing_mode;
