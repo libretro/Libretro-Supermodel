@@ -251,14 +251,6 @@ static int    s_gpuSlot      = 0;
 static float  s_gpuMs        = 0.0f;
 static bool   s_gpuQueryOK   = false;
 
-// Rolling frontend-side timings. CModel3's FrameTimings stop before the final
-// blit, shader chain, frontend presentation and VSync wait.
-static LibretroFrontendTimings s_frontendTimings;
-static std::chrono::steady_clock::time_point s_previousFrameStart;
-static bool  s_havePreviousFrameStart = false;
-static float s_accFrameInterval = 0.0f;
-static unsigned s_frameIntervals = 0;
-
 // Path buffers
 char retro_save_directory[4096];
 char retro_base_directory[4096];
@@ -356,6 +348,22 @@ static bool g_nvram_initialized = false;
 static int g_skip_counter = 0;
 static bool g_context_ready = false;
 
+// Rolling frontend-side timings. CModel3's FrameTimings stop before the final
+// blit, shader chain, frontend presentation and VSync wait.
+static LibretroFrontendTimings s_frontendTimings;
+static std::chrono::steady_clock::time_point s_previousFrameStart;
+static bool  s_havePreviousFrameStart = false;
+static float s_accFrameInterval = 0.0f;
+static unsigned s_frameIntervals = 0;
+
+// --- Driving analog output ranges ---
+// The emulated game reads the scaled values, but Supermodel's digital
+// (keyboard/D-pad) sources are incremental: each poll moves the previous
+// value. Keep the unscaled values and restore them before every poll so the
+// scaling never compounds from frame to frame.
+static bool   s_driving_raw_valid = false;
+static UINT16 s_raw_steering = 0, s_raw_accelerator = 0, s_raw_brake = 0;
+
 static bool is_driving_game(const Game &game)
 {
    return (game.inputs & Game::INPUT_VEHICLE) != 0;
@@ -368,10 +376,24 @@ static int scale_driving_pedal(UINT16 value, int output_range_per_mille)
    return std::clamp((input * output_range + 500) / 1000, 0, 0xff);
 }
 
+static void restore_driving_raw_inputs(const Game &game)
+{
+   if (!s_driving_raw_valid || !is_driving_game(game) || !wrapper.Inputs)
+      return;
+   if (wrapper.Inputs->steering)    wrapper.Inputs->steering->value = s_raw_steering;
+   if (wrapper.Inputs->accelerator) wrapper.Inputs->accelerator->value = s_raw_accelerator;
+   if (wrapper.Inputs->brake)       wrapper.Inputs->brake->value = s_raw_brake;
+}
+
 static void apply_driving_analog_ranges(const Game &game)
 {
    if (!is_driving_game(game) || !wrapper.Inputs)
       return;
+
+   if (wrapper.Inputs->steering)    s_raw_steering = wrapper.Inputs->steering->value;
+   if (wrapper.Inputs->accelerator) s_raw_accelerator = wrapper.Inputs->accelerator->value;
+   if (wrapper.Inputs->brake)       s_raw_brake = wrapper.Inputs->brake->value;
+   s_driving_raw_valid = true;
 
    if (wrapper.Inputs->steering)
    {
@@ -898,6 +920,7 @@ void context_destroy(void)
 // --- Game Loading ---
 bool retro_load_game(const struct retro_game_info *info)
 {
+   s_driving_raw_valid = false;
    if (!info || !info->path || !info->path[0])
    {
       log_cb(RETRO_LOG_ERROR, "[Supermodel] A full content path is required.\n");
@@ -1302,8 +1325,9 @@ void retro_run(void)
    }
 
    Game game = wrapper.getGame();
-   wrapper.Inputs->Poll(&game, wrapper.getXOffset(), wrapper.getYOffset(),
-                        view_w, view_h);
+   restore_driving_raw_inputs(game);
+   // Absolute pointers (mouse, light gun) map onto the 4:3 game area.
+   wrapper.Inputs->Poll(&game, wrapper.getXOffset(), wrapper.getYOffset(), view_w, view_h);
    apply_driving_analog_ranges(game);
 
    GLuint sm_fbo = wrapper.getSuperModelFBO();
