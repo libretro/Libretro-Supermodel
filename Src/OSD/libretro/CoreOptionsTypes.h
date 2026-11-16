@@ -54,11 +54,6 @@ enum class EmulationThreading {
    MultiThreadedGPU    // also overlaps PowerPC emulation with rendering
 };
 
-enum class FourSpeedShifter {
-   Standard,  // each right-stick half-axis selects one gear directly
-   HGate      // right-stick diagonals reproduce a four-position H-pattern
-};
-
 struct CoreOptions {
    bool initial_nvram_setup;
    bool nvram_settings_enabled;   // per-game NVRAM Settings options are applied at start
@@ -77,16 +72,17 @@ struct CoreOptions {
    int sound_volume;
    int music_volume;
    bool legacy_sound_dsp;    // SCSP DSP: false = MAME (default), true = Legacy ElSemi
+   bool service_on_sticks;
    int ppc_frequency;
    int frameskip;
    EmulationThreading emulation_threading;
    bool sound_enable;
    bool jit_enable;
    bool timing_overlay;      // draw the ImGui frame-timing overlay (costs a draw pass every frame)
+   DrivingLayout driving_layout;
    GunInput gun_input;
    StarWarsInput star_wars_input;
    bool star_wars_upright_x_inversion;
-   FourSpeedShifter four_speed_shifter;
    Renderer3D renderer_3d;
    bool legacy_multi_texture; // Supermodel MultiTexture (Legacy3D only)
    int crt_colors;           // Supermodel CRTcolors: 0 = none, 1-5 = monitor profiles

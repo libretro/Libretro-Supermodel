@@ -60,7 +60,6 @@ public:
     retro_hw_render_callback getHwRender() const { return hw_render; }
     static const std::string& GetGameXMLPath() { return s_gameXMLFilePath; }
     void SetWidescreen(bool enabled, bool wideBackground = false);
-    void SetCrosshairs(unsigned mask);
     void setXRes(unsigned val) { xRes = val; }
     void setYRes(unsigned val) { yRes = val; }
     void setXOffset(unsigned val) { xOffset = val; }
@@ -76,6 +75,9 @@ public:
     // widescreen). The game area is centred in the frame.
     void UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
                           unsigned outputWidth, unsigned outputHeight);
+    void SetServiceOnSticks(bool enabled);
+    void ApplyDrivingLayout();
+    void SetCrosshairs(unsigned mask);
     void SetSoundVolume(int volume);
     void SetMusicVolume(int volume);
     int Emulate(const char* romPath);

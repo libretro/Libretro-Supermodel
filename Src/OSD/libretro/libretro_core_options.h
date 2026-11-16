@@ -289,18 +289,48 @@ static struct retro_core_option_v2_definition option_defs[] = {
    },
    // Input
    {
-      "supermodel_gun_input",
-      "Gun Input Mode",
+      "supermodel_service_buttons",
+      "Service / Test Button Mapping",
       NULL,
-      "Input source for analog-gun games. Standard accepts RetroArch Lightgun, Mouse, and the left Analog Stick through one virtual cursor. Mouse + Analog Stick excludes Lightgun coordinates while retaining both relative cursor sources. Dedicated modes restrict input to the selected source. Changes take effect immediately.",
+      "Choose which buttons trigger Service and Test (coin door) functions.",
       NULL,
       "input",
       {
-         { "hybrid",   "Standard" },
-         { "lightgun", "Lightgun Only" },
+         { "sticks",    "L3/R3 (Stick Click)" },
+         { "shoulders", "L/R + L2/R2 (Shoulders)" },
+         { NULL, NULL },
+      },
+      "sticks"
+   },
+   {
+      "supermodel_driving_layout",
+      "Driving Controls Layout",
+      NULL,
+      "Pad layout for driving games. L/R shift down/up and L2/R2 are analog brake/accelerator in every layout; in 4-speed games Y selects neutral and the D-Pad changes the view. The default layout also uses the right stick as an H-pattern gearbox (the diagonals up-left/down-left/up-right/down-right select gears 1-4); the others use it as a 4-gear gate (up/down/left/right select gears 1-4), as a sequential lever, or not at all. Changes apply immediately.",
+      NULL,
+      "input",
+      {
+         { "triggers_hgate", "Standard + H-pattern gearbox on right stick (Default)" },
+         { "default",      "Standard (L/R shift, triggers as pedals)" },
+         { "triggers",     "Standard + 4-gear gate on right stick" },
+         { "triggers_seq", "Standard + sequential on right stick" },
+         { NULL, NULL },
+      },
+      "triggers_hgate"
+   },
+   {
+      "supermodel_gun_input",
+      "Gun Input Mode",
+      NULL,
+      "Input source for the analog-gun games (The Lost World, Ocean Hunter, L.A. Machineguns). Hybrid accepts RetroArch Lightgun, Mouse and the left Analog Stick through one cursor per player, with the last moved source taking priority. Mouse + Analog Stick is the same without Lightgun, so the mouse moves the cursor relatively instead of following the system pointer. The other modes accept only the selected source. Changes take effect immediately.",
+      NULL,
+      "input",
+      {
+         { "hybrid",   "Hybrid (Lightgun / Mouse / Analog)" },
+         { "lightgun", "Lightgun" },
          { "mouse_analog", "Mouse + Analog Stick" },
-         { "mouse",    "Mouse Only" },
-         { "analog",   "Analog Stick Only" },
+         { "mouse",    "Mouse" },
+         { "analog",   "Analog Stick Cursor" },
          { NULL, NULL },
       },
       "hybrid"
@@ -309,29 +339,29 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_star_wars_input",
       "Star Wars Trilogy Input Mode",
       NULL,
-      "Input source for the arcade analog joystick used by Star Wars Trilogy Arcade. Standard accepts RetroArch Lightgun, Mouse, and the left Analog Stick through one virtual control. Mouse + Analog Stick excludes Lightgun coordinates. Changes take effect immediately.",
+      "Input source for the arcade yoke in Star Wars Trilogy Arcade. Hybrid accepts RetroArch Lightgun, Mouse and the left Analog Stick, with the last moved source taking priority, so the stick always returns to a stable centre. Mouse + Analog Stick is the same without Lightgun, so the mouse moves the yoke relatively instead of following the system pointer. The other modes accept only the selected source. Changes take effect immediately.",
       NULL,
       "input",
       {
-         { "hybrid",       "Standard" },
-         { "lightgun",     "Lightgun Only" },
+         { "hybrid",       "Hybrid (Lightgun / Mouse / Analog)" },
+         { "lightgun",     "Lightgun" },
          { "mouse_analog", "Mouse + Analog Stick" },
-         { "mouse",        "Mouse Only" },
-         { "analog",       "Analog Stick Only" },
+         { "mouse",        "Mouse" },
+         { "analog",       "Analog Stick" },
          { NULL, NULL },
       },
       "hybrid"
    },
    {
       "supermodel_star_wars_upright_x_inversion",
-      "Star Wars Trilogy Upright Mode X-Axis Inversion Fix",
+      "Star Wars Trilogy Upright X-Axis Inversion",
       NULL,
-      "Invert the horizontal analog input when Star Wars Trilogy Arcade's NVRAM cabinet type is Upright, matching the cabinet-specific axis orientation. Disable this when the frontend or input device already applies the required inversion. Changes take effect immediately.",
+      "Invert the horizontal analog input when Star Wars Trilogy Arcade's NVRAM cabinet type is Upright, matching that cabinet's axis orientation. Disable it when the frontend or the input device already applies the inversion. Changes take effect immediately.",
       NULL,
       "input",
       {
-         { "enabled",  "ON" },
-         { "disabled", "Disable" },
+         { "enabled",  NULL },
+         { "disabled", NULL },
          { NULL, NULL },
       },
       "enabled"
@@ -344,31 +374,17 @@ static struct retro_core_option_v2_definition option_defs[] = {
       NULL,
       "input",
       {
-         { "enabled",  "ON (Default)" },
-         { "disabled", "Disable" },
+         { "disabled", NULL },
+         { "enabled",  NULL },
          { NULL, NULL },
       },
       "enabled"
    },
    {
-      "supermodel_four_speed_shifter",
-      "4-Speed Shifter",
-      NULL,
-      "Applied only to recognized 4-Speed driving games. Standard assigns each of the four remappable directional inputs directly to one gear. H-Gate interprets them as Up, Down, Left, and Right, selecting gears from the four diagonal positions. Neutral remains on West and L/R remain sequential shift controls. Changes take effect immediately.",
-      NULL,
-      "input",
-      {
-         { "h_gate",   "H-Gate Mode" },
-         { "standard", "Standard" },
-         { NULL, NULL },
-      },
-      "h_gate"
-   },
-   {
       "supermodel_steering_response",
       "Driving Steering Response",
       NULL,
-      "Applied only to games recognized as Driving. Select the steering response curve; Progressive reduces sensitivity around the center while retaining the full output range.",
+      "Applied only to driving games. Select the steering response curve; Progressive reduces sensitivity around the center while retaining the full output range.",
       NULL,
       "input",
       {
@@ -382,22 +398,22 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_steering_output_range",
       "Driving Steering Output Range",
       NULL,
-      "Applied only to games recognized as Driving. Scale steering around its center. Values below 100% reduce the emulated wheel range; values above 100% reach full lock with less physical stick travel.",
+      "Applied only to driving games. Scale steering around its center. Values below 100% reduce the emulated wheel range; values above 100% reach full lock with less physical stick travel.",
       NULL,
       "input",
       {
-         { "50",  "50%" },
-         { "60",  "60%" },
-         { "63",  "63% (30-80-D0)" },
-         { "70",  "70%" },
-         { "80",  "80%" },
-         { "90",  "90%" },
-         { "100", "100%" },
-         { "110", "110%" },
-         { "120", "120%" },
-         { "130", "130%" },
-         { "140", "140%" },
-         { "150", "150%" },
+         { "50",   "50%" },
+         { "60",   "60%" },
+         { "63",   "63% (30-80-D0)" },
+         { "70",   "70%" },
+         { "80",   "80%" },
+         { "90",   "90%" },
+         { "100",  "100%" },
+         { "110",  "110%" },
+         { "120",  "120%" },
+         { "130",  "130%" },
+         { "140",  "140%" },
+         { "150",  "150%" },
          { NULL, NULL },
       },
       "100"
@@ -406,7 +422,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_accelerator_output_range",
       "Driving Accelerator Output Range",
       NULL,
-      "Applied only to games recognized as Driving. Scale the accelerator from its zero rest position. Values below 100% reduce the maximum emulated pedal output; values above 100% reach full output with less physical trigger travel.",
+      "Applied only to driving games. Scale the accelerator from its zero rest position. Values below 100% reduce the maximum emulated pedal output; values above 100% reach full output with less physical trigger travel.",
       NULL,
       "input",
       {
@@ -430,7 +446,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_brake_output_range",
       "Driving Brake Output Range",
       NULL,
-      "Applied only to games recognized as Driving. Scale the brake from its zero rest position. Values below 100% reduce the maximum emulated pedal output; values above 100% reach full output with less physical trigger travel.",
+      "Applied only to driving games. Scale the brake from its zero rest position. Values below 100% reduce the maximum emulated pedal output; values above 100% reach full output with less physical trigger travel.",
       NULL,
       "input",
       {
@@ -604,7 +620,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_jit_enable",
       "JIT Recompiler (ARM64)",
       NULL,
-      "Enable the ARM64 JIT recompiler for the PowerPC CPU. Significantly improves performance on ARM64 devices. Disable to use the interpreter, the reference for correctness and debugging.",
+      "Enable the ARM64 JIT recompiler for the PowerPC CPU. Disable to use the interpreter, the reference for correctness and debugging.",
       NULL,
       "cpu",
       {
@@ -724,6 +740,14 @@ void update_core_options(void)
    g_options.legacy_sound_dsp =
       strcmp(option_get("supermodel_scsp_dsp", "new"), "legacy") == 0;
 
+   g_options.service_on_sticks = strcmp(option_get("supermodel_service_buttons", "sticks"), "sticks") == 0;
+   {
+      const char *layout = option_get("supermodel_driving_layout", "triggers_hgate");
+      g_options.driving_layout = strcmp(layout, "triggers") == 0     ? DrivingLayout::TriggersGate
+                               : strcmp(layout, "triggers_seq") == 0 ? DrivingLayout::TriggersSequential
+                               : strcmp(layout, "default") == 0      ? DrivingLayout::Default
+                               : DrivingLayout::TriggersHGate;
+   }
    {
       const char *gun_input = option_get("supermodel_gun_input", "hybrid");
       g_options.gun_input = strcmp(gun_input, "lightgun") == 0 ? GunInput::Lightgun
@@ -741,11 +765,6 @@ void update_core_options(void)
    g_options.star_wars_upright_x_inversion =
       strcmp(option_get("supermodel_star_wars_upright_x_inversion", "enabled"),
              "enabled") == 0;
-   g_options.four_speed_shifter =
-      strcmp(option_get("supermodel_four_speed_shifter", "h_gate"),
-             "h_gate") == 0
-         ? FourSpeedShifter::HGate
-         : FourSpeedShifter::Standard;
    g_options.force_feedback = strcmp(option_get("supermodel_force_feedback", "enabled"), "enabled") == 0;
    g_options.steering_progressive =
       strcmp(option_get("supermodel_steering_response", "linear"), "progressive") == 0;

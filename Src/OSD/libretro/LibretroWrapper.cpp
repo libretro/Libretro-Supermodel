@@ -866,6 +866,12 @@ int LibretroWrapper::Emulate(const char* romPath)
             
         Util::Config::MergeINISections(&s_runtime_config, config4, cmd_line.config);
 
+        // After the merge, so an explicit core option beats the on-disk Supermodel.ini
+        LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
+        LibretroConfigProvider::ApplyCabinetLayout(s_runtime_config, game.inputs);
+        LibretroConfigProvider::ApplyGunLayout(s_runtime_config,
+            (game.inputs & (Game::INPUT_ANALOG_GUN1 | Game::INPUT_ANALOG_GUN2)) != 0,
+            (game.inputs & Game::INPUT_ANALOG_JOYSTICK) != 0);
         s_runtime_config.Get("UpscaleMode").SetValue(g_options.upscale_mode);
         s_runtime_config.Get("New3DEngine").SetValue(g_options.renderer_3d == Renderer3D::New3D);
         s_runtime_config.Get("MultiTexture").SetValue(
@@ -892,6 +898,10 @@ int LibretroWrapper::Emulate(const char* romPath)
             g_options.emulation_threading != EmulationThreading::SingleThread);
         s_runtime_config.Get("GPUMultiThreaded").SetValue(
             g_options.emulation_threading == EmulationThreading::MultiThreadedGPU);
+        InfoLog("Libretro emulation threading: MultiThreaded=%d, GPUMultiThreaded=%d",
+                s_runtime_config["MultiThreaded"].ValueAs<bool>(),
+                s_runtime_config["GPUMultiThreaded"].ValueAs<bool>());
+
         // Native timing drains 766/767 samples per frame. Only the multi-threaded
         // sound board produces audio on demand; single-threaded it runs one
         // 735-sample chunk per frame, so native timing would underrun.
@@ -909,16 +919,6 @@ int LibretroWrapper::Emulate(const char* romPath)
         InfoLog("Libretro timing: %.6f Hz video, %u Hz audio%s", GetFramesPerSecond(),
                 LibretroTiming::kAudioSampleRate,
                 m_nativeTimingUnavailable ? " (native needs multi-threading)" : "");
-        InfoLog("Libretro emulation threading: MultiThreaded=%d, GPUMultiThreaded=%d",
-                s_runtime_config["MultiThreaded"].ValueAs<bool>(),
-                s_runtime_config["GPUMultiThreaded"].ValueAs<bool>());
-        const LibretroInputProfiles::Profile *input_profile =
-            LibretroConfigProvider::ApplyInputProfile(s_runtime_config, game);
-        if (input_profile)
-            InfoLog("Libretro control profile: %s", input_profile->name);
-        else
-            InfoLog("No exact Libretro control profile for input mask 0x%08X; using generic mappings.",
-                    LibretroInputProfiles::NormalizeInputs(game.inputs));
     }
 
     if (Model3 || Inputs || Outputs)
@@ -1029,6 +1029,31 @@ void LibretroWrapper::SetWidescreen(bool enabled, bool wideBackground)
     if (Model3) Model3->PauseThreads();
     InitRenderers();
     if (Model3) Model3->ResumeThreads();
+}
+
+void LibretroWrapper::SetServiceOnSticks(bool enabled)
+{
+    auto* libretroInput = dynamic_cast<CLibretroInputSystem*>(m_inputSystem.get());
+    if (libretroInput)
+        libretroInput->SetServiceOnSticks(enabled);
+}
+
+// Re-applies the Driving Controls Layout to a running game: rewrite the gear/pedal
+// mappings in the runtime config, then have Supermodel re-parse its input mappings, as
+// it does when content is loaded. RetroArch's Restart (retro_reset) only resets the
+// board, so without this a layout change needed the content to be closed and reloaded.
+void LibretroWrapper::ApplyDrivingLayout()
+{
+    LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
+    if (!Inputs)
+        return;
+
+    const bool pauseThreads = Model3 && !paused;
+    if (pauseThreads)
+        Model3->PauseThreads();
+    Inputs->LoadFromConfig(s_runtime_config);
+    if (pauseThreads)
+        Model3->ResumeThreads();
 }
 
 void LibretroWrapper::SetCrosshairs(unsigned mask)

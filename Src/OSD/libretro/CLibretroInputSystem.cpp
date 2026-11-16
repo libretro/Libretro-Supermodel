@@ -9,8 +9,7 @@
 extern retro_input_poll_t input_poll_cb;
 extern retro_input_state_t input_state_cb;
 extern retro_log_printf_t log_cb;  // defined in libretro.cpp
-extern bool g_cabinet_controls_enabled[2];
-extern bool g_star_wars_invert_x;
+extern bool g_star_wars_invert_x; // defined in libretro.cpp
 
 CLibretroInputSystem::CLibretroInputSystem()
     : CInputSystem("Libretro")
@@ -18,7 +17,6 @@ CLibretroInputSystem::CLibretroInputSystem()
     memset(m_joyButtons, 0, sizeof(m_joyButtons));
     memset(m_joyAxes,    0, sizeof(m_joyAxes));
     memset(m_joyPOV,     0, sizeof(m_joyPOV));
-    m_hGatePosition = 0;
     memset(m_keyState,   0, sizeof(m_keyState));
     memset(m_mouseAxes,  0, sizeof(m_mouseAxes));
     memset(m_mouseButtons, 0, sizeof(m_mouseButtons));
@@ -223,10 +221,10 @@ bool CLibretroInputSystem::Poll()
         // CInputSystem POV directions are ordered Up, Down, Left, Right.
         // Keep this array in the same order: IsJoyPOVInDir() indexes it with
         // the POV_* constants declared by Supermodel.
-        m_joyPOV[joy][0] = d_up;    // Up
-        m_joyPOV[joy][1] = d_down;  // Down
-        m_joyPOV[joy][2] = d_left;  // Left
-        m_joyPOV[joy][3] = d_right; // Right
+        m_joyPOV[joy][0] = (y < -THRESHOLD) || d_up;    // Up
+        m_joyPOV[joy][1] = (y >  THRESHOLD) || d_down;  // Down
+        m_joyPOV[joy][2] = (x < -THRESHOLD) || d_left;  // Left
+        m_joyPOV[joy][3] = (x >  THRESHOLD) || d_right; // Right
 
         // ----- Buttons -----
         // Standard game buttons (0-3: B, A, Y, X)
@@ -244,7 +242,7 @@ bool CLibretroInputSystem::Poll()
                 input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, game_buttons[b]);
         }
 
-        // Shoulder/trigger buttons (4-7: L, R, L2, R2)
+        // Gear shift / shoulder buttons (4-7: L, R, L2, R2)
         m_joyButtons[joy][4] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
         m_joyButtons[joy][5] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
         m_joyButtons[joy][6] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2);
@@ -255,16 +253,6 @@ bool CLibretroInputSystem::Poll()
         // Button 9: SELECT button -> maps to InputCoin1/InputCoin2
         m_joyButtons[joy][8] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START);
         m_joyButtons[joy][9] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
-
-        // L3/R3 are reserved as remappable cabinet slots, but stay completely
-        // inactive in the default detected profile. The user must explicitly
-        // select the "+ Test/Service slots" device type for this port.
-        m_joyButtons[joy][14] = g_cabinet_controls_enabled[joy]
-            ? input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3)
-            : 0;
-        m_joyButtons[joy][15] = g_cabinet_controls_enabled[joy]
-            ? input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3)
-            : 0;
         
         // **FIX: Map D-Pad AND Analog Stick to buttons 10-13**
         // This makes both the analog stick and D-Pad work for movement!
@@ -273,59 +261,57 @@ bool CLibretroInputSystem::Poll()
         m_joyButtons[joy][12] = (x < -THRESHOLD) || d_left;    // Left - ANALOG + DIGITAL
         m_joyButtons[joy][13] = (x >  THRESHOLD) || d_right;   // Right - ANALOG + DIGITAL
 
+        // D-Pad alone (24-27, BUTTON25-28): the driving view buttons, which must
+        // not follow the left stick the way POV and buttons 10-13 do, since the
+        // left stick steers.
+        m_joyButtons[joy][24] = d_up;
+        m_joyButtons[joy][25] = d_down;
+        m_joyButtons[joy][26] = d_left;
+        m_joyButtons[joy][27] = d_right;
+
+        // Service/Test buttons (20-23) - BUTTON21-24 in Supermodel numbering.
+        // Player 1 follows the Service / Test Button Mapping option; player 2
+        // always uses its own stick clicks, since its shoulders are game controls.
+        if (m_serviceOnSticks || joy == 1)
+        {
+            m_joyButtons[joy][20] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3);
+            m_joyButtons[joy][21] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3);
+            m_joyButtons[joy][22] = 0; // no 3rd/4th stick button on standard pads
+            m_joyButtons[joy][23] = 0;
+        }
+        else
+        {
+            m_joyButtons[joy][20] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
+            m_joyButtons[joy][21] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
+            m_joyButtons[joy][22] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2);
+            m_joyButtons[joy][23] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2);
+        }
     }
 
-    // The four logical gear inputs are deliberately kept behind virtual
-    // joystick buttons. RetroArch always exposes the same four remappable
-    // right-stick half-axes; this decoder alone decides whether they select
-    // gears directly or describe an H-gate position.
-    constexpr unsigned kGearButtonFirst = 16; // JOY1_BUTTON17 -> array index 16
-    constexpr int kStandardThreshold = 21845; // approximately 2/3 axis travel
-    constexpr int kHGateEnterThreshold = 16000;
-    constexpr int kHGateReleaseThreshold = 12000;
-    const int rightX = m_joyAxes[0][AXIS_RX];
-    const int rightY = m_joyAxes[0][AXIS_RY];
-
-    if (g_options.four_speed_shifter == FourSpeedShifter::Standard)
+    // ----- H-pattern gearbox (JOY1_BUTTON17-20) -----
+    // In the H-pattern driving layout the right stick diagonals select gears 1-4 like a
+    // real 4-speed lever: up-left 1, down-left 2, up-right 3, down-right 4. A diagonal
+    // needs both axes past about half travel (about 69% of the stick radius at 45
+    // degrees). Supermodel latches the last gear selected, so releasing the stick keeps
+    // the gear engaged.
     {
-        m_hGatePosition = 0;
-        m_joyButtons[0][kGearButtonFirst + 0] = rightY < -kStandardThreshold;
-        m_joyButtons[0][kGearButtonFirst + 1] = rightY >  kStandardThreshold;
-        m_joyButtons[0][kGearButtonFirst + 2] = rightX < -kStandardThreshold;
-        m_joyButtons[0][kGearButtonFirst + 3] = rightX >  kStandardThreshold;
-    }
-    else
-    {
-        unsigned candidate = 0;
-        if (rightX < -kHGateEnterThreshold)
+        constexpr unsigned kGearButtonFirst = 16;   // JOY1_BUTTON17 -> array index 16
+        constexpr int kHGateThreshold = 16000;
+        int gear = 0;
+        if (g_options.driving_layout == DrivingLayout::TriggersHGate)
         {
-            if (rightY < -kHGateEnterThreshold) candidate = 1;
-            else if (rightY > kHGateEnterThreshold) candidate = 2;
+            const int rx = m_joyAxes[0][AXIS_RX];
+            const int ry = m_joyAxes[0][AXIS_RY];
+            const bool left = rx < -kHGateThreshold, right = rx > kHGateThreshold;
+            const bool up = ry < -kHGateThreshold, down = ry > kHGateThreshold;
+            gear = left  && up   ? 1
+                 : left  && down ? 2
+                 : right && up   ? 3
+                 : right && down ? 4
+                 : 0;
         }
-        else if (rightX > kHGateEnterThreshold)
-        {
-            if (rightY < -kHGateEnterThreshold) candidate = 3;
-            else if (rightY > kHGateEnterThreshold) candidate = 4;
-        }
-
-        if (candidate == 0 && m_hGatePosition != 0)
-        {
-            const bool left = rightX < -kHGateReleaseThreshold;
-            const bool right = rightX > kHGateReleaseThreshold;
-            const bool up = rightY < -kHGateReleaseThreshold;
-            const bool down = rightY > kHGateReleaseThreshold;
-            const bool stillInPosition =
-                (m_hGatePosition == 1 && left && up) ||
-                (m_hGatePosition == 2 && left && down) ||
-                (m_hGatePosition == 3 && right && up) ||
-                (m_hGatePosition == 4 && right && down);
-            if (stillInPosition)
-                candidate = m_hGatePosition;
-        }
-        m_hGatePosition = candidate;
-        for (unsigned gear = 1; gear <= 4; ++gear)
-            m_joyButtons[0][kGearButtonFirst + gear - 1] =
-                m_hGatePosition == gear;
+        for (int g = 1; g <= 4; g++)
+            m_joyButtons[0][kGearButtonFirst + g - 1] = (gear == g);
     }
 
     // ----- Virtual gun cursors (Supermodel MOUSE5 and MOUSE6) -----

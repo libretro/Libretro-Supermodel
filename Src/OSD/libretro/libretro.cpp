@@ -19,7 +19,6 @@
 #include "Game.h"
 #include "LibretroBlockFileMemory.h"
 #include "InitialNvramTemplates.h"
-#include "LibretroInputProfiles.h"
 #include "LibretroNvramSettings.h"
 #include "LibretroWrapper.h"
 #include "LibretroTiming.h"
@@ -45,15 +44,11 @@ struct retro_hw_render_callback hw_render;
 struct retro_rumble_interface rumble;
 struct retro_vfs_interface *g_vfs_interface = nullptr;
 static LibretroWrapper wrapper = LibretroWrapper();
-void set_input_descriptors(const Game *game);
-void set_controller_info(const Game &game);
-
-static constexpr unsigned kNoCabinetControlsDevice =
-   RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0);
-bool g_cabinet_controls_enabled[2] = { true, true };
+// Star Wars Trilogy Upright cabinets wire the yoke's horizontal axis the
+// opposite way to Deluxe. Set from the game's NVRAM on the first frame.
 bool g_star_wars_invert_x = false;
-static GunInput g_active_gun_input = GunInput::Hybrid;
-static StarWarsInput g_active_star_wars_input = StarWarsInput::Hybrid;
+void set_input_descriptors(bool service_on_sticks);
+
 // Game-aware NVRAM settings: one hidden core option per supported ROM set and
 // setting, generated from LibretroNvramSettings.h and shown only for the loaded
 // game while "NVRAM Settings" is enabled.
@@ -284,6 +279,7 @@ CoreOptions g_options = {
    /* sound_volume         */ 100,
    /* music_volume         */ 100,
    /* legacy_sound_dsp     */ false,
+   /* service_on_sticks    */ true,
    /* ppc_frequency        */ 0,
    /* frameskip            */ 0,
    /* emulation_threading  */ EmulationThreading::MultiThreadedGPU,
@@ -295,10 +291,10 @@ CoreOptions g_options = {
                               false,
 #endif
    /* timing_overlay      */ false,
+   /* driving_layout      */ DrivingLayout::TriggersHGate,
    /* gun_input           */ GunInput::Hybrid,
    /* star_wars_input     */ StarWarsInput::Hybrid,
    /* star_wars_upright_x_inversion */ true,
-   /* four_speed_shifter  */ FourSpeedShifter::HGate,
    /* renderer_3d         */ Renderer3D::New3D,
    /* legacy_multi_texture */ false,
    /* crt_colors          */ 0,
@@ -358,11 +354,9 @@ static bool g_nvram_initialized = false;
 static int g_skip_counter = 0;
 static bool g_context_ready = false;
 
-static bool is_driving_profile(const Game &game)
+static bool is_driving_game(const Game &game)
 {
-   const LibretroInputProfiles::Profile *profile =
-      LibretroInputProfiles::Find(game.inputs);
-   return profile && profile->family == LibretroInputProfiles::Family::Driving;
+   return (game.inputs & Game::INPUT_VEHICLE) != 0;
 }
 
 static int scale_driving_pedal(UINT16 value, int output_range_per_mille)
@@ -374,7 +368,7 @@ static int scale_driving_pedal(UINT16 value, int output_range_per_mille)
 
 static void apply_driving_analog_ranges(const Game &game)
 {
-   if (!is_driving_profile(game) || !wrapper.Inputs)
+   if (!is_driving_game(game) || !wrapper.Inputs)
       return;
 
    if (wrapper.Inputs->steering)
@@ -815,30 +809,7 @@ unsigned retro_api_version(void)
 
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
-   if (port >= 2)
-      return;
-
-   bool enabled;
-   if (device == RETRO_DEVICE_JOYPAD)
-      enabled = true;
-   else if (device == kNoCabinetControlsDevice)
-      enabled = false;
-   else
-      return;
-   if (g_cabinet_controls_enabled[port] == enabled)
-      return;
-
-   g_cabinet_controls_enabled[port] = enabled;
-   if (log_cb)
-      log_cb(RETRO_LOG_INFO,
-             "[Supermodel] Cabinet Test/Service slots %s on port %u\n",
-             enabled ? "enabled" : "disabled", port + 1);
-
-   if (!g_nvram_game.empty())
-   {
-      const Game game = wrapper.getGame();
-      set_input_descriptors(&game);
-   }
+    log_cb(RETRO_LOG_INFO, "Plugging device %u into port %u\n", device, port);
 }
 
 void retro_get_system_info(struct retro_system_info *info)
@@ -997,9 +968,6 @@ bool retro_load_game(const struct retro_game_info *info)
         // Optional: Log that rumble is not supported by this frontend/controller
    }
 
-   
-   g_active_gun_input = g_options.gun_input;
-   g_active_star_wars_input = g_options.star_wars_input;
    ppc_set_jit_enabled(g_options.jit_enable);
    wrapper.InitializePaths(retro_base_directory);
    wrapper.setHwRender(hw_render); 
@@ -1012,6 +980,8 @@ bool retro_load_game(const struct retro_game_info *info)
       
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
+   g_nvram_game = wrapper.getGame().name;
+   update_nvram_option_visibility();
    if (wrapper.NativeTimingUnavailable())
    {
       static const struct retro_message message = {
@@ -1019,13 +989,9 @@ bool retro_load_game(const struct retro_game_info *info)
       };
       environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
    }
-   const Game loaded_game = wrapper.getGame();
-   g_nvram_game = loaded_game.name;
-   update_nvram_option_visibility();
-   set_input_descriptors(&loaded_game);
-   set_controller_info(loaded_game);
    wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
    wrapper.SetCrosshairs(g_options.crosshairs);
+   wrapper.SetServiceOnSticks(g_options.service_on_sticks);
    if (wrapper.SuperModelInit(wrapper.getGame()) != 0)
    {
       log_cb(RETRO_LOG_ERROR, "[Supermodel] Emulator initialization failed.\n");
@@ -1062,7 +1028,6 @@ void retro_unload_game(void)
    g_star_wars_invert_x = false;
    g_nvram_game.clear();
    update_nvram_option_visibility();
-   set_input_descriptors(nullptr);
    pgo_flush();   // RetroArch may never call retro_deinit before exiting
 }
 void retro_run(void)
@@ -1095,13 +1060,11 @@ void retro_run(void)
       bool old_wide_background = g_options.wide_background;
       int old_upscale_mode = g_options.upscale_mode;
       bool old_legacy_sound_dsp = g_options.legacy_sound_dsp;
+      bool old_service_on_sticks = g_options.service_on_sticks;
       bool old_sound_enable = g_options.sound_enable;
       EmulationThreading old_emulation_threading = g_options.emulation_threading;
       unsigned old_crosshairs = g_options.crosshairs;
-      GunInput old_gun_input = g_options.gun_input;
-      StarWarsInput old_star_wars_input = g_options.star_wars_input;
-      FourSpeedShifter old_four_speed_shifter =
-         g_options.four_speed_shifter;
+      DrivingLayout old_driving_layout = g_options.driving_layout;
       Renderer3D old_renderer_3d = g_options.renderer_3d;
       bool old_legacy_multi_texture = g_options.legacy_multi_texture;
       int old_crt_colors = g_options.crt_colors;
@@ -1178,48 +1141,17 @@ void retro_run(void)
          environ_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av_info);
       }
 
-      if (g_options.gun_input != old_gun_input)
+      if (g_options.service_on_sticks != old_service_on_sticks)
       {
-         g_active_gun_input = g_options.gun_input;
-         if (!g_nvram_game.empty())
-         {
-            const Game game = wrapper.getGame();
-            set_input_descriptors(&game);
-            set_controller_info(game);
-         }
-         if (log_cb)
-            log_cb(RETRO_LOG_INFO,
-                   "[Supermodel] Gun Input applied immediately.\n");
-      }
-
-      if (g_options.star_wars_input != old_star_wars_input)
-      {
-         g_active_star_wars_input = g_options.star_wars_input;
-         if (!g_nvram_game.empty())
-         {
-            const Game game = wrapper.getGame();
-            set_input_descriptors(&game);
-            set_controller_info(game);
-         }
-         if (log_cb)
-            log_cb(RETRO_LOG_INFO,
-                   "[Supermodel] Star Wars Trilogy Input applied immediately.\n");
-      }
-
-      if (g_options.four_speed_shifter != old_four_speed_shifter)
-      {
-         if (!g_nvram_game.empty())
-         {
-            const Game game = wrapper.getGame();
-            set_input_descriptors(&game);
-         }
-         if (log_cb)
-            log_cb(RETRO_LOG_INFO,
-                   "[Supermodel] 4-Speed Shifter applied immediately.\n");
+         wrapper.SetServiceOnSticks(g_options.service_on_sticks);
+         set_input_descriptors(g_options.service_on_sticks);
       }
 
       if (g_options.crosshairs != old_crosshairs)
          wrapper.SetCrosshairs(g_options.crosshairs);
+
+      if (g_options.driving_layout != old_driving_layout)
+         wrapper.ApplyDrivingLayout();
 
       if (g_options.sound_enable != old_sound_enable)
       {
@@ -1711,471 +1643,68 @@ bool retro_unserialize(const void* data, size_t size)
 }
 
 // --- Input Descriptors & Callbacks ---
-void set_controller_info(const Game &game)
+void set_input_descriptors(bool service_on_sticks)
 {
-   static retro_controller_description descriptions[4];
-   static retro_controller_info ports[3];
-   static char cabinet_device_names[2][192];
+   struct retro_input_descriptor desc[] = {
+      // Player 1 - D-Pad
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left / View 3" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up / View 1 / View Change" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right / View 4" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down / View 2" },
 
-   const LibretroInputProfiles::Profile *profile =
-      LibretroInputProfiles::Find(game.inputs);
-   const char *device_name = profile ? profile->name : "RetroPad (generic fallback)";
-   if (profile && profile->family == LibretroInputProfiles::Family::Gun)
-   {
-      switch (g_active_gun_input)
-      {
-      case GunInput::Hybrid:
-         device_name = "Gun";
-         break;
-      case GunInput::Lightgun:
-         device_name = "Gun (Lightgun)";
-         break;
-      case GunInput::Mouse:
-         device_name = "Gun (Mouse)";
-         break;
-      case GunInput::MouseAnalog:
-         device_name = "Gun (Mouse + Analog Stick)";
-         break;
-      case GunInput::AnalogSticks:
-         device_name = "Gun (Analog Sticks)";
-         break;
-      }
-   }
-   for (unsigned port = 0; port < 2; ++port)
-   {
-      const bool gameplay_port = !profile || port < profile->players;
-      const char *base_name = gameplay_port ? device_name : "Common Controls B";
-      snprintf(cabinet_device_names[port], sizeof(cabinet_device_names[port]),
-               "%s + Test/Service slots", base_name);
+      // Player 1 - Face buttons
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "Punch / Handbrake / Rear Brake" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "Kick / Music Select" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Guard / Neutral Gear" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "Escape" },
 
-      retro_controller_description *types = &descriptions[port * 2];
-      // The base RetroPad is RetroArch's default device. Give it the complete
-      // profile, including remappable Test/Service slots; the reduced profile
-      // remains available as an explicit device subclass.
-      types[0] = { cabinet_device_names[port], RETRO_DEVICE_JOYPAD };
-      types[1] = { base_name, kNoCabinetControlsDevice };
-      ports[port] = { types, 2 };
-   }
-   ports[2] = { nullptr, 0 };
+      // Player 1 - Start / Coin
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Coin" },
 
-   environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, ports);
-}
+      // Player 1 - Shoulder buttons (role depends on mapping option)
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,
+            service_on_sticks ? "Gear Shift Down" : "Test (Test Menu)" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,
+            service_on_sticks ? "Gear Shift Up" : "Service" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,
+            service_on_sticks ? "Brake" : "Test 2" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,
+            service_on_sticks ? "Accelerator" : "Service 2" },
 
-void set_input_descriptors(const Game *game)
-{
-   std::vector<retro_input_descriptor> desc;
-   desc.reserve(40);
+      // Player 1 - Stick clicks (role depends on mapping option)
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,
+            service_on_sticks ? "Test (Test Menu)" : "L3" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,
+            service_on_sticks ? "Service" : "R3" },
 
-   const auto add = [&desc](unsigned port, unsigned device, unsigned index,
-                           unsigned id, const char *description)
-   {
-      desc.push_back({ port, device, index, id, description });
+      // Player 1 - Analog
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_X, "Steering / Move X" },
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_Y, "Move Y" },
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X, "Right Stick X / Gear Gate" },
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y, "Right Stick Y / Gear Shift" },
+
+      // Player 2 - D-Pad
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "P2 D-Pad Left" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "P2 D-Pad Up" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "P2 D-Pad Right" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "P2 D-Pad Down" },
+
+      // Player 2 - Face buttons
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "P2 Punch" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "P2 Kick" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "P2 Guard" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "P2 Escape" },
+
+      // Player 2 - Start / Coin
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "P2 Start" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "P2 Coin" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,     "P2 Test" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,     "P2 Service" },
+
+      { 0, 0, 0, 0, NULL },
    };
-
-   const auto add_common = [&add](unsigned port, const char *start_description = "Start")
-   {
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, start_description);
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Coin");
-      if (g_cabinet_controls_enabled[port])
-      {
-         add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,
-             port == 0 ? "Test A" : "Test B");
-         add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,
-             port == 0 ? "Service A" : "Service B");
-      }
-   };
-
-   const auto add_standard_directions = [&add](unsigned port)
-   {
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "Joystick Left");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Joystick Up");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Joystick Right");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "Joystick Down");
-      add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-          RETRO_DEVICE_ID_ANALOG_X, "Joystick X");
-      add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-          RETRO_DEVICE_ID_ANALOG_Y, "Joystick Y");
-   };
-
-   const auto add_generic = [&add, &add_common, &add_standard_directions](unsigned port)
-   {
-      add_standard_directions(port);
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Button 1");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Button 2");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "Button 3");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Button 4");
-      add_common(port);
-   };
-
-   const LibretroInputProfiles::Profile *profile =
-      game ? LibretroInputProfiles::Find(game->inputs) : nullptr;
-
-   if (!profile)
-   {
-      add_generic(0);
-      add_generic(1);
-      if (game && log_cb)
-      {
-         log_cb(RETRO_LOG_WARN,
-                "[Supermodel] Unknown control signature 0x%08X; using generic RetroPad descriptors.\n",
-                LibretroInputProfiles::NormalizeInputs(game->inputs));
-      }
-   }
-   else
-   {
-      // The Model 3 common input bank always contains A/B Start, Coin,
-      // Test and Service lines, independently of the game's player controls.
-      for (unsigned port = 0; port < 2; ++port)
-      {
-         const bool ski_player_one =
-            profile->family == LibretroInputProfiles::Family::Ski && port == 0;
-         const bool fishing_player_one =
-            profile->family == LibretroInputProfiles::Family::Fishing && port == 0;
-         add_common(port,
-                    ski_player_one ? "Select 2 / Center (Red)" :
-                    fishing_player_one ? "Cast (Red)" : "Start");
-      }
-
-      switch (profile->family)
-      {
-      case LibretroInputProfiles::Family::Gun:
-         for (unsigned port = 0; port < 2; ++port)
-         {
-            switch (g_active_gun_input)
-            {
-            case GunInput::Hybrid:
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X, "Gun Yaw (Lightgun)");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y, "Gun Pitch (Lightgun)");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_X, "Gun Yaw (Analog Cursor)");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_Y, "Gun Pitch (Analog Cursor)");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_B, "Left Shot (Analog)");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_A, "Right Shot (Analog)");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_TRIGGER, "Left Shot (Lightgun)");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_RELOAD, "Right Shot (Lightgun)");
-               break;
-
-            case GunInput::Lightgun:
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X, "Gun Yaw");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y, "Gun Pitch");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_TRIGGER, "Left Shot");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_RELOAD, "Right Shot");
-               break;
-
-            case GunInput::Mouse:
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_X, "Gun Yaw");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_Y, "Gun Pitch");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_LEFT, "Left Shot");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_RIGHT, "Right Shot");
-               break;
-
-            case GunInput::MouseAnalog:
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_X, "Gun Yaw (Mouse)");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_Y, "Gun Pitch (Mouse)");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_LEFT, "Left Shot (Mouse)");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_RIGHT, "Right Shot (Mouse)");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_X, "Gun Yaw (Analog Cursor)");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_Y, "Gun Pitch (Analog Cursor)");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_B, "Left Shot (Analog)");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_A, "Right Shot (Analog)");
-               break;
-
-            case GunInput::AnalogSticks:
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_X, "Gun Yaw");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_Y, "Gun Pitch");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_B, "Left Shot");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_A, "Right Shot");
-               break;
-            }
-         }
-         break;
-
-      case LibretroInputProfiles::Family::AnalogJoystick:
-      {
-         const auto add_star_wars_lightgun = [&add](bool identify_source)
-         {
-            add(0, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X,
-                identify_source ? "Analog Joystick X (Lightgun)" :
-                                  "Analog Joystick X");
-            add(0, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y,
-                identify_source ? "Analog Joystick Y (Lightgun)" :
-                                  "Analog Joystick Y");
-            add(0, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_TRIGGER,
-                identify_source ? "Trigger 1 (Lightgun)" : "Trigger 1");
-            add(0, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_AUX_A,
-                identify_source ? "Event 1 (Lightgun)" : "Event 1");
-            add(1, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_TRIGGER,
-                identify_source ? "Trigger 2 (Lightgun)" : "Trigger 2");
-            add(1, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_AUX_A,
-                identify_source ? "Event 2 (Lightgun)" : "Event 2");
-         };
-         const auto add_star_wars_mouse = [&add](bool identify_source)
-         {
-            add(0, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_X,
-                identify_source ? "Analog Joystick X (Mouse)" :
-                                  "Analog Joystick X");
-            add(0, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_Y,
-                identify_source ? "Analog Joystick Y (Mouse)" :
-                                  "Analog Joystick Y");
-            add(0, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_LEFT,
-                identify_source ? "Trigger 1 (Mouse)" : "Trigger 1");
-            add(0, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_RIGHT,
-                identify_source ? "Event 1 (Mouse)" : "Event 1");
-            add(1, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_LEFT,
-                identify_source ? "Trigger 2 (Mouse)" : "Trigger 2");
-            add(1, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_RIGHT,
-                identify_source ? "Event 2 (Mouse)" : "Event 2");
-         };
-         const auto add_star_wars_analog = [&add](bool identify_source)
-         {
-            add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                RETRO_DEVICE_ID_ANALOG_X,
-                identify_source ? "Analog Joystick X (Analog Stick)" :
-                                  "Analog Joystick X");
-            add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                RETRO_DEVICE_ID_ANALOG_Y,
-                identify_source ? "Analog Joystick Y (Analog Stick)" :
-                                  "Analog Joystick Y");
-            add(0, RETRO_DEVICE_JOYPAD, 0,
-                RETRO_DEVICE_ID_JOYPAD_B,
-                identify_source ? "Trigger 1 (Analog)" : "Trigger 1");
-            add(0, RETRO_DEVICE_JOYPAD, 0,
-                RETRO_DEVICE_ID_JOYPAD_A,
-                identify_source ? "Event 1 (Analog)" : "Event 1");
-            add(0, RETRO_DEVICE_JOYPAD, 0,
-                RETRO_DEVICE_ID_JOYPAD_Y,
-                identify_source ? "Trigger 2 (Analog)" : "Trigger 2");
-            add(0, RETRO_DEVICE_JOYPAD, 0,
-                RETRO_DEVICE_ID_JOYPAD_X,
-                identify_source ? "Event 2 (Analog)" : "Event 2");
-         };
-
-         switch (g_active_star_wars_input)
-         {
-         case StarWarsInput::Hybrid:
-            add_star_wars_lightgun(true);
-            add_star_wars_mouse(true);
-            add_star_wars_analog(true);
-            break;
-         case StarWarsInput::Lightgun:
-            add_star_wars_lightgun(false);
-            break;
-         case StarWarsInput::MouseAnalog:
-            add_star_wars_mouse(true);
-            add_star_wars_analog(true);
-            break;
-         case StarWarsInput::Mouse:
-            add_star_wars_mouse(false);
-            break;
-         case StarWarsInput::AnalogSticks:
-            add_star_wars_analog(false);
-            break;
-         }
-         break;
-      }
-
-      case LibretroInputProfiles::Family::Fishing:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_X, "Rod X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Rod Y");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-             RETRO_DEVICE_ID_ANALOG_X, "Stick X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Stick Y");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2, "Reel");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2, "Tension");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Cast (Red)");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Select (Yellow)");
-         break;
-
-      case LibretroInputProfiles::Family::JoystickStandard:
-      {
-         const char *actions[4] = { nullptr, nullptr, nullptr, nullptr };
-         unsigned action_count = 0;
-         if (profile->inputs & Game::INPUT_FIGHTING)
-         {
-            actions[0] = "Punch";
-            actions[1] = "Kick";
-            actions[2] = "Guard";
-            actions[3] = "Escape";
-            action_count = 4;
-         }
-         else if (profile->inputs & Game::INPUT_SOCCER)
-         {
-            actions[0] = "Short Pass";
-            actions[1] = "Long Pass";
-            actions[2] = "Shoot";
-            action_count = 3;
-         }
-         else
-         {
-            actions[0] = "Shift";
-            actions[1] = "Beat";
-            actions[2] = "Charge";
-            actions[3] = "Jump";
-            action_count = 4;
-         }
-
-         static constexpr unsigned action_ids[4] = {
-            RETRO_DEVICE_ID_JOYPAD_B,
-            RETRO_DEVICE_ID_JOYPAD_A,
-            RETRO_DEVICE_ID_JOYPAD_Y,
-            RETRO_DEVICE_ID_JOYPAD_X,
-         };
-         for (unsigned port = 0; port < profile->players; ++port)
-         {
-            add_standard_directions(port);
-            for (unsigned i = 0; i < action_count; ++i)
-               add(port, RETRO_DEVICE_JOYPAD, 0, action_ids[i], actions[i]);
-         }
-         break;
-      }
-
-      case LibretroInputProfiles::Family::MagicalTruck:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Player 1 Lever");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,
-             "Player 1 Foot Pedal");
-         add(1, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Player 2 Lever");
-         add(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,
-             "Player 2 Foot Pedal");
-         break;
-
-      case LibretroInputProfiles::Family::Ski:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_X, "Ski X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Ski Y");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Pole Left");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Pole Right");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,
-             "Select 1 / Left (Blue)");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,
-             "Select 2 / Center (Red)");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,
-             "Select 3 / Right (Green)");
-         break;
-
-      case LibretroInputProfiles::Family::JoystickTwin:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_X, "Left Joystick X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Left Joystick Y");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-             RETRO_DEVICE_ID_ANALOG_X, "Right Joystick X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Right Joystick Y");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,
-             "Left Shot Trigger");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,
-             "Right Shot Trigger");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Left Turbo");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Right Turbo");
-         break;
-
-      case LibretroInputProfiles::Family::Driving:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_X, "Steering");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2, "Brake");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2, "Accelerator");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Shift Down");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Shift Up");
-
-         if (profile->inputs & Game::INPUT_SHIFT4)
-         {
-            if (g_options.four_speed_shifter == FourSpeedShifter::HGate)
-            {
-               add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-                   RETRO_DEVICE_ID_ANALOG_X, "H-Gate: Left / Right");
-               add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-                   RETRO_DEVICE_ID_ANALOG_Y, "H-Gate: Up / Down");
-            }
-            else
-            {
-               add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-                   RETRO_DEVICE_ID_ANALOG_X,
-                   "4-Speed: Gear 3 (Left) / Gear 4 (Right)");
-               add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-                   RETRO_DEVICE_ID_ANALOG_Y,
-                   "4-Speed: Gear 1 (Up) / Gear 2 (Down)");
-            }
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,
-                "4-Speed: Neutral");
-         }
-         if (profile->inputs & Game::INPUT_VR4)
-         {
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,
-                "VR1 (Red)");
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,
-                "VR2 (Blue)");
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,
-                "VR3 (Yellow)");
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,
-                "VR4 (Green)");
-         }
-         else if (profile->inputs & Game::INPUT_VIEWCHANGE)
-         {
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "VR1");
-         }
-         if (profile->inputs & Game::INPUT_HANDBRAKE)
-         {
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Handbrake");
-         }
-         if (profile->inputs & Game::INPUT_HARLEY)
-         {
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Rear Brake");
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Music Select");
-         }
-         break;
-      }
-
-      if (log_cb)
-         log_cb(RETRO_LOG_INFO, "[Supermodel] Control profile: %s\n", profile->name);
-   }
-
-   desc.push_back({ 0, 0, 0, 0, nullptr });
-   environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc.data());
+   environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc);
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -2197,7 +1726,7 @@ void retro_set_environment(retro_environment_t cb)
    environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &dummy);
    
    // 4. Input Descriptors
-   set_input_descriptors(nullptr);
+   set_input_descriptors(g_options.service_on_sticks); 
 }
 
 void retro_set_audio_sample(retro_audio_sample_t cb)
