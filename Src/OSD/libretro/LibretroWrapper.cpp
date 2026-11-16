@@ -863,8 +863,32 @@ int LibretroWrapper::Emulate(const char* romPath)
             
         Util::Config::MergeINISections(&s_runtime_config, config4, cmd_line.config);
 
-        // Libretro options are authoritative over both defaults and the optional INI.
-        LibretroConfigProvider::ApplyCoreOptions(s_runtime_config);
+        s_runtime_config.Get("UpscaleMode").SetValue(g_options.upscale_mode);
+        s_runtime_config.Get("New3DEngine").SetValue(g_options.renderer_3d == Renderer3D::New3D);
+        s_runtime_config.Get("MultiTexture").SetValue(
+            g_options.renderer_3d == Renderer3D::Legacy3D && g_options.legacy_multi_texture);
+        s_runtime_config.Get("Supersampling").SetValue(g_options.supersampling);
+        s_runtime_config.Get("NoWhiteFlash").SetValue(g_options.no_white_flash);
+        // Sound emulation is fixed for the session: Model3 reads EmulateSound
+        // when content starts (Sound Enable is restart-dependent).
+        s_runtime_config.Get("EmulateSound").SetValue(g_options.sound_enable);
+        // The drive board only generates force effects when Supermodel's
+        // ForceFeedback is set; it reads this when the board is reset.
+        s_runtime_config.Get("ForceFeedback").SetValue(g_options.force_feedback);
+#ifdef NET_BOARD
+        // The Libretro backend simulates the Model 3 network board and uses
+        // RetroArch's netpacket transport, never the standalone sockets.
+        s_runtime_config.Get("Network").SetValue(g_options.network_board);
+        s_runtime_config.Get("NetworkCabinets").SetValue(g_options.network_cabinets);
+        s_runtime_config.Get("SimulateNet").SetValue(true);
+#endif
+        s_runtime_config.Get("CRTcolors").SetValue(
+            g_options.renderer_3d == Renderer3D::New3D ? g_options.crt_colors : 0);
+        s_runtime_config.Get("LegacySoundDSP").SetValue(g_options.legacy_sound_dsp);
+        s_runtime_config.Get("MultiThreaded").SetValue(
+            g_options.emulation_threading != EmulationThreading::SingleThread);
+        s_runtime_config.Get("GPUMultiThreaded").SetValue(
+            g_options.emulation_threading == EmulationThreading::MultiThreadedGPU);
         // Native timing drains 766/767 samples per frame. Only the multi-threaded
         // sound board produces audio on demand; single-threaded it runs one
         // 735-sample chunk per frame, so native timing would underrun.

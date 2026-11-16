@@ -1,6 +1,12 @@
 #ifndef SUPERMODEL_CORE_OPTIONS_TYPES_H
 #define SUPERMODEL_CORE_OPTIONS_TYPES_H
 
+enum class WidescreenMode {
+   Disabled,
+   Widescreen,
+   WidescreenWideBackground
+};
+
 // Renderer capabilities behind the 3D Renderer, CRT Colour and Supersampling options.
 // HAVE_LEGACY3D comes from the Makefile (Legacy3D sources in the build). The SuperAA
 // pass (CRT colour, supersampling) is only validated on desktop OpenGL.
@@ -9,42 +15,40 @@
 #define HAVE_SUPERSAMPLING
 #endif
 
-enum class GunInput {
-   Hybrid,        // RetroLightgun, RetroMouse and RetroPad share one cursor
-   Lightgun,      // RetroLightgun, absolute screen coordinates
-   Mouse,         // RetroMouse, relative movement
-   MouseAnalog,   // Hybrid variant that excludes RetroLightgun input
-   AnalogSticks   // RetroPad left stick controlling a relative cursor
-};
-
-enum class StarWarsInput {
-   Hybrid,        // RetroLightgun, RetroMouse or absolute RetroPad stick
-   Lightgun,      // RetroLightgun absolute screen coordinates
-   Mouse,         // RetroMouse relative movement
-   MouseAnalog,   // Hybrid variant that excludes RetroLightgun input
-   AnalogSticks   // RetroPad left stick as an absolute arcade yoke
-};
-
-enum class WidescreenMode {
-   Disabled,
-   Widescreen,
-   WidescreenWideBackground
-};
-
-enum class AVTimingMode {
-   Default60Hz,
-   Native57524Hz
-};
-
 enum class Renderer3D {
    New3D,
    Legacy3D
 };
 
+// Source of the per-player virtual gun cursors (Supermodel MOUSE5/MOUSE6).
+enum class GunInput {
+   Hybrid,        // RetroLightgun, RetroMouse or left stick; the last one moved wins
+   Lightgun,      // RetroLightgun, absolute screen coordinates
+   MouseAnalog,   // RetroMouse or left stick (Hybrid without RetroLightgun)
+   Mouse,         // RetroMouse, relative movement
+   AnalogSticks   // RetroPad left stick moving a relative cursor
+};
+
+// Video cadence reported to the frontend (restart-dependent).
+enum class AVTimingMode {
+   Default60Hz,      // 60 Hz, as standalone Supermodel's default RefreshRate
+   Native57524Hz     // the real Model 3 refresh rate (standalone -true-hz)
+};
+
+// Source of the Star Wars Trilogy yoke (Supermodel MOUSE7).
+enum class StarWarsInput {
+   Hybrid,        // light gun, mouse or absolute RetroPad stick, last moved wins
+   Lightgun,      // RetroLightgun absolute coordinates (mouse as fallback)
+   MouseAnalog,   // mouse or absolute RetroPad stick (Hybrid without light gun)
+   Mouse,         // RetroMouse relative movement
+   AnalogSticks   // RetroPad left stick as an absolute arcade yoke
+};
+
+// Supermodel MultiThreaded / GPUMultiThreaded (read when the content starts).
 enum class EmulationThreading {
    SingleThread,
-   MultiThreaded,
-   MultiThreadedGPU
+   MultiThreaded,      // sound and drive boards on worker threads
+   MultiThreadedGPU    // also overlaps PowerPC emulation with rendering
 };
 
 enum class FourSpeedShifter {
@@ -54,17 +58,11 @@ enum class FourSpeedShifter {
 
 struct CoreOptions {
    bool initial_nvram_setup;
-   bool network_board;
-   unsigned network_cabinets;
-   bool nvram_settings_enabled;
+   bool nvram_settings_enabled;   // per-game NVRAM Settings options are applied at start
    float resolution_multiplier;
-   Renderer3D renderer_3d;
-   bool legacy_multi_texture;
-   int crt_colors;
-   int supersampling;
-   int upscale_mode;
    WidescreenMode widescreen_mode;
-   bool no_white_flash;
+   int upscale_mode;         // Supermodel UpscaleMode: 0=Nearest 1=Biquintic 2=Bilinear 3=Bicubic
+   bool no_white_flash;      // Supermodel NoWhiteFlash: no white screen while 3D is disabled
    AVTimingMode av_timing_mode;
    unsigned crosshairs;      // native Supermodel mask: 0=off, 1=P1, 2=P2, 3=both
    bool force_feedback;
@@ -74,7 +72,7 @@ struct CoreOptions {
    int brake_output_range_per_mille;
    int sound_volume;
    int music_volume;
-   bool legacy_sound_dsp;
+   bool legacy_sound_dsp;    // SCSP DSP: false = MAME (default), true = Legacy ElSemi
    int ppc_frequency;
    int frameskip;
    EmulationThreading emulation_threading;
@@ -85,6 +83,12 @@ struct CoreOptions {
    StarWarsInput star_wars_input;
    bool star_wars_upright_x_inversion;
    FourSpeedShifter four_speed_shifter;
+   Renderer3D renderer_3d;
+   bool legacy_multi_texture; // Supermodel MultiTexture (Legacy3D only)
+   int crt_colors;           // Supermodel CRTcolors: 0 = none, 1-5 = monitor profiles
+   int supersampling;        // Supermodel Supersampling: 1 = off, 2-8 = N x N samples
+   bool network_board;       // Supermodel Network: connect the Model 3 network board
+   unsigned network_cabinets; // Supermodel NetworkCabinets: 2-16 linked cabinets
 };
 
 extern CoreOptions g_options;

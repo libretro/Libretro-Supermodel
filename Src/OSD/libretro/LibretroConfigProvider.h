@@ -53,8 +53,8 @@ namespace LibretroConfigProvider {
         config.Set("FullScreen", false, "Video");
         config.Set("BorderlessWindow", false, "Video");
         config.Set("Supersampling", 1, "Video", 1, 8);
-        config.Set("CRTcolors", int(0), "Video", 0, 0, { 0,1,2,3,4,5 });
-        config.Set("UpscaleMode", 2, "Video", 0, 0, { 0,1,2,3 });
+        config.Set("CRTcolors", int(0), "Video", 0, 0, { 0,1,2,3,4,5 });      // these might be more user friendly as strings
+        config.Set("UpscaleMode", 2, "Video", 0, 0, { 0,1,2,3 });             // to do make strings
         config.Set("WideScreen", false, "Video");
         config.Set("Stretch", false, "Video");
         config.Set("WideBackground", false, "Video");
@@ -85,16 +85,6 @@ namespace LibretroConfigProvider {
         config.Set("SDLFrictionMax", 100, "ForceFeedback", 0, 100);
         config.Set("SDLVibrateMax", 100, "ForceFeedback", 0, 100);
         config.Set("SDLConstForceThreshold", 30, "ForceFeedback", 0, 100);
-        #ifdef NET_BOARD
-
-        // NetBoard
-        config.Set("Network", false, "Network");
-        config.Set("NetworkCabinets", unsigned(2), "Network", 2, 16);
-        config.Set("SimulateNet", true, "Network");
-        config.Set("PortIn", unsigned(1970), "Network");
-        config.Set("PortOut", unsigned(1971), "Network");
-        config.Set<std::string>("AddressOut", "127.0.0.1", "Network", "", "");
-        #endif
         #else
         config.Set<std::string>("InputSystem", "sdl", "Core", "", "", { "sdl","sdlgamepad" });
         // SDL ForceFeedback
@@ -103,6 +93,15 @@ namespace LibretroConfigProvider {
         config.Set("SDLFrictionMax", 100, "ForceFeedback", 0, 100);
         config.Set("SDLVibrateMax", 100, "ForceFeedback", 0, 100);
         config.Set("SDLConstForceThreshold", 30, "ForceFeedback", 0, 100);
+        #endif
+        #ifdef NET_BOARD
+        // NetBoard: needed on every platform, the network board reads these.
+        config.Set("Network", false, "Network");
+        config.Set("NetworkCabinets", 2u, "Network", 2u, 16u);
+        config.Set("SimulateNet", true, "Network");
+        config.Set("PortIn", unsigned(1970), "Network");
+        config.Set("PortOut", unsigned(1971), "Network");
+        config.Set<std::string>("AddressOut", "127.0.0.1", "Network", "", "");
         #endif
         config.Set<std::string>("Outputs", "none", "Misc", "", "", { "none","win" });
         config.Set("DumpTextures", false, "Misc");
@@ -321,54 +320,6 @@ namespace LibretroConfigProvider {
         config.Set<std::string>("InputFishingTension", "KEY_T,JOY1_ZAXIS_NEG", "Input", "", "");
 
         return config;
-    }
-
-    // Translate user-facing Libretro options into the native Supermodel
-    // configuration consumed by the engine. Apply this after defaults, the
-    // optional per-game INI section, and command-line values have been merged
-    // so the frontend remains the authoritative configuration source.
-    inline void ApplyCoreOptions(Util::Config::Node &config)
-    {
-        const unsigned width  = static_cast<unsigned>(496.0f * g_options.resolution_multiplier);
-        const unsigned height = static_cast<unsigned>(384.0f * g_options.resolution_multiplier);
-
-        config.Set("XResolution", width);
-        config.Set("YResolution", height);
-        const bool use_legacy_3d =
-            g_options.renderer_3d == Renderer3D::Legacy3D;
-        config.Set("New3DEngine", !use_legacy_3d);
-        config.Set("MultiTexture",
-                   use_legacy_3d && g_options.legacy_multi_texture);
-        config.Set("CRTcolors",
-                   !use_legacy_3d ? g_options.crt_colors : 0);
-        config.Set("Supersampling", g_options.supersampling);
-        config.Set("UpscaleMode", g_options.upscale_mode);
-        config.Set("WideScreen",
-                   g_options.widescreen_mode != WidescreenMode::Disabled);
-        config.Set("WideBackground",
-                   g_options.widescreen_mode ==
-                       WidescreenMode::WidescreenWideBackground);
-        config.Set("NoWhiteFlash", g_options.no_white_flash);
-        config.Set("Crosshairs", static_cast<int>(g_options.crosshairs & 3u));
-        config.Set<std::string>("CrosshairStyle", "vector");
-        config.Set("Network", g_options.network_board);
-        config.Set("NetworkCabinets", g_options.network_cabinets);
-        // The Libretro backend simulates the Model 3 network board and uses
-        // RetroArch's netpacket transport. Native socket-board emulation is a
-        // standalone concern and is intentionally not pulled into the core.
-        config.Set("SimulateNet", true);
-        config.Set("EmulateSound", g_options.sound_enable);
-        config.Set("SoundVolume", g_options.sound_volume);
-        config.Set("MusicVolume", g_options.music_volume);
-        config.Set("LegacySoundDSP", g_options.legacy_sound_dsp);
-        config.Set("ForceFeedback", g_options.force_feedback);
-        config.Set("PowerPCFrequency", static_cast<unsigned>(g_options.ppc_frequency));
-        config.Set("MultiThreaded",
-                   g_options.emulation_threading !=
-                       EmulationThreading::SingleThread);
-        config.Set("GPUMultiThreaded",
-                   g_options.emulation_threading ==
-                       EmulationThreading::MultiThreadedGPU);
     }
 
     struct ParsedCommandLine

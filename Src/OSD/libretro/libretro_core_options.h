@@ -10,7 +10,7 @@ static struct retro_core_option_v2_category option_cats[] = {
    {
       "system",
       "System",
-      "Configure machine initialization, persistence, and networking."
+      "Configure machine initialization and persistence."
    },
    {
       "video",
@@ -18,7 +18,7 @@ static struct retro_core_option_v2_category option_cats[] = {
       "Configure graphics and rendering options."
    },
    {
-      "audio", 
+      "audio",
       "Audio",
       "Configure audio settings."
    },
@@ -41,7 +41,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_initial_nvram_setup",
       "Automatic Initial NVRAM Setup",
       NULL,
-      "When no frontend .srm or valid standalone .nv exists, initialize supported games with Single, Stand Alone, or No Link and set Star Wars Trilogy Arcade to the Upright cabinet. Other EEPROM fields retain the validated smoke-test values for that ROM set. Existing saves are never modified. Delete the game's .srm to regenerate this initial setup. Restart content to apply.",
+      "When no frontend .srm or valid standalone .nv exists, initialize supported games with Single, Stand Alone, or No Link and set Star Wars Trilogy Arcade to the Upright cabinet. Other EEPROM fields keep the factory values for that ROM set. Existing saves are never modified. Delete the game's .srm to regenerate this initial setup. Restart content to apply.",
       NULL,
       "system",
       {
@@ -52,10 +52,24 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "enabled"
    },
    {
+      "supermodel_nvram_settings",
+      "NVRAM Settings",
+      NULL,
+      "Let RetroArch manage the supported NVRAM settings for each game. When enabled, every displayed value is applied at startup and overrides later Service Menu changes. When disabled, the core does not modify these fields. Settings saved for other games are never reused. Restart content to apply.",
+      NULL,
+      "system",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+   {
       "supermodel_network_board",
       "Network Board",
       NULL,
-      "Connect the Model 3 network board, equivalent to the standalone Network setting. Some games expose their Network Assignments in the Service Menu only while the board is connected. Requires a content restart. Experimental linked play through RetroArch Netplay is available for Daytona USA 2, Dirt Devils, Harley-Davidson, Le Mans 24, Scud Race, Sega Rally 2, Ski Champ, Spikeout, Spikeout Final Edition, and Virtual On 2 families.",
+      "Connect the Model 3 network board, equivalent to the standalone Network setting. Some games show their network settings in the Service Menu only while the board is connected. Experimental linked play through RetroArch Netplay is available for Daytona USA 2, Dirt Devils, Harley-Davidson, Le Mans 24, Scud Race, Sega Rally 2, Ski Champ, Spikeout, Spikeout Final Edition and Virtual On 2. Set each cabinet's link role in the game's Service Menu: the RetroArch host must be the Master and clients a Slave (Type 2 games may also use a Satellite role), and every cabinet needs its own car or machine number. Requires restarting the content.",
       NULL,
       "system",
       {
@@ -69,7 +83,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_network_cabinets",
       "Linked Cabinets",
       NULL,
-      "Set the total number of Model 3 cabinets expected in the RetroArch Netplay session. The host waits for this exact number before starting the emulated cabinet link. Every instance must use the same value. The RetroArch host must use the game's Master role; clients cannot use Master. Type 1 clients must use Slave; Type 2 clients may use a supported Slave / Satellite role. Start the host before its clients. Two- and three-cabinet sessions have been tested; larger values remain experimental. Requires a content restart.",
+      "Set the total number of Model 3 cabinets expected in the RetroArch Netplay session. The host waits for this exact number before starting the emulated cabinet link. Every instance must use the same value. Start the host before its clients. Two- and three-cabinet sessions have been tested; larger values remain experimental. Requires restarting the content.",
       NULL,
       "system",
       {
@@ -92,20 +106,6 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "2"
    },
-   {
-      "supermodel_nvram_settings",
-      "NVRAM Settings",
-      NULL,
-      "Let RetroArch manage the supported NVRAM settings for each game. When enabled, every displayed value is applied at startup and overrides later Service Menu changes. When disabled, the core does not modify these fields. Settings saved for other games are never reused. Restart content to apply.",
-      NULL,
-      "system",
-      {
-         { "disabled", NULL },
-         { "enabled",  NULL },
-         { NULL, NULL },
-      },
-      "disabled"
-   },
    // Video
    {
       "supermodel_resolution",
@@ -124,80 +124,6 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "native"
    },
-#if defined(HAVE_LEGACY3D) && !defined(USE_LEGACY3D)
-   {
-      "supermodel_renderer_3d",
-      "3D Renderer",
-      NULL,
-      "Select Supermodel's 3D engine. New3D is the current renderer. Legacy3D uses the desktop OpenGL compatibility profile and may perform better on older or integrated GPUs. Legacy3D is experimental and may crash the frontend or fail to initialize on unsupported OpenGL drivers. Takes effect after restarting content.",
-      NULL,
-      "video",
-      {
-         { "new3d",    "New3D (Default)" },
-         { "legacy3d", "Legacy3D (Experimental)" },
-         { NULL, NULL },
-      },
-      "new3d"
-   },
-#endif
-#ifdef HAVE_LEGACY3D
-   {
-      "supermodel_legacy_multi_texture",
-      "Legacy3D Multi-Texture",
-      NULL,
-      "Use eight texture maps for Legacy3D decoding instead of decoding to a single texture. Only applies to Legacy3D and takes effect after restarting content.",
-      NULL,
-      "video",
-      {
-         { "disabled", "Single Texture (Default)" },
-         { "enabled",  "Eight Texture Maps" },
-         { NULL, NULL },
-      },
-      "disabled"
-   },
-#endif
-#ifdef HAVE_CRT_COLOURS
-   {
-      "supermodel_crt_colors",
-      "CRT Colour",
-      NULL,
-      "Apply Supermodel's native pre-output colour and gamma adaptation. This is distinct from a frontend CRT shader, and applies to New3D after restarting content. Ignored by Legacy3D.",
-      NULL,
-      "video",
-      {
-         { "0", "None (Default)" },
-         { "1", "ARI/D93 (Japan)" },
-         { "2", "PVM-20M2U/D93" },
-         { "3", "BT.601 525/D93" },
-         { "4", "BT.601 525/D65 (USA)" },
-         { "5", "BT.601 625/D65 (Europe/Australia)" },
-         { NULL, NULL },
-      },
-      "0"
-   },
-#endif
-#ifdef HAVE_SUPERSAMPLING
-   {
-      "supermodel_supersampling",
-      "Supersampling",
-      NULL,
-      "Render each output pixel from multiple internal samples using Supermodel's native supersampling pass. The scale applies on top of Internal Resolution: 2x uses 4 samples per pixel, 3x uses 9, and 8x uses 64. Higher values can require substantial GPU time and memory. Takes effect after restarting content.",
-      NULL,
-      "video",
-      {
-         { "1", "1x (Disabled, Default)" },
-         { "2", "2x (4 Samples)" },
-         { "3", "3x (9 Samples)" },
-         { "4", "4x (16 Samples)" },
-         { "5", "5x (25 Samples)" },
-         { "6", "6x (36 Samples)" },
-         { "7", "7x (49 Samples)" },
-         { "8", "8x (64 Samples)" },
-         { NULL, NULL },
-      },
-      "1"
-   },
-#endif
    {
       "supermodel_timing_overlay",
       "Frame Timing Overlay",
@@ -228,6 +154,80 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "2"
    },
+#if defined(HAVE_LEGACY3D) && !defined(USE_LEGACY3D)
+   {
+      "supermodel_renderer_3d",
+      "3D Renderer",
+      NULL,
+      "Select Supermodel's 3D engine. New3D is the current, accurate renderer. Legacy3D is the older one: it uses an OpenGL compatibility context and may be faster on old or integrated GPUs, but it is experimental and may fail to start on some drivers. Takes effect after restarting content.",
+      NULL,
+      "video",
+      {
+         { "new3d",    "New3D (Default)" },
+         { "legacy3d", "Legacy3D (Experimental)" },
+         { NULL, NULL },
+      },
+      "new3d"
+   },
+#endif
+#ifdef HAVE_LEGACY3D
+   {
+      "supermodel_legacy_multi_texture",
+      "Legacy3D Multi-Texture",
+      NULL,
+      "Legacy3D only. Decode textures into eight texture maps instead of one large texture, for GPUs or drivers that cannot handle the single large texture. Takes effect after restarting content.",
+      NULL,
+      "video",
+      {
+         { "disabled", "Single Texture (Default)" },
+         { "enabled",  "Eight Texture Maps" },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+#endif
+#ifdef HAVE_CRT_COLOURS
+   {
+      "supermodel_crt_colors",
+      "CRT Colour",
+      NULL,
+      "Apply Supermodel's colour and gamma adaptation for the original arcade monitors. This is separate from a frontend CRT shader. Ignored by Legacy3D. Takes effect after restarting content.",
+      NULL,
+      "video",
+      {
+         { "0", "None (Default)" },
+         { "1", "ARI/D93 (Japan)" },
+         { "2", "PVM-20M2U/D93" },
+         { "3", "BT.601 525/D93" },
+         { "4", "BT.601 525/D65 (USA)" },
+         { "5", "BT.601 625/D65 (Europe/Australia)" },
+         { NULL, NULL },
+      },
+      "0"
+   },
+#endif
+#ifdef HAVE_SUPERSAMPLING
+   {
+      "supermodel_supersampling",
+      "Supersampling",
+      NULL,
+      "Anti-alias the picture with Supermodel's native supersampling: each output pixel is rendered from several internal samples. The scale applies on top of Internal Resolution: 2x uses 4 samples per pixel, 3x uses 9, and 8x uses 64. Higher values need much more GPU time and memory. Takes effect after restarting content.",
+      NULL,
+      "video",
+      {
+         { "1", "1x (Disabled, Default)" },
+         { "2", "2x (4 Samples)" },
+         { "3", "3x (9 Samples)" },
+         { "4", "4x (16 Samples)" },
+         { "5", "5x (25 Samples)" },
+         { "6", "6x (36 Samples)" },
+         { "7", "7x (49 Samples)" },
+         { "8", "8x (64 Samples)" },
+         { NULL, NULL },
+      },
+      "1"
+   },
+#endif
    {
       "supermodel_wide_screen",
       "Widescreen Mode",
@@ -247,12 +247,12 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_no_white_flash",
       "Disable White Flash",
       NULL,
-      "Suppress the white flash normally shown when a game disables 3D rendering. Equivalent to standalone Supermodel's NoWhiteFlash setting. Requires restarting content.",
+      "Suppress the white screen some games show while they disable 3D rendering, for example between scenes. Equivalent to standalone Supermodel's NoWhiteFlash setting. Requires restarting the content.",
       NULL,
       "video",
       {
-         { "disabled", "OFF (Default)" },
-         { "enabled",  "ON" },
+         { "disabled", NULL },
+         { "enabled",  NULL },
          { NULL, NULL },
       },
       "disabled"
@@ -273,11 +273,11 @@ static struct retro_core_option_v2_definition option_defs[] = {
    },
    {
       "supermodel_crosshairs",
-      "Show Crosshair",
+      "Show Crosshairs",
       NULL,
-      "Select which native Supermodel vector crosshair is displayed in light gun games.",
+      "Select which native Supermodel crosshair is displayed in light gun games.",
       NULL,
-      "input",
+      "video",
       {
          { "0", "Disabled" },
          { "1", "Player 1 Only" },
@@ -550,11 +550,11 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_frameskip",
       "Frame Skip",
       NULL,
-      "Skip rendering every N frames to reduce GPU load on slow hardware. 'OFF' disables frame skipping. Higher values improve speed at the cost of visual smoothness.",
+      "Skip rendering every N frames to reduce GPU load on slow hardware. 'Disabled' turns frame skipping off. Higher values improve speed at the cost of visual smoothness.",
       NULL,
       "cpu",
       {
-         { "0", "OFF" },
+         { "0", "Disabled" },
          { "1", "Skip 1 (render every 2nd frame)" },
          { "2", "Skip 2 (render every 3rd frame)" },
          { "3", "Skip 3 (render every 4th frame)" },
@@ -599,12 +599,12 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "multi_gpu"
    },
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
    {
       "supermodel_jit_enable",
       "JIT Recompiler (ARM64)",
       NULL,
-      "Enable the ARM64 JIT recompiler for the PowerPC CPU. Significantly improves performance on ARM64 devices. Disable to use the interpreter for debugging.",
+      "Enable the ARM64 JIT recompiler for the PowerPC CPU. Significantly improves performance on ARM64 devices. Disable to use the interpreter, the reference for correctness and debugging.",
       NULL,
       "cpu",
       {
@@ -637,6 +637,10 @@ void update_core_options(void)
       strcmp(option_get("supermodel_initial_nvram_setup", "enabled"),
              "enabled") == 0;
 
+   g_options.nvram_settings_enabled =
+      strcmp(option_get("supermodel_nvram_settings", "disabled"),
+             "enabled") == 0;
+
    g_options.network_board =
       strcmp(option_get("supermodel_network_board", "enabled"),
              "enabled") == 0;
@@ -645,10 +649,6 @@ void update_core_options(void)
       atoi(option_get("supermodel_network_cabinets", "2")));
    if (g_options.network_cabinets < 2 || g_options.network_cabinets > 16)
       g_options.network_cabinets = 2;
-
-   g_options.nvram_settings_enabled =
-      strcmp(option_get("supermodel_nvram_settings", "disabled"),
-             "enabled") == 0;
 
    const char* resolution = option_get("supermodel_resolution", "native");
    if (strcmp(resolution, "half") == 0)
@@ -662,46 +662,6 @@ void update_core_options(void)
    else
       g_options.resolution_multiplier = 1.0f;  // native
 
-#if defined(USE_LEGACY3D)
-   g_options.renderer_3d = Renderer3D::Legacy3D;
-#elif defined(HAVE_LEGACY3D)
-   g_options.renderer_3d =
-      strcmp(option_get("supermodel_renderer_3d", "new3d"),
-             "legacy3d") == 0
-         ? Renderer3D::Legacy3D : Renderer3D::New3D;
-#else
-   g_options.renderer_3d = Renderer3D::New3D;
-#endif
-
-#ifdef HAVE_LEGACY3D
-   g_options.legacy_multi_texture =
-      strcmp(option_get("supermodel_legacy_multi_texture", "disabled"),
-             "enabled") == 0;
-#else
-   g_options.legacy_multi_texture = false;
-#endif
-
-#ifdef HAVE_CRT_COLOURS
-   g_options.crt_colors = atoi(option_get("supermodel_crt_colors", "0"));
-   if (g_options.crt_colors < 0 || g_options.crt_colors > 5)
-      g_options.crt_colors = 0;
-#else
-   g_options.crt_colors = 0;
-#endif
-
-#ifdef HAVE_SUPERSAMPLING
-   g_options.supersampling =
-      atoi(option_get("supermodel_supersampling", "1"));
-   if (g_options.supersampling < 1 || g_options.supersampling > 8)
-      g_options.supersampling = 1;
-#else
-   g_options.supersampling = 1;
-#endif
-
-   g_options.upscale_mode = atoi(option_get("supermodel_upscale_mode", "2"));
-   if (g_options.upscale_mode < 0 || g_options.upscale_mode > 3)
-      g_options.upscale_mode = 2;
-
    g_options.timing_overlay = strcmp(option_get("supermodel_timing_overlay", "disabled"), "enabled") == 0;
 
    {
@@ -714,17 +674,50 @@ void update_core_options(void)
             ? WidescreenMode::Widescreen
             : WidescreenMode::Disabled;
    }
+#if defined(USE_LEGACY3D)
+   g_options.renderer_3d = Renderer3D::Legacy3D;
+#elif defined(HAVE_LEGACY3D)
+   g_options.renderer_3d =
+      strcmp(option_get("supermodel_renderer_3d", "new3d"), "legacy3d") == 0
+         ? Renderer3D::Legacy3D : Renderer3D::New3D;
+#else
+   g_options.renderer_3d = Renderer3D::New3D;
+#endif
+#ifdef HAVE_LEGACY3D
+   g_options.legacy_multi_texture =
+      strcmp(option_get("supermodel_legacy_multi_texture", "disabled"), "enabled") == 0;
+#else
+   g_options.legacy_multi_texture = false;
+#endif
+#ifdef HAVE_CRT_COLOURS
+   g_options.crt_colors = atoi(option_get("supermodel_crt_colors", "0"));
+   if (g_options.crt_colors < 0 || g_options.crt_colors > 5)
+      g_options.crt_colors = 0;
+#else
+   g_options.crt_colors = 0;
+#endif
+
+#ifdef HAVE_SUPERSAMPLING
+   g_options.supersampling = atoi(option_get("supermodel_supersampling", "1"));
+   if (g_options.supersampling < 1 || g_options.supersampling > 8)
+      g_options.supersampling = 1;
+#else
+   g_options.supersampling = 1;
+#endif
+
    g_options.no_white_flash =
-      strcmp(option_get("supermodel_no_white_flash", "disabled"),
-             "enabled") == 0;
+      strcmp(option_get("supermodel_no_white_flash", "disabled"), "enabled") == 0;
    g_options.av_timing_mode =
       strcmp(option_get("supermodel_av_timing", "60hz"), "native") == 0
-         ? AVTimingMode::Native57524Hz
-         : AVTimingMode::Default60Hz;
+         ? AVTimingMode::Native57524Hz : AVTimingMode::Default60Hz;
+
+   g_options.upscale_mode = atoi(option_get("supermodel_upscale_mode", "2"));
+   if (g_options.upscale_mode < 0 || g_options.upscale_mode > 3)
+      g_options.upscale_mode = 2;
    {
       const char *crosshairs = option_get("supermodel_crosshairs", "0");
-      // Accept the values used by earlier development builds so an existing
-      // .opt file cannot leave the option in an undefined state.
+      // Accept the values used by earlier builds so an existing .opt file
+      // cannot leave the option in an undefined state.
       g_options.crosshairs = strcmp(crosshairs, "enabled") == 0 ? 3u
                            : strcmp(crosshairs, "disabled") == 0 ? 0u
                            : static_cast<unsigned>(atoi(crosshairs)) & 3u;
@@ -740,24 +733,15 @@ void update_core_options(void)
       const char *gun_input = option_get("supermodel_gun_input", "hybrid");
       g_options.gun_input = strcmp(gun_input, "lightgun") == 0 ? GunInput::Lightgun
                           : strcmp(gun_input, "mouse") == 0    ? GunInput::Mouse
-                          : strcmp(gun_input, "mouse_analog") == 0
-                                                               ? GunInput::MouseAnalog
+                          : strcmp(gun_input, "mouse_analog") == 0 ? GunInput::MouseAnalog
                           : strcmp(gun_input, "analog") == 0   ? GunInput::AnalogSticks
-                                                               : GunInput::Hybrid;
-   }
-   {
-      const char *star_wars_input = option_get(
-         "supermodel_star_wars_input", "hybrid");
-      g_options.star_wars_input =
-         strcmp(star_wars_input, "lightgun") == 0
-            ? StarWarsInput::Lightgun
-         : strcmp(star_wars_input, "mouse_analog") == 0
-            ? StarWarsInput::MouseAnalog
-         : strcmp(star_wars_input, "mouse") == 0
-            ? StarWarsInput::Mouse
-         : strcmp(star_wars_input, "analog") == 0
-            ? StarWarsInput::AnalogSticks
-            : StarWarsInput::Hybrid;
+                          : GunInput::Hybrid;
+      const char *star_wars_input = option_get("supermodel_star_wars_input", "hybrid");
+      g_options.star_wars_input = strcmp(star_wars_input, "lightgun") == 0 ? StarWarsInput::Lightgun
+                                : strcmp(star_wars_input, "mouse_analog") == 0 ? StarWarsInput::MouseAnalog
+                                : strcmp(star_wars_input, "mouse") == 0  ? StarWarsInput::Mouse
+                                : strcmp(star_wars_input, "analog") == 0 ? StarWarsInput::AnalogSticks
+                                : StarWarsInput::Hybrid;
    }
    g_options.star_wars_upright_x_inversion =
       strcmp(option_get("supermodel_star_wars_upright_x_inversion", "enabled"),
@@ -767,12 +751,11 @@ void update_core_options(void)
              "h_gate") == 0
          ? FourSpeedShifter::HGate
          : FourSpeedShifter::Standard;
-   g_options.force_feedback =
-      strcmp(option_get("supermodel_force_feedback", "enabled"),
-             "enabled") == 0;
+   g_options.force_feedback = strcmp(option_get("supermodel_force_feedback", "enabled"), "enabled") == 0;
    g_options.steering_progressive =
       strcmp(option_get("supermodel_steering_response", "linear"), "progressive") == 0;
-   g_options.steering_output_range = atoi(option_get("supermodel_steering_output_range", "100"));
+   g_options.steering_output_range =
+      atoi(option_get("supermodel_steering_output_range", "100"));
    {
       const char *accelerator_range = option_get("supermodel_accelerator_output_range", "100");
       const char *brake_range = option_get("supermodel_brake_output_range", "100");
@@ -798,20 +781,22 @@ void update_core_options(void)
    }
 
    {
-      const char *threading = option_get(
-         "supermodel_emulation_threading", "multi_gpu");
+      const char *threading = option_get("supermodel_emulation_threading", "multi_gpu");
       g_options.emulation_threading =
-         strcmp(threading, "single") == 0
-            ? EmulationThreading::SingleThread
-         : strcmp(threading, "multi") == 0
-            ? EmulationThreading::MultiThreaded
-            : EmulationThreading::MultiThreadedGPU;
+         strcmp(threading, "single") == 0 ? EmulationThreading::SingleThread
+         : strcmp(threading, "multi") == 0 ? EmulationThreading::MultiThreaded
+         : EmulationThreading::MultiThreadedGPU;
    }
 
-#ifdef __aarch64__
+#ifdef HAVE_PPC_JIT
    g_options.jit_enable = strcmp(option_get("supermodel_jit_enable", "enabled"), "enabled") == 0;
 #else
    g_options.jit_enable = false;
 #endif
 
+   // if (log_cb)
+   // {
+   //    log_cb(RETRO_LOG_INFO, "[Supermodel] Options updated: Resolution=%dx, Widescreen=%d\n",
+   //           g_options.resolution_multiplier, g_options.widescreen);
+   // }
 }
