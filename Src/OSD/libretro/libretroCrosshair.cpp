@@ -255,6 +255,7 @@ void CCrosshair::Update(uint32_t currentInputs, CInputs* Inputs, unsigned int xO
   if (currentInputs & Game::INPUT_ANALOG_GUN1) {
     x[0] = ((float)Inputs->analogGunX[0]->value / 255.0f);
     y[0] = ((255.0f - (float)Inputs->analogGunY[0]->value) / 255.0f);
+    offscreenTrigger[0] = Inputs->analogTriggerLeft[0]->value || Inputs->analogTriggerRight[0]->value;
   } else if (currentInputs & Game::INPUT_GUN1) {
     x[0] = (float)Inputs->gunX[0]->value; y[0] = (float)Inputs->gunY[0]->value;
     GunToViewCoords(&x[0], &y[0]);
@@ -264,6 +265,7 @@ void CCrosshair::Update(uint32_t currentInputs, CInputs* Inputs, unsigned int xO
   if (currentInputs & Game::INPUT_ANALOG_GUN2) {
     x[1] = ((float)Inputs->analogGunX[1]->value / 255.0f);
     y[1] = ((255.0f - (float)Inputs->analogGunY[1]->value) / 255.0f);
+    offscreenTrigger[1] = Inputs->analogTriggerLeft[1]->value || Inputs->analogTriggerRight[1]->value;
   } else if (currentInputs & Game::INPUT_GUN2) {
     x[1] = (float)Inputs->gunX[1]->value; y[1] = (float)Inputs->gunY[1]->value;
     GunToViewCoords(&x[1], &y[1]);

@@ -69,6 +69,8 @@ private:
     int m_analogJoystickCursorY;
     bool m_analogJoystickCursorInitialized;
     unsigned m_analogJoystickSource; // 0: stick, 1: mouse
+    bool m_port2MouseDistinct;       // port 2 mouse proved to be a separate device
+    bool m_port2LightgunDistinct;    // port 2 light gun proved to be a separate device
 
     bool m_serviceOnSticks = false;
     retro_rumble_interface m_rumbleInterface;

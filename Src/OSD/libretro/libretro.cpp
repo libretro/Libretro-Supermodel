@@ -559,35 +559,6 @@ static NvramPatchResult apply_initial_nvram_settings(void)
    return result;
 }
 
-static void update_star_wars_cabinet_orientation(void)
-{
-   g_star_wars_invert_x = false;
-   const Game &game = wrapper.getGame();
-   const auto cabinet = LibretroNvramSettings::Setting::Cabinet;
-   if (wrapper.getEmulator() == nullptr ||
-       !LibretroNvramSettings::IsValueSupported(&game, cabinet, "upright"))
-      return;
-
-   serialize_nvram();
-   CBlockFileMemory reader(g_nvram_buffer, NVRAM_BUFFER_SIZE);
-   uint16_t words[64];
-   if (reader.FindBlock("93C46") != Result::OKAY ||
-       reader.Read(words, sizeof(words)) != sizeof(words))
-   {
-      log_cb(RETRO_LOG_WARN,
-             "[Supermodel] Unable to read Star Wars cabinet orientation\n");
-      return;
-   }
-
-   g_star_wars_invert_x =
-      LibretroNvramSettings::IsStarWarsUpright(&game, words);
-   log_cb(RETRO_LOG_INFO,
-          "[Supermodel] Star Wars cabinet: %s; analog X %s\n",
-          g_star_wars_invert_x ? "Upright" : "Deluxe",
-          g_star_wars_invert_x && g_options.star_wars_upright_x_inversion
-             ? "inverted" : "normal");
-}
-
 static void initialize_new_nvram(void)
 {
    // Export the pristine emulator state immediately so RetroArch always has a
@@ -663,6 +634,37 @@ static bool apply_configured_nvram_settings(void)
              "[Supermodel] Applied configured NVRAM settings for %s\n",
              game.name.c_str());
    return result == NvramPatchResult::Changed;
+}
+
+static void update_star_wars_cabinet_orientation(void)
+{
+   g_star_wars_invert_x = false;
+   const Game &game = wrapper.getGame();
+   if (wrapper.getEmulator() == nullptr ||
+       (game.name != "swtrilgy" && game.parent != "swtrilgy"))
+      return;
+
+   // The cabinet type is stored in the 93C46 EEPROM: Genibus header
+   // "M3 SEGA SWTA", word 12 bit 0x400 set for Deluxe, clear for Upright.
+   serialize_nvram();
+   CBlockFileMemory reader(g_nvram_buffer, NVRAM_BUFFER_SIZE);
+   uint16_t words[64];
+   if (reader.FindBlock("93C46") != Result::OKAY ||
+       reader.Read(words, sizeof(words)) != sizeof(words) ||
+       words[0] != 0x4d33 || words[1] != 0x5345 || words[2] != 0x4741 ||
+       words[3] != 0x5357 || words[4] != 0x5441)
+   {
+      log_cb(RETRO_LOG_WARN,
+             "[Supermodel] Unable to read Star Wars cabinet type\n");
+      return;
+   }
+
+   g_star_wars_invert_x = (words[12] & 0x0400) == 0;
+   log_cb(RETRO_LOG_INFO,
+          "[Supermodel] Star Wars cabinet: %s; analog X %s\n",
+          g_star_wars_invert_x ? "Upright" : "Deluxe",
+          g_star_wars_invert_x && g_options.star_wars_upright_x_inversion
+             ? "inverted" : "normal");
 }
 
 static void build_native_nvram_path(char* path, size_t path_size)
@@ -907,6 +909,7 @@ bool retro_load_game(const struct retro_game_info *info)
    g_cached_serialize_size = 0;
    g_first_run = true;
    g_nvram_initialized = false;
+   g_star_wars_invert_x = false;
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
@@ -1021,11 +1024,11 @@ void retro_unload_game(void)
    g_cached_serialize_size = 0;
    g_first_run = true;
    g_nvram_initialized = false;
+   g_star_wars_invert_x = false;
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
    g_context_ready = false;
-   g_star_wars_invert_x = false;
    g_nvram_game.clear();
    update_nvram_option_visibility();
    pgo_flush();   // RetroArch may never call retro_deinit before exiting
