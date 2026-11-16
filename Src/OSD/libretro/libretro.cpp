@@ -691,21 +691,38 @@ static void update_star_wars_cabinet_orientation(void)
              ? "inverted" : "normal");
 }
 
-static void build_native_nvram_path(char* path, size_t path_size)
+static bool file_readable(const char* path)
 {
-   char filename[1024];
-   snprintf(filename, sizeof(filename), "%s.nv", wrapper.getGame().name.c_str());
-   fill_pathname_join(path, retro_save_directory, filename, path_size);
-}
-
-static bool native_nvram_exists(char* path, size_t path_size)
-{
-   build_native_nvram_path(path, path_size);
    RFILE* file = filestream_open(path, RETRO_VFS_FILE_ACCESS_READ, 0);
    if (!file)
       return false;
    filestream_close(file);
    return true;
+}
+
+// A standalone <game>.nv is imported from the frontend save directory. Earlier
+// builds of this core looked in <save>/supermodel/Saves, which is still read.
+static bool native_nvram_exists(char* path, size_t path_size)
+{
+   char filename[1024];
+   snprintf(filename, sizeof(filename), "%s.nv", wrapper.getGame().name.c_str());
+   fill_pathname_join(path, retro_save_directory, filename, path_size);
+   if (file_readable(path))
+      return true;
+
+   char legacy_dir[4096];
+   fill_pathname_join(legacy_dir, retro_save_directory, "supermodel/Saves", sizeof(legacy_dir));
+   char legacy_path[4096];
+   fill_pathname_join(legacy_path, legacy_dir, filename, sizeof(legacy_path));
+   if (file_readable(legacy_path))
+   {
+      strlcpy(path, legacy_path, path_size);
+      return true;
+   }
+
+   // Report the preferred location when nothing was found.
+   fill_pathname_join(path, retro_save_directory, filename, path_size);
+   return false;
 }
 
 static bool import_native_nvram(const char* path)
@@ -778,8 +795,9 @@ void retro_init(void)
 
    const char *dir = NULL;
 
-   // 1. Setup the core-specific system directory. Games.xml and other engine
-   // assets live here; user preferences are provided by Libretro core options.
+   // 1. The core-specific system directory, [System]/supermodel, as other
+   // Libretro cores use. Games.xml, Supermodel.ini and Music.xml live here;
+   // the older [System]/supermodel/Config layout is still read as a fallback.
    if (environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir)
    {
       snprintf(retro_base_directory, sizeof(retro_base_directory), "%s/supermodel", dir);
@@ -789,9 +807,9 @@ void retro_init(void)
       snprintf(retro_base_directory, sizeof(retro_base_directory), "supermodel");
    }
 
-   // 2. RetroArch may already return a core- or content-specific save path.
-   // Do not append another Supermodel directory. SRAM is exposed through the
-   // Libretro memory API and the frontend owns the actual .srm file.
+   // 2. The frontend save directory. RetroArch may already return a core- or
+   // content-specific path, so do not append another directory: the frontend
+   // owns the .srm file, and a standalone .nv to import is placed here.
    if (environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &dir) && dir)
    {
       snprintf(retro_save_directory, sizeof(retro_save_directory), "%s", dir);
@@ -940,8 +958,8 @@ bool retro_load_game(const struct retro_game_info *info)
    last_height = 0;
    g_context_ready = false;
 
-   // The selected renderer determines which OpenGL profile the frontend must
-   // create, so options have to be read before SET_HW_RENDER is negotiated.
+   // The selected renderer decides which OpenGL context to ask for, so the options
+   // have to be read before SET_HW_RENDER.
    update_core_options();
 
    hw_render.context_reset   = context_reset;
@@ -1027,6 +1045,7 @@ bool retro_load_game(const struct retro_game_info *info)
       wrapper.ShutDownSupermodel();
       return false;
    }
+
    // Re-apply FFB state after full DriveBoard initialization
    auto libretroInput2 = std::static_pointer_cast<CLibretroInputSystem>(wrapper.getInputSystem());
    if (libretroInput2 && g_options.force_feedback) {
@@ -1354,13 +1373,12 @@ void retro_run(void)
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
       glViewport(0, 0, target_w, target_h);
-      // Render2D re-enables the scissor test after clearing its target. The
-      // box is global GL state and must describe the supersampled render FBO,
-      // exactly as standalone scales its scissor by aaValue. Leaving this at
-      // base resolution clips a 2x source to its lower-left quarter before
-      // SuperAA resolves it.
-      const unsigned render_scale = static_cast<unsigned>(
-         std::max(1, wrapper.getAaValue()));
+      // Render2D re-enables the scissor test after clearing its target. The box is
+      // global GL state and must cover the supersampled render FBO, as standalone
+      // scales its scissor by the supersampling factor. At base size a 2x source
+      // would be clipped to its lower-left quarter before SuperAA resolves it.
+      const unsigned render_scale =
+         static_cast<unsigned>(std::max(1, wrapper.getAaValue()));
       glScissor(0, 0, target_w * render_scale, target_h * render_scale);
 
       glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1397,6 +1415,8 @@ void retro_run(void)
       // Draw diagnostics into Supermodel's own target. Drawing into the
       // frontend FBO after the blit is not portable: some hardware frontends
       // replace or resolve that target inside video_cb().
+      // The overlay is an ImGui NewFrame + Render + a draw call, so it only
+      // runs when enabled.
       const FrameTimings t = wrapper.GetTimings();
       const auto t_overlay_start = std::chrono::steady_clock::now();
       if (g_options.timing_overlay)

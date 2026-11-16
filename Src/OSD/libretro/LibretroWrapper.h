@@ -2,10 +2,10 @@
 #include <Model3/IEmulator.h>
 #include <Model3/Model3.h>
 #include <libretro.h>
-#include "LibretroTiming.h"
 #include "ROMSet.h"
 #include <Inputs/Input.h>
 #include <GL/glew.h>
+#include "LibretroTiming.h"
 
 #ifndef LIBRETRO_WRAPPER_H
 #define LIBRETRO_WRAPPER_H
@@ -70,7 +70,7 @@ public:
     void setSuperAA(SuperAA* val) { superAA = val; }
     void setCRTColors(CRTcolor val) { CRTcolors = val; }
     void setHwRender(retro_hw_render_callback val) { hw_render = val; }
-    void InitializePaths(const std::string& systemPath);
+    void InitializePaths(const std::string& baseConfigPath);
     // viewWidth/Height: the 4:3 game area; outputWidth/Height: the whole frame (wider in
     // widescreen). The game area is centred in the frame.
     void UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
@@ -93,15 +93,13 @@ public:
     void ShutDownSupermodel();
     bool InitRenderers();
     bool InitGL();
-    // Returns the base-resolution frame resolved for Libretro submission.
+    // Returns the base-resolution frame resolved for Libretro submission
     GLuint getSuperModelFBO() const;
 
 private:
-    float lastEngineMs = 0.0f;
-    float lastAudioSubmitMs = 0.0f;
+    uint64_t m_lastFrameTime = 0;
     uint64_t m_frameRateMicroHz = LibretroTiming::kDefaultFrameRateMicroHz;
     uint64_t m_audioFrameRemainder = 0;
-    uint64_t m_lastFrameTime = 0;
     bool m_nativeTimingUnavailable = false;
     static const char* s_outputNames[];
     struct retro_hw_render_callback hw_render{};
@@ -128,6 +126,8 @@ private:
     char baseTitleStr[128];
     char titleStr[128];
     UpscaleMode upscaleMode;
+    float       lastEngineMs = 0.0f;       // RunFrame/RenderFrame time of the last frame
+    float       lastAudioSubmitMs = 0.0f;  // time spent handing that frame's audio over
     uint64_t perfCountPerFrame;
     uint64_t nextTime;
 

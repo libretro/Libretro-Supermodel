@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <algorithm>
 #include <chrono>
 #include <GL/glew.h>
 #if !defined(ANDROID) && !defined(CORE_GLES)
@@ -131,6 +132,7 @@ std::string LibretroWrapper::s_logFilePath;
 static Util::Config::Node s_runtime_config("Global");
 static LibretroWrapper* g_ctx = nullptr;
 
+
 /*
  * Crosshair stuff
  */
@@ -206,7 +208,13 @@ void LibretroWrapper::InitializePaths(const std::string& systemPath)
     // Use the negotiated Libretro VFS instead of relying on filesystem helper
     // symbols that are not part of the frontend ABI.
     if (g_vfs_interface && g_vfs_interface->mkdir)
+    {
+        // VFS mkdir is single-level: create the parent first, then the target.
+        const size_t lastSlash = systemPath.rfind('/');
+        if (lastSlash != std::string::npos)
+            g_vfs_interface->mkdir(systemPath.substr(0, lastSlash).c_str());
         g_vfs_interface->mkdir(systemPath.c_str());
+    }
 
     // External assets remain authoritative. The official embedded assets are
     // retained as a first-run fallback when neither the native nor legacy
@@ -219,7 +227,11 @@ void LibretroWrapper::InitializePaths(const std::string& systemPath)
     s_logFilePath      = systemPath + "/Supermodel.log";
     s_analysisPath     = systemPath + "/Analysis/";
 
-    std::cout << "[Supermodel] System assets: " << systemPath << std::endl;
+    if (log_cb)
+    {
+        log_cb(RETRO_LOG_INFO, "[Supermodel] Games.xml: %s\n", s_gameXMLFilePath.c_str());
+        log_cb(RETRO_LOG_INFO, "[Supermodel] Supermodel.ini: %s\n", s_configFilePath.c_str());
+    }
 }
 
 [[maybe_unused]] static void GLAPIENTRY DebugCallback(GLenum /*source*/, GLenum /*type*/, GLuint id,
@@ -754,13 +766,27 @@ void LibretroWrapper::ShutDownSupermodel()
 // Create and configure inputs
 Result LibretroWrapper::ConfigureInputs(CInputs *Inputs, Util::Config::Node *fileConfig, Util::Config::Node *runtimeConfig, const Game &game, bool configure)
 {
-  (void)fileConfig;
-  (void)game;
+  static constexpr char configFileComment[] = {
+    ";\n"
+    "; Supermodel Configuration File\n"
+    ";\n"
+  };
 
   Inputs->LoadFromConfig(*runtimeConfig);
 
   if (configure)
-    ErrorLog("Interactive input configuration is not available in the Libretro core; use frontend remaps instead.");
+  {
+    Util::Config::Node *fileConfigRoot = game.name.empty() ? fileConfig : fileConfig->TryGet(game.name);
+    if (fileConfigRoot == nullptr)
+      fileConfigRoot = &fileConfig->Add(game.name);
+
+    if (Inputs->ConfigureInputs(game, xOffset, yOffset, xRes, yRes))
+    {
+      Inputs->StoreToConfig(fileConfigRoot);
+      Util::Config::WriteINIFile(s_configFilePath, *fileConfig, configFileComment);
+      Inputs->StoreToConfig(runtimeConfig);
+    }
+  }
 
   return Result::OKAY;
 }
@@ -807,20 +833,16 @@ int LibretroWrapper::Emulate(const char* romPath)
         Util::Config::Node fileConfigWithDefaults("Global");
         Util::Config::Node config3("Global");
         Util::Config::Node config4("Global");
-
-        // Supermodel.ini is an advanced, read-only override. Normal user
-        // configuration belongs to Libretro core options and frontend input
-        // remaps. When no external file exists, InitializePaths() exposes the
-        // official embedded fallback without ever updating it afterwards.
+        // Supermodel.ini is optional: InitializePaths() extracts the bundled
+        // copy on first run, and the core never writes it afterwards. Without
+        // a readable file the built-in defaults apply.
         if (FileExists(s_configFilePath))
         {
-            if (Util::Config::FromINIFile(&fileConfig, s_configFilePath))
-                return 1;
-            InfoLog("Loaded optional configuration override: %s", s_configFilePath.c_str());
+            Util::Config::FromINIFile(&fileConfig, s_configFilePath);
+            InfoLog("Using configuration file: %s", s_configFilePath.c_str());
         }
-
-        Util::Config::MergeINISections(&fileConfigWithDefaults, LibretroConfigProvider::DefaultConfig(s_gameXMLFilePath), fileConfig);
-        Util::Config::MergeINISections(&config3, fileConfigWithDefaults, cmd_line.config);
+        Util::Config::MergeINISections(&fileConfigWithDefaults, LibretroConfigProvider::DefaultConfig(s_gameXMLFilePath), fileConfig); 
+        Util::Config::MergeINISections(&config3, fileConfigWithDefaults, cmd_line.config);    
 
 	config3.Set("GameXMLFile", s_gameXMLFilePath);
         if (rom_specified || cmd_line.print_games)
@@ -929,8 +951,7 @@ int LibretroWrapper::Emulate(const char* romPath)
 
     aaValue   = s_runtime_config["Supersampling"].ValueAs<int>();
     CRTcolors = (CRTcolor)s_runtime_config["CRTcolors"].ValueAs<int>();   // 0 = None; was never read, left indeterminate
-    upscaleMode = static_cast<UpscaleMode>(
-        s_runtime_config["UpscaleMode"].ValueAs<int>());
+    upscaleMode = static_cast<UpscaleMode>(s_runtime_config["UpscaleMode"].ValueAs<int>());
 
     auto inputSystem = std::make_shared<CLibretroInputSystem>();
     auto inputs = std::make_unique<CInputs>(inputSystem);
@@ -1065,8 +1086,6 @@ void LibretroWrapper::SetCrosshairs(unsigned mask)
     catch (const std::range_error&) {
         s_runtime_config.Add("Crosshairs").SetValue(static_cast<int>(mask));
     }
-
-    InfoLog("[Supermodel] Crosshairs mask applied: %u", mask);
 }
 
 void LibretroWrapper::SetSoundVolume(int volume)
