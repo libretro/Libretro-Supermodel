@@ -47,6 +47,8 @@ static LibretroWrapper wrapper = LibretroWrapper();
 // Star Wars Trilogy Upright cabinets wire the yoke's horizontal axis the
 // opposite way to Deluxe. Set from the game's NVRAM on the first frame.
 bool g_star_wars_invert_x = false;
+// Whether the drive board was started with force feedback for this content.
+static bool g_ffb_drive_board_enabled = false;
 void set_input_descriptors(bool service_on_sticks);
 
 // Game-aware NVRAM settings: one hidden core option per supported ROM set and
@@ -981,6 +983,7 @@ bool retro_load_game(const struct retro_game_info *info)
 
    log_cb(RETRO_LOG_INFO, "[Supermodel] Loading ROM: %s\n", info->path);
       
+   g_ffb_drive_board_enabled = g_options.force_feedback;
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
    g_nvram_game = wrapper.getGame().name;
@@ -1076,6 +1079,7 @@ void retro_run(void)
       AVTimingMode old_av_timing_mode = g_options.av_timing_mode;
       bool old_star_wars_upright_x_inversion =
          g_options.star_wars_upright_x_inversion;
+      bool old_force_feedback = g_options.force_feedback;
       bool old_network_board = g_options.network_board;
       unsigned old_network_cabinets = g_options.network_cabinets;
 
@@ -1190,6 +1194,17 @@ void retro_run(void)
       {
          static const struct retro_message message = {
             "Network Board settings will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+      }
+
+      // Turning it off applies immediately; turning it on needs the drive
+      // board restarted with ForceFeedback set.
+      if (g_options.force_feedback && !old_force_feedback &&
+          !g_ffb_drive_board_enabled)
+      {
+         static const struct retro_message message = {
+            "Force Feedback will apply after restarting the content.", 180
          };
          environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
