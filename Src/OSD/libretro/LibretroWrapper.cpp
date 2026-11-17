@@ -385,6 +385,8 @@ void EndFrameVideo()
 ******************************************************************************/
 bool LibretroWrapper::InitRenderers()
 {
+    // Runtime re-creation (widescreen, resolution, GL context reset) vs the first creation.
+    const bool recreated = Render3D != nullptr;
     delete Render2D; Render2D = nullptr;
     delete Render3D; Render3D = nullptr;
     delete superAA;  superAA  = nullptr;
@@ -481,6 +483,13 @@ bool LibretroWrapper::InitRenderers()
     }
 
     Model3->AttachRenderers(Render2D, Render3D, superAA);
+
+    // A renderer created while a game is running starts with an empty texture sheet
+    // although the emulated texture RAM still holds the game's textures, so every model
+    // already in memory renders black until the game writes its textures again. Re-upload
+    // the whole sheet, as CReal3D::LoadState does after a state load.
+    if (recreated)
+        Render3D->UploadTextures(0, 0, 0, 2048, 2048);
     return true;
 }
 
