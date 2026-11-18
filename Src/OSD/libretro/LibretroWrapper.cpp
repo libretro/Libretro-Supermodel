@@ -383,10 +383,44 @@ void EndFrameVideo()
 /******************************************************************************
  Frame Timing & Init
 ******************************************************************************/
+// The frontend is about to destroy the GL context (context_destroy). Delete every GL
+// object now, while that context is still current: the renderers, SuperAA and the
+// resolved FBO. Deleting them later, from context_reset, would run on the new context,
+// where the old names already belong to the frontend's own objects: on a Raspberry Pi
+// with an input overlay, the overlay's texture was deleted and its name then became
+// the core's render target, so the overlay showed the game frame upside down.
+void LibretroWrapper::DestroyGLScreen()
+{
+    if (Render3D == nullptr && Render2D == nullptr && superAA == nullptr && m_libretrFBO == 0)
+        return;
+
+    const bool pauseThreads = Model3 && !paused;
+    if (pauseThreads)
+        Model3->PauseThreads();
+
+    delete Render2D; Render2D = nullptr;
+    delete Render3D; Render3D = nullptr;
+    delete superAA;  superAA  = nullptr;
+    if (m_libretrFBO) {
+        glDeleteFramebuffers(1,  &m_libretrFBO);   m_libretrFBO   = 0;
+        glDeleteTextures(1,      &m_libretrTex);    m_libretrTex   = 0;
+        glDeleteRenderbuffers(1, &m_libretrDepth);  m_libretrDepth = 0;
+    }
+    // Nothing renders until context_reset re-creates the renderers (retro_run
+    // skips the engine while the context is not ready); the game's textures must
+    // be uploaded into the new ones.
+    m_glObjectsReleased = Model3 != nullptr;
+
+    if (pauseThreads)
+        Model3->ResumeThreads();
+}
+
 bool LibretroWrapper::InitRenderers()
 {
-    // Runtime re-creation (widescreen, resolution, GL context reset) vs the first creation.
-    const bool recreated = Render3D != nullptr;
+    // Runtime re-creation (widescreen, resolution, or after a GL context reset
+    // released the previous renderers) vs the first creation.
+    const bool recreated = Render3D != nullptr || m_glObjectsReleased;
+    m_glObjectsReleased = false;
     delete Render2D; Render2D = nullptr;
     delete Render3D; Render3D = nullptr;
     delete superAA;  superAA  = nullptr;
