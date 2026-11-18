@@ -101,6 +101,7 @@ private:
     uint64_t m_frameRateMicroHz = LibretroTiming::kDefaultFrameRateMicroHz;
     uint64_t m_audioFrameRemainder = 0;
     bool m_nativeTimingUnavailable = false;
+    bool m_glObjectsReleased = false;      // DestroyGLScreen ran; InitRenderers re-uploads textures
     static const char* s_outputNames[];
     struct retro_hw_render_callback hw_render{};
     unsigned  xOffset, yOffset;                                         // offset of renderer output within OpenGL viewport

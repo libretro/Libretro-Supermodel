@@ -929,6 +929,9 @@ void context_reset(void)
 void context_destroy(void)
 {
     g_context_ready = false;
+    // The context is still current here: release the renderers' GL objects now, not
+    // from context_reset, where their names may already belong to the frontend.
+    wrapper.DestroyGLScreen();
 #if defined(CORE_GLES)
     if (s_gpuQuery[0] && glDeleteQueriesEXT) { glDeleteQueriesEXT(2, s_gpuQuery); s_gpuQuery[0] = s_gpuQuery[1] = 0; }
 #endif
