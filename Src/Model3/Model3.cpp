@@ -1067,7 +1067,7 @@ UINT8 CModel3::Read8(UINT32 addr)
   // Unknown
   default:
 #ifdef NET_BOARD
-    printf("CMODEL3 : unknown R8 : %x\n", addr >> 24);
+    DebugLog("CMODEL3 : unknown R8 : %x\n", addr >> 24);
 #endif
     break;
   }
@@ -1174,7 +1174,7 @@ UINT16 CModel3::Read16(UINT32 addr)
       result = NetBoard->ReadCommRAM16((addr & 0xFFFF) ^ 2);
       return FLIPENDIAN16(result); // result
     default:
-      printf("CMODEL3 : unknown R16 : %x (C0)\n", addr);
+      DebugLog("CMODEL3 : unknown R16 : %x (C0)\n", addr);
       break;
     }
   }
@@ -1183,7 +1183,7 @@ UINT16 CModel3::Read16(UINT32 addr)
   // Unknown
   default:
 #ifdef NET_BOARD
-    printf("CMODEL3 : unknown R16 : %x (%x)\n", addr, addr >> 24);
+    DebugLog("CMODEL3 : unknown R16 : %x (%x)\n", addr, addr >> 24);
     ErrorLog("Network board received an unknown 16-bit read");
 #endif
     break;
@@ -1377,7 +1377,7 @@ UINT32 CModel3::Read32(UINT32 addr)
   // Unknown
   default:
 #ifdef NET_BOARD
-    printf("CMODEL3 : unknown R32 : %x\n", addr >> 24);
+    DebugLog("CMODEL3 : unknown R32 : %x\n", addr >> 24);
 #endif
     break;
   }
@@ -1876,7 +1876,7 @@ void CModel3::Write32(UINT32 addr, UINT32 data)
   default:
   Unknown32:
 #ifdef NET_BOARD
-      if (m_runNetBoard) printf("CMODEL3 : unknown W32 : %x (%x) data=%d\n", addr,addr >> 24,data);
+      if (m_runNetBoard) DebugLog("CMODEL3 : unknown W32 : %x (%x) data=%d\n", addr,addr >> 24,data);
 #endif
     //printf("PC=%08X\twrite32: %08X=%08X\n", ppc_get_pc(), addr, data);
     DebugLog("PC=%08X\twrite32: %08X=%08X\n", ppc_get_pc(), addr, data);
