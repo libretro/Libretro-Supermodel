@@ -48,6 +48,8 @@ BUTTONS = {
     "R2": 13,
     "L3": 14,
     "R3": 15,
+    "SERVICE": 14,  # LCF cabinet slots; recipes use native action names.
+    "TEST": 15,
 }
 SUFFIX_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 WAIT_RE = re.compile(r"^WAIT\(\s*([0-9]+(?:\.[0-9]+)?)\s*\)$", re.IGNORECASE)
@@ -57,6 +59,7 @@ BUTTON_HOLD_RE = re.compile(
     re.IGNORECASE,
 )
 LATCH_RE = re.compile(r"^(HOLD|RELEASE)\(\s*([A-Za-z0-9_-]+)\s*\)$", re.IGNORECASE)
+CAPTURE_RE = re.compile(r"^CAPTURE\(\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*\)$", re.IGNORECASE)
 REPEAT_RE = re.compile(r"^(.+?)\s*\*\s*(0|[1-9][0-9]*)$")
 PLAYER_BUTTON_RE = re.compile(r"^P([12])_(.+)$")
 
@@ -94,6 +97,8 @@ class Settings:
     shutdown_timeout: float
     window_width: int
     window_height: int
+    collect_saves: bool
+    capture_helper: Path
 
 
 @dataclass(frozen=True)
@@ -176,6 +181,13 @@ def positive_integer(data: dict[str, Any], name: str, default: int) -> int:
     value = data.get(name, default)
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ValueError(f"{name} must be a positive integer")
+    return value
+
+
+def boolean_value(data: dict[str, Any], name: str, default: bool) -> bool:
+    value = data.get(name, default)
+    if not isinstance(value, bool):
+        raise ValueError(f"{name} must be true or false")
     return value
 
 
@@ -294,6 +306,8 @@ def expand_actions(
             actions.append(Action("escape"))
         elif normalized == "CLOSE":
             actions.append(Action("close"))
+        elif capture := CAPTURE_RE.fullmatch(token):
+            actions.append(Action("capture", capture.group(1)))
         else:
             raise ValueError(f"unknown sequence token: {token}")
     return actions
@@ -384,6 +398,8 @@ def load_campaign(args: argparse.Namespace) -> tuple[Settings, list[Sample]]:
         shutdown_timeout=positive_number(campaign, "shutdown_timeout", 15.0),
         window_width=positive_integer(campaign, "window_width", 496),
         window_height=positive_integer(campaign, "window_height", 384),
+        collect_saves=boolean_value(campaign, "collect_saves", True),
+        capture_helper=output_dir / ".tools" / "ScreenCaptureWindow",
     )
 
     if args.interactive is not None:
@@ -434,6 +450,16 @@ def load_campaign(args: argparse.Namespace) -> tuple[Settings, list[Sample]]:
             if sample.suffix == args.resume_from
         )
         samples = samples[start:]
+    if not settings.collect_saves:
+        without_capture = [
+            sample.suffix for sample in samples
+            if not any(action.kind == "capture" for action in sample.actions)
+        ]
+        if without_capture:
+            raise ValueError(
+                "collect_saves=false requires CAPTURE(...) in every sample: "
+                + ", ".join(without_capture)
+            )
     return settings, samples
 
 
@@ -475,6 +501,8 @@ def action_label(action: Action) -> str:
         return f"WAIT({float(action.value):g})"
     if action.kind == "escape":
         return "KEY_ESC"
+    if action.kind == "capture":
+        return f"CAPTURE({action.value})"
     return "CLOSE"
 
 
@@ -483,9 +511,11 @@ def print_dry_run(settings: Settings, samples: list[Sample]) -> None:
     print(f"ROM:      {settings.rom_dir / (settings.game + '.zip')}")
     print(f"Standard: {settings.standard_srm or '(new blank save)'}")
     print(f"Output:   {settings.output_dir}")
+    print(f"Save RAM: {'collect' if settings.collect_saves else 'discard'}")
     for sample in samples:
         destination = settings.output_dir / "saves" / f"{settings.game}-{sample.suffix}.srm"
-        print(f"\n[{sample.suffix}] -> {destination}")
+        suffix = f" -> {destination}" if settings.collect_saves else ""
+        print(f"\n[{sample.suffix}]{suffix}")
         if sample.actions:
             print("  " + " -> ".join(action_label(action) for action in sample.actions))
         else:
@@ -502,6 +532,34 @@ def quote_config(value: Path | str) -> str:
     return str(value).replace("\\", "\\\\").replace('"', '\\"')
 
 
+def build_capture_helper(source: Path, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    command = [
+        "xcrun", "clang", "-fobjc-arc", "-fblocks", "-O2",
+        "-framework", "Foundation", "-framework", "AppKit",
+        "-framework", "CoreGraphics", "-framework", "ImageIO",
+        "-framework", "CoreMedia", "-framework", "ScreenCaptureKit",
+        "-framework", "AVFoundation", str(source), "-o", str(destination),
+    ]
+    completed = subprocess.run(command, capture_output=True, text=True)
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise RuntimeError(f"could not build ScreenCaptureKit helper: {detail}")
+
+
+def capture_window(
+    helper: Path, process: subprocess.Popen[bytes], destination: Path,
+) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    completed = subprocess.run(
+        [str(helper), "--pid", str(process.pid), "--image", str(destination)],
+        capture_output=True, text=True,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise RuntimeError(f"could not capture {destination.name}: {detail}")
+
+
 def write_isolated_config(settings: Settings, work: Path, remote_port: int) -> list[str]:
     for directory in ("system/supermodel", "saves", "states", "logs", "config", "remaps"):
         (work / directory).mkdir(parents=True, exist_ok=True)
@@ -511,9 +569,11 @@ def write_isolated_config(settings: Settings, work: Path, remote_port: int) -> l
 
     core_options = work / "config" / "core-options.cfg"
     core_options.write_text(
+        'supermodel_controller_profile_type = "test_service"\n'
         'supermodel_initial_nvram_setup = "disabled"\n'
         'supermodel_nvram_settings = "disabled"\n'
-        'supermodel_network_board = "enabled"\n'
+        f'supermodel_network_cabinets_{settings.game} = "2"\n'
+        f'supermodel_automatic_network_{settings.game} = "-1"\n'
         'supermodel_force_feedback = "disabled"\n'
         'supermodel_jit_enable = "disabled"\n',
         encoding="utf-8",
@@ -529,6 +589,12 @@ def write_isolated_config(settings: Settings, work: Path, remote_port: int) -> l
         "log_verbosity": "true",
         "core_options_path": core_options,
         "global_core_options": "true",
+        "rgui_config_directory": work / "config",
+        "auto_overrides_enable": "false",
+        "auto_remaps_enable": "false",
+        "auto_shaders_enable": "false",
+        "content_runtime_log": "false",
+        "content_runtime_log_aggregate": "false",
         "input_remapping_directory": work / "remaps",
         "content_history_path": work / "config" / "content_history.lpl",
         "content_favorites_path": work / "config" / "content_favorites.lpl",
@@ -657,7 +723,7 @@ def wait_while_alive(process: subprocess.Popen[bytes], seconds: float) -> None:
         exit_code = process.poll()
         if exit_code is not None:
             raise RuntimeError(f"RetroArch exited early with code {exit_code}")
-        time.sleep(min(0.10, deadline - time.monotonic()))
+        time.sleep(max(0.0, min(0.10, deadline - time.monotonic())))
 
 
 def activate_process(process: subprocess.Popen[bytes], timeout: float = 3.0) -> None:
@@ -718,6 +784,7 @@ def terminate_process(process: subprocess.Popen[bytes]) -> None:
 
 def execute_actions(
     process: subprocess.Popen[bytes], port: int, sample: Sample, settings: Settings,
+    stem: str,
 ) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         for action in sample.actions:
@@ -751,6 +818,14 @@ def execute_actions(
                     raise RuntimeError("RetroArch exited before KEY_ESC")
                 post_escape_to_pid(process.pid)
                 time.sleep(settings.default_wait)
+            elif action.kind == "capture":
+                if process.poll() is not None:
+                    raise RuntimeError("RetroArch exited before screenshot capture")
+                capture_window(
+                    settings.capture_helper, process,
+                    settings.output_dir / "screenshots" /
+                    f"{stem}-{action.value}.png",
+                )
             elif action.kind == "close":
                 close_retroarch(process, settings)
 
@@ -776,12 +851,20 @@ def run_sample(
     save_out = settings.output_dir / "saves" / f"{stem}.srm"
     log_out = settings.output_dir / "logs" / f"{stem}.log"
     console_out = settings.output_dir / "logs" / f"{stem}.console.log"
-    if save_out.exists() and not overwrite:
+    capture_out = [
+        settings.output_dir / "screenshots" / f"{stem}-{action.value}.png"
+        for action in sample.actions if action.kind == "capture"
+    ]
+    outputs_exist = (
+        (not settings.collect_saves or save_out.exists()) and
+        all(path.exists() for path in capture_out)
+    )
+    if outputs_exist and (settings.collect_saves or capture_out) and not overwrite:
         return Result(
-            stem, "skipped", str(save_out),
+            stem, "skipped", str(save_out) if settings.collect_saves else "",
             str(log_out) if log_out.is_file() else "",
             str(console_out) if console_out.is_file() else "",
-            0.0, "sample already exists; use --overwrite to replace it",
+            0.0, "requested outputs already exist; use --overwrite to replace them",
         )
 
     started = time.monotonic()
@@ -817,19 +900,22 @@ def run_sample(
                 if exit_code != 0:
                     raise RuntimeError(f"RetroArch exited with code {exit_code}")
             else:
-                execute_actions(process, port, sample, settings)
-        generated = find_save(work, settings.game)
-        if not generated:
-            raise RuntimeError("RetroArch exited cleanly but no .srm was found")
-        log_text = core_log.read_text(encoding="utf-8", errors="replace") if core_log.is_file() else ""
-        if "Saving RAM type" not in log_text and "Saving NVRAM" not in log_text:
-            raise RuntimeError("the log does not confirm a clean NVRAM save")
-        save = copy_if_present(generated, save_out)
+                execute_actions(process, port, sample, settings, stem)
+        if settings.collect_saves:
+            generated = find_save(work, settings.game)
+            if not generated:
+                raise RuntimeError("RetroArch exited cleanly but no .srm was found")
+            log_text = core_log.read_text(encoding="utf-8", errors="replace") if core_log.is_file() else ""
+            if "Saving RAM type" not in log_text and "Saving NVRAM" not in log_text:
+                raise RuntimeError("the log does not confirm a clean NVRAM save")
+            save = copy_if_present(generated, save_out)
         status = "ok"
         note = (
             "interactive sample saved after manual RetroArch shutdown"
             if interactive else
-            "sample saved from a fresh copy of the standard .srm"
+            ("sample saved from a fresh copy of the standard .srm"
+             if settings.collect_saves else
+             "screenshots captured from a fresh copy of the standard .srm")
         )
     except KeyboardInterrupt:
         if process and process.poll() is None:
@@ -872,8 +958,13 @@ def main() -> int:
         print_dry_run(settings, samples)
         return 0
 
-    for directory in ("saves", "logs"):
+    for directory in ("saves", "logs", "screenshots"):
         (settings.output_dir / directory).mkdir(parents=True, exist_ok=True)
+    if any(action.kind == "capture" for sample in samples for action in sample.actions):
+        helper_source = Path(__file__).with_name("ScreenCaptureWindow.m")
+        if not helper_source.is_file():
+            raise FileNotFoundError(helper_source)
+        build_capture_helper(helper_source, settings.capture_helper)
     print(f"Output: {settings.output_dir}")
     mode = "interactive" if args.interactive is not None else "scripted"
     print(f"Game: {settings.game}; samples: {len(samples)}; mode: {mode}")

@@ -13,9 +13,10 @@
 
 namespace
 {
-constexpr uint8_t kProtocolVersion = 2;
+constexpr uint8_t kProtocolVersion = 3;
 constexpr uint8_t kPacketHello = 1;
 constexpr uint8_t kPacketFrame = 2;
+constexpr uint8_t kPacketHelloRequest = 3;
 constexpr size_t kPacketHeaderSize = 18;
 constexpr auto kFrameWaitTimeout = std::chrono::milliseconds(250);
 
@@ -84,7 +85,7 @@ void RETRO_CALLCONV NetpacketReceive(const void *data, size_t size,
   std::memcpy(packet.bytes.data(), data, size);
 
   std::lock_guard<std::mutex> lock(g_session.mutex);
-  if (g_session.active)
+  if (g_session.active && g_session.expectedCabinets >= 2)
     g_session.packets.emplace_back(std::move(packet));
 }
 
@@ -109,9 +110,9 @@ bool RETRO_CALLCONV NetpacketConnected(uint16_t clientId)
   {
     std::lock_guard<std::mutex> lock(g_session.mutex);
     expectedCabinets = g_session.expectedCabinets;
-    accepted = g_session.active && g_session.localId == 0 &&
-               (g_session.clients.count(clientId) != 0 ||
-                g_session.clients.size() + 1 < expectedCabinets);
+    // Lobby ownership is independent of the current emulated topology.
+    accepted = g_session.active && g_session.localId == 0 && clientId != 0 &&
+               (g_session.clients.count(clientId) != 0 || g_session.clients.size() < 16);
     if (accepted)
       g_session.clients.insert(clientId);
     connectedCabinets = static_cast<unsigned>(g_session.clients.size() + 1);
@@ -157,7 +158,10 @@ uint16_t SessionLocalId()
 void SessionSetExpectedCabinets(unsigned cabinets)
 {
   std::lock_guard<std::mutex> lock(g_session.mutex);
-  g_session.expectedCabinets = std::max(2u, std::min(16u, cabinets));
+  g_session.expectedCabinets = std::max(1u, std::min(17u, cabinets));
+  // A new machine must not consume old frame/handshake data. Keep the
+  // frontend's session, callbacks and connected clients intact.
+  g_session.packets.clear();
 }
 
 std::vector<QueuedPacket> TakePackets()
@@ -253,7 +257,7 @@ bool CLibretroNetBoard::RegisterNetpacketInterface(
     nullptr,
     NetpacketConnected,
     NetpacketDisconnected,
-    "Supermodel Model 3 NetBoard v2"
+    "Supermodel Model 3 NetBoard v3"
   };
 
   const bool supported = environment &&
@@ -337,15 +341,17 @@ const char *CLibretroNetBoard::RoleName(uint16_t role) const
 
 Result CLibretroNetBoard::Init(UINT8 *netRAMPtr, UINT8 *netBufferPtr)
 {
+  m_attached = false;
+  m_transportSupported = false;
   m_ram = netRAMPtr;
   m_buffer = netBufferPtr;
   m_commRAM = m_buffer;
   m_externalCommRAM = m_buffer + 0x10000;
   m_expectedCabinets = std::max(
-    2u, std::min(16u, m_config["NetworkCabinets"].ValueAs<unsigned>()));
-  SessionSetExpectedCabinets(m_expectedCabinets);
+    1u, std::min(17u, m_config["NetworkCabinets"].ValueAs<unsigned>()));
   const bool requested = m_gameInfo.netboard_present &&
                          m_config["Network"].ValueAs<bool>();
+  SessionSetExpectedCabinets(requested ? m_expectedCabinets : 1);
 
   if (!requested)
     return Result::OKAY;
@@ -359,11 +365,13 @@ Result CLibretroNetBoard::Init(UINT8 *netRAMPtr, UINT8 *netBufferPtr)
   }
 
   m_attached = true;
-  m_transportSupported = HasNetpacketTransport() &&
+  m_transportSupported = m_expectedCabinets >= 2 && HasNetpacketTransport() &&
                          SessionInterfaceSupported();
   m_gameHash = HashName(networkFamily);
   Reset();
-  if (m_transportSupported)
+  if (m_expectedCabinets == 1)
+    InfoLog("Libretro Network Board connected (%s family; local loopback)", networkFamily);
+  else if (m_transportSupported)
     InfoLog("Libretro Network Board connected (%s family; %u-cabinet "
             "netpacket transport configured)", networkFamily,
             m_expectedCabinets);
@@ -461,13 +469,13 @@ void CLibretroNetBoard::DrainPackets()
     if (!DecodePacket(queued.bytes, packet))
       continue;
 
-    if (packet.type == kPacketHello)
+    if (packet.type == kPacketHello || packet.type == kPacketHelloRequest)
     {
       // A fast peer can complete its own Model 3 initialization first. Ignore
       // (rather than interpret) early hellos until this cabinet has received
       // its role and segment layout from the emulated main board; the peer
       // retransmits the hello while testing.
-      if (m_state != State::Testing ||
+      if ((m_state != State::Testing && m_state != State::Ready) ||
           (m_gameType == GameType::Type2 && !m_segmentSize))
         continue;
       if (packet.payload.size() != sizeof(uint16_t))
@@ -476,10 +484,13 @@ void CLibretroNetBoard::DrainPackets()
         return;
       }
       const unsigned peerCabinets = ReadU16(packet.payload.data());
-      if (peerCabinets != m_expectedCabinets)
+      // Peers can Resume at different times. Wait for matching setup rather
+      // than making a temporary topology mismatch a permanent board error.
+      if (peerCabinets != m_expectedCabinets) continue;
+      if (m_state == State::Ready)
       {
-        EnterError("Linked cabinets use different Linked Cabinets settings");
-        return;
+        if (packet.type == kPacketHelloRequest) SendHello(false);
+        continue;
       }
       const bool firstHello = m_peerRoles.count(queued.sender) == 0;
       m_peerRoles[queued.sender] = packet.role;
@@ -490,7 +501,7 @@ void CLibretroNetBoard::DrainPackets()
                 peerCabinets);
       // Reply before changing state. Otherwise the last cabinet to complete
       // its roster could become Ready without letting an earlier peer see it.
-      SendHello();
+      if (packet.type == kPacketHelloRequest) SendHello(false);
       TryCompleteHandshake();
     }
     else if (packet.type == kPacketFrame && m_state == State::Ready &&
@@ -512,13 +523,13 @@ void CLibretroNetBoard::DrainPackets()
   }
 }
 
-void CLibretroNetBoard::SendHello()
+void CLibretroNetBoard::SendHello(bool request)
 {
   if (!SessionActive())
     return;
   std::vector<uint8_t> payload;
   AppendU16(payload, static_cast<uint16_t>(m_expectedCabinets));
-  SendPacket(BuildPacket(kPacketHello, 0, payload.data(), payload.size()),
+  SendPacket(BuildPacket(request ? kPacketHelloRequest : kPacketHello, 0, payload.data(), payload.size()),
              RETRO_NETPACKET_BROADCAST);
 }
 
@@ -533,42 +544,34 @@ bool CLibretroNetBoard::TryCompleteHandshake()
     return false;
   }
 
-  const uint16_t localId = SessionLocalId();
-  if ((localId == 0) != (m_localRole == 0))
+  const uint16_t localId = m_expectedCabinets == 1 ? 0 : SessionLocalId();
+  if (m_expectedCabinets == 1 && m_localRole != 0)
   {
-    EnterError("RetroArch host must use Link Mode Master; clients must use Slave");
+    EnterError("Local loopback requires a native initiating role");
     return false;
   }
-
   m_roster.clear();
   m_roster.reserve(m_expectedCabinets);
   m_roster.push_back(localId);
   for (const auto &peer : m_peerRoles)
     m_roster.push_back(peer.first);
-  std::sort(m_roster.begin(), m_roster.end());
-  if (m_roster.size() != m_expectedCabinets || m_roster.front() != 0 ||
-      std::adjacent_find(m_roster.begin(), m_roster.end()) != m_roster.end())
+  unsigned masters = m_localRole == 0;
+  for (const auto &peer : m_peerRoles) masters += peer.second == 0;
+  // Like the SM2 roster, keep incomplete role setup pending. Peers may
+  // Resume in either order; a later hello can complete the native roles.
+  if (masters != 1) return false;
+  const auto role = [&](uint16_t id) {
+    return id == localId ? m_localRole : m_peerRoles.at(id);
+  };
+  // Native Master leads the ring, regardless of frontend host/client ID.
+  std::sort(m_roster.begin(), m_roster.end(), [&](uint16_t a, uint16_t b) {
+    const bool masterA = role(a) == 0, masterB = role(b) == 0;
+    return masterA != masterB ? masterA : a < b;
+  });
+  if (std::adjacent_find(m_roster.begin(), m_roster.end()) != m_roster.end())
   {
     EnterError("Unable to build a unique linked-cabinet roster");
     return false;
-  }
-
-  for (uint16_t participant : m_roster)
-  {
-    const uint16_t role = participant == localId
-      ? m_localRole : m_peerRoles[participant];
-    if (participant == 0 ? role != 0 : role == 0)
-    {
-      EnterError(participant == 0
-        ? "RetroArch host must use Link Mode Master"
-        : "RetroArch clients cannot use Link Mode Master");
-      return false;
-    }
-    if (m_gameType == GameType::Type1 && participant != 0 && role != 1)
-    {
-      EnterError("Every Type 1 RetroArch client must use Link Mode Slave");
-      return false;
-    }
   }
 
   const auto local = std::find(m_roster.begin(), m_roster.end(), localId);
@@ -579,10 +582,8 @@ bool CLibretroNetBoard::TryCompleteHandshake()
 
 void CLibretroNetBoard::EnterReadyState()
 {
-  const uint16_t localId = SessionLocalId();
-  const bool isMaster = m_localRole == 0;
-  if ((localId == 0) != isMaster ||
-      m_roster.size() != m_expectedCabinets ||
+  const uint16_t localId = m_expectedCabinets == 1 ? 0 : SessionLocalId();
+  if (m_roster.size() != m_expectedCabinets ||
       m_machineIndex >= m_roster.size())
   {
     EnterError("The linked-cabinet roster is incomplete");
@@ -665,6 +666,18 @@ void CLibretroNetBoard::EnterReadyState()
 
 void CLibretroNetBoard::ExchangeFrame()
 {
+  if (m_expectedCabinets == 1)
+  {
+    const uint16_t nextFrame = static_cast<uint16_t>(m_counter + 1);
+    WriteCommWord(0x6, FLIPENDIAN16(nextFrame));
+    std::memcpy(m_commRAM + 0x100 + m_segmentSize,
+                m_commRAM + 0x100, m_segmentSize);
+    m_counter = nextFrame;
+    SwapCommBanks();
+    if (nextFrame == 1)
+      InfoLog("Libretro NetBoard local loopback first data-frame exchange completed");
+    return;
+  }
   if (!SessionActive())
   {
     EnterError("Netpacket session ended while the cabinet link was active");
@@ -838,6 +851,12 @@ void CLibretroNetBoard::RunFrame()
               "(RAM[200]=0x%04X, RAM[204]=0x%04X, RAM[206]=0x%04X)",
               SessionLocalId(), RoleName(m_localRole), m_localRole,
               m_segmentSize, ReadNetRAM16(0x206));
+    }
+    if (m_expectedCabinets == 1)
+    {
+      // A closed one-node ring still requires an initiating Master.
+      TryCompleteHandshake();
+      break;
     }
     if (!m_transportSupported)
       break;

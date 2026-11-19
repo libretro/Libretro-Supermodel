@@ -350,7 +350,7 @@ bool CNew3D::RenderScene(int priority, bool renderOverlay, Layer layer)
 
 	bool hasOverlay = false;		// (high priority polys)
 
-	for (auto &n : m_nodes) {
+	for (auto& n : m_nodes) {
 
 		if (n.viewport.priority != priority || n.models.empty()) {
 			continue;
@@ -361,30 +361,36 @@ bool CNew3D::RenderScene(int priority, bool renderOverlay, Layer layer)
 
 		m_r3dShader.SetViewportUniforms(&n.viewport);
 
-		for (auto &m : n.models) {
+		// PRO-1000: layered polygons (decals) go after all non-layered geometry in the viewport, so they are
+		// tested against the surface they sit on
+		for (int layeredPass = 0; layeredPass < 2; layeredPass++) {
 
-			bool matrixLoaded = false;
+			for (auto& m : n.models) {
 
-			if (m.meshes->empty()) {
-				continue;
-			}
+				bool matrixLoaded = false;
 
-			for (auto &mesh : *m.meshes) {
-
-				if (mesh.highPriority) {
-					hasOverlay = true;
+				if (m.meshes->empty()) {
+					continue;
 				}
 
-				if (!mesh.Render(layer, m.alpha)) continue;
-				if (mesh.highPriority != renderOverlay) continue;
+				for (auto& mesh : *m.meshes) {
 
-				if (!matrixLoaded) {
-					m_r3dShader.SetModelStates(&m);
-					matrixLoaded = true;		// do this here to stop loading matrices we don't need. Ie when rendering non transparent etc
+					if (mesh.highPriority) {
+						hasOverlay = true;
+					}
+
+					if (mesh.layered != (layeredPass == 1)) continue;
+					if (!mesh.Render(layer, m.alpha))		continue;
+					if (mesh.highPriority != renderOverlay) continue;
+
+					if (!matrixLoaded) {
+						m_r3dShader.SetModelStates(&m);
+						matrixLoaded = true;		// do this here to stop loading matrices we don't need. Ie when rendering non transparent etc
+					}
+
+					m_r3dShader.SetMeshUniforms(&mesh);
+					glDrawArrays(m_primType, mesh.vboOffset, mesh.vertexCount);
 				}
-				
-				m_r3dShader.SetMeshUniforms(&mesh);
-				glDrawArrays(m_primType, mesh.vboOffset, mesh.vertexCount);
 			}
 		}
 	}
@@ -526,10 +532,6 @@ void CNew3D::RenderFrame(void)
 			m_r3dShader.SetLayer(Layer::colour);
 			bool hasOverlay = RenderScene(pri, renderOverlay, Layer::colour);
 
-			if (!renderOverlay) {
-				ProcessLos(pri);
-			}
-
 			if (HasTransparentMeshes(pri, renderOverlay)) {
 				glDepthFunc(GL_GREATER);
 				m_r3dShader.DiscardAlpha(false);
@@ -544,6 +546,10 @@ void CNew3D::RenderFrame(void)
 				m_r3dShader.SetLayer(Layer::trans2);
 				m_r3dFrameBuffers.SetFBO(Layer::trans2);
 				RenderScene(pri, renderOverlay, Layer::trans2);
+			}
+
+			if (!renderOverlay) {
+				ProcessLos(pri);
 			}
 
 			DisableRenderStates();
@@ -605,6 +611,15 @@ const UINT32* CNew3D::TranslateModelAddress(UINT32 modelAddr)
 	else {
 		return &m_vrom[modelAddr];
 	}
+}
+
+const UINT32* CNew3D::ModelMemoryEnd(const UINT32* data) const
+{
+	if (data >= m_vrom && data < m_vrom + 0x1000000) {
+		return m_vrom + 0x1000000;			// VROM buffer: 64 MB (PRO-1000: the whole 64 MB polygon memory)
+	}
+
+	return m_polyRAM + 0x100000;			// polygon RAM: 1M words
 }
 
 bool CNew3D::DrawModel(UINT32 modelAddr)
@@ -756,7 +771,16 @@ void CNew3D::DescendCullingNode(UINT32 addr)
 	}
 
 	// parse siblings 
-	if ((node[0x00] & 0x07) != 0x06) {						// colour table seems to indicate no siblings
+	// A culling node with a valid colour table (node[0] & 7 == 6) ignores its sibling word unless it is a
+	// point ref (bit 28). Model 3 Step 2.x games leave junk there: self references, back links to earlier
+	// slots and stale links from reused root nodes (Harley, Ski Champ, ECA, Ocean Hunter; following them
+	// loops or draws objects twice). PRO-1000 point light chains (w0 = 10000016) link through it.
+	// Tested: VF3, Scud, Lost World, Le Mans 24, Sega Rally 2, Harley, Ski Champ, Spikeout, ECA, Ocean Hunter
+	// (no colour-table node with bit 28 set), and every PRO-1000 demo (all 82 such nodes are point refs).
+	const bool colourTableNode = (node[0x00] & 0x07) == 0x06;
+	const bool pointRef = (node[0x00] & 0x10000000) != 0;
+
+	if (!colourTableNode || pointRef) {
 		if (!(sibling2Ptr & 0x1000000) && sibling2Ptr) {
 			DescendCullingNode(sibling2Ptr);				// no need to mask bit, would already be zero
 		}
@@ -825,12 +849,16 @@ void CNew3D::DescendCullingNode(UINT32 addr)
 		outsideFrustum = true;
 	}
 
-	float LODscale = m_nodeAttribs.currentDisableCulling ? std::numeric_limits<float>::max() : (fBlendRadius / std::hypot(x, y, z));
+	// LOD table pointer 0x7F (all bits set) = no LOD table. The PRO-1000 API uses it for point-light billboards
+	// (reset_matrix nodes); the table it would index is past the configured tables and holds whatever memory follows.
+	const bool noLodTable = (lodTablePointer == 0x7F);
+
+	float LODscale = (m_nodeAttribs.currentDisableCulling || noLodTable) ? std::numeric_limits<float>::max() : (fBlendRadius / std::hypot(x, y, z));
 	const LOD * const lod = m_LODBlendTable->table[lodTablePointer].lod;
 
 	LODscale = std::clamp(LODscale, 0.0f, std::numeric_limits<float>::max());
 
-	if (m_nodeAttribs.currentDisableCulling || (!outsideFrustum && LODscale >= lod[3].deleteSize)) {
+	if (m_nodeAttribs.currentDisableCulling || (!outsideFrustum && (noLodTable || LODscale >= lod[3].deleteSize))) {
 
 		// Descend down first link
 		if ((node[0x00] & 0x08))	// 4-element LOD table
@@ -856,7 +884,7 @@ void CNew3D::DescendCullingNode(UINT32 addr)
 					nodeAlpha = 0.0f;
 				m_nodeAttribs.currentModelAlpha *= nodeAlpha;	// alpha of each node multiples by the alpha of its parent
 				
-				if ((node[0x03 - m_offset] & 0x20000000)) {
+				if (!(child1Ptr & 0x01000000)) {
 					DescendCullingNode(lodPtr[modelLOD] & 0xFFFFFF);
 
 					if (nodeAlpha < 1.0f && modelLOD != 3)
@@ -878,7 +906,7 @@ void CNew3D::DescendCullingNode(UINT32 addr)
 		}
 		else {
 
-			float nodeAlpha = lod[3].blendFactor * (LODscale - lod[3].deleteSize);
+			float nodeAlpha = noLodTable ? 1.0f : lod[3].blendFactor * (LODscale - lod[3].deleteSize);
 			nodeAlpha = std::clamp(nodeAlpha, 0.0f, 1.0f);
 			m_nodeAttribs.currentModelAlpha *= nodeAlpha;	// alpha of each node multiples by the alpha of its parent
 
@@ -924,23 +952,19 @@ void CNew3D::DescendPointerList(UINT32 addr)
 		return;
 	}
 
-	int index = 0;
+	// A skipped null slot is not a terminator; malformed lists must still stop at RAM end.
+	addr &= 0x00FFFFFF;
+	const UINT32 end = addr >= 0x800000 ? 0x840000 : 0x100000;
+	for (UINT32 index = 0; index < end - addr; index++) {
 
-	while (true) {
-
-		if (list[index] & 0x01000000) {
-			break;	// empty list
+		if (!(list[index] & 0x01000000)) {
+			DescendCullingNode(list[index] & 0x00FFFFFF);
 		}
-
-		UINT32 nodeAddr = list[index] & 0x00FFFFFF;	// clear upper 8 bits to ensure this is processed as a culling node
-
-		DescendCullingNode(nodeAddr);
 
 		if (list[index] & 0x02000000) {
 			break;	// list end
 		}
 
-		index++;
 	}
 }
 
@@ -1032,6 +1056,7 @@ void CNew3D::InitMatrixStack(UINT32 matrixBaseAddr, Mat4& mat)
 	// Set matrix base address and apply matrix #0 (coordinate system matrix)
 	m_matrixBasePtr = (float *)TranslateCullingAddress(matrixBaseAddr);
 	MultMatrix(0, mat);
+	SaveCoordSysRot();
 }
 
 // what this does is to set the rotation back to zero, whilst keeping the position and scale of the current matrix
@@ -1061,6 +1086,14 @@ void CNew3D::ResetMatrix(Mat4& mat) const
 	m[2] /= s1;		m[6] /= s2;		m[10] /= s3;
 
 	mat.MultMatrix(m);
+	mat.MultMatrix(m_coordSysRot);
+}
+
+void CNew3D::SaveCoordSysRot()
+{
+	std::memcpy(m_coordSysRot, m_modelMat.currentMatrix, sizeof(m_coordSysRot));
+	m_coordSysRot[12] = m_coordSysRot[13] = m_coordSysRot[14] = 0.0f;
+	m_coordSysRot[15] = 1.0f;
 }
 
 // Draws viewports of the given priority
@@ -1198,8 +1231,8 @@ void CNew3D::RenderViewport(UINT32 addr)
 		vp->fogAttenuation	= (float)((vpnode[0x24] >> 16) & 0xFF) * (float)(1.0 / 255.0);	// fog attenuation
 		vp->fogAmbient		= (float)((vpnode[0x25] >> 16) & 0xFF) * (float)(1.0 / 255.0);	// fog ambient
 
-		// Avoid Infinite and NaN values for Star Wars Trilogy
-		if (std::isinf(vp->fogDensity) || std::isnan(vp->fogDensity)) {
+		// Equal fog range endpoints use 99999 to disable fog.
+		if (!(vp->fogDensity < 99999.f)) {
 			vp->fogDensity = 0;
 		}
 
@@ -1212,12 +1245,9 @@ void CNew3D::RenderViewport(UINT32 addr)
 		// Set up coordinate system and base matrix
 		InitMatrixStack(matrixBase, m_modelMat);
 
-		// Descend down the node link. Need to start with a culling node because that defines our culling radius.
+		// Follow the tagged viewport child, including direct model/list links.
 		if (!vpDisabled) {
-			auto childptr = vpnode[0x02];
-			if (((childptr >> 24) & 0x5) == 0) {
-				DescendNodePtr(vpnode[0x02]);
-			}
+			DescendNodePtr(vpnode[0x02]);
 		}
 	}
 	
@@ -1243,17 +1273,17 @@ void CNew3D::CopyVertexData(const R3DPoly& r3dPoly, std::vector<FVertex>& vertex
 			vertexArray.emplace_back(r3dPoly, 2);
 			vertexArray.emplace_back(r3dPoly, 3);
 
-			// check for identical points (ie forced triangle) and replace with average point
-			// if we don't do this our quad code falls apart
+			// check for identical points (i.e. forced triangle), as the quad code can be inprecise for these:
+			// the quad shader detects them and draws just the triangle
 			FVertex* v = (&vertexArray.back()) - 3;
 
 			for (int i = 0; i < 4; i++) {
 
 				int next1 = (i + 1) % 4;
-				int next2 = (i + 2) % 4;
 
 				if (FVertex::Equal(v[i], v[next1])) {
-					FVertex::Average(v[next1], v[next2], v[next1]);
+					v[next1] = v[i];
+					std::rotate(v, v + (next1 + 1) % 4, v + 4);	// copy to slot 3, after its original in slot 2, as the quad shader looks for it there
 					break;
 				}
 			}
@@ -1262,7 +1292,7 @@ void CNew3D::CopyVertexData(const R3DPoly& r3dPoly, std::vector<FVertex>& vertex
 			vertexArray.emplace_back(r3dPoly, 0);	
 			vertexArray.emplace_back(r3dPoly, 1);
 			vertexArray.emplace_back(r3dPoly, 2);
-			vertexArray.emplace_back(r3dPoly, 0, 2);	// last point is an average of 0 and 2
+			vertexArray.emplace_back(r3dPoly, 2);		// last point is a copy of 2 (the quad shader detects this and draws just the triangle)
 		}
 	}
 	else {
@@ -1387,6 +1417,11 @@ void CNew3D::CacheModel(Model *m, const UINT32 *data)
 	std::unordered_map<UINT64, SortingMesh> sMap;
 
 	ph = data; 
+	ph.SetEnd(ModelMemoryEnd(data));
+	if (!ph.InBounds()) {
+		return;
+	}
+
 	int numTriangles = ph.NumTrianglesTotal();
 
 	// Cache all polygons
@@ -1602,7 +1637,10 @@ bool CNew3D::IsDynamicModel(UINT32 *data) const
 		return false;
 	}
 
-	PolyHeader p(data);
+	PolyHeader p(data, ModelMemoryEnd(data));
+	if (!p.InBounds()) {
+		return false;
+	}
 
 	do {
 

@@ -78,6 +78,8 @@ public:
     void SetServiceOnSticks(bool enabled);
     void ApplyDrivingLayout();
     void SetCrosshairs(unsigned mask);
+    void SetNetworkBoard(bool connected);
+    void SetNetworkCabinets(unsigned cabinets);
     void SetSoundVolume(int volume);
     void SetMusicVolume(int volume);
     int Emulate(const char* romPath);

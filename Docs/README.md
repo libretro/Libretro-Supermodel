@@ -49,7 +49,8 @@ RetroArch system directory, `[RetroArch System Directory]/supermodel/`:
 
 Official copies of `Games.xml` and `Supermodel.ini` are built into the core and
 extracted to that folder on first use when the files are missing. Existing
-files are never overwritten, so they can be edited. If the folder is not
+files are never overwritten, so they can be edited; after a core update, delete
+or replace `Games.xml` by hand to pick up its newer definitions. If the folder is not
 writable, the built-in copies are used directly. Files in the older
 `supermodel/Config/` folder are still found. The core options listed in
 RetroArch take precedence over the matching `Supermodel.ini` settings.
@@ -85,7 +86,8 @@ vocal; the gun games get `Provide Calibration Data`, which rewrites the
 whole-screen gun calibration. The options appear only for the loaded game.
 While the switch is on, the displayed values are written into NVRAM at every
 content start, so they override changes made in the Service Menu; turn it off
-to let the Service Menu rule again. Supported: Bass Fishing, Daytona USA 2,
+to let the Service Menu rule again. Changing one of these options while a game
+runs writes it at once and resets the machine, as RetroArch's Restart would. Supported: Bass Fishing, Daytona USA 2,
 Dirt Devils, ECA, Fighting Vipers 2, Harley-Davidson, LA Machineguns, Le Mans
 24, The Lost World, Magical Truck Adventure, The Ocean Hunter, Scud Race, Ski
 Champ, Spikeout, Sega Rally 2, Star Wars Trilogy, Virtua Fighter 3, Virtual
@@ -101,6 +103,17 @@ also stretches the lower 2D background layer to fill the sides; HUD and upper
 overlays keep their aspect ratio. Plain 4:3-to-16:9 stretching is left to
 RetroArch's aspect-ratio settings. The change applies immediately; the wider
 frame has about 38% more pixels, so judge performance separately.
+
+`Aspect Ratio` is Auto by default: 16:9 while the Widescreen Hack is on, 4:3
+otherwise. 4:3 keeps the original image whatever the hack says; 16:9 with the
+hack off stretches the 4:3 image to fill a wide screen. It applies immediately,
+provided RetroArch's aspect ratio setting is Core Provided.
+
+`Quad Rendering` (desktop OpenGL only) renders the Model 3's quadrilaterals as
+quads through a geometry shader instead of splitting them into two triangles,
+which removes the texture-warping seams some games show on large polygons. It is
+off by default, takes effect after restarting the content, is ignored by
+Legacy3D and can be noticeably slower, in particular on macOS.
 
 `2D Layer Upscaling Filter` (Nearest, Biquintic, Bilinear or Bicubic) is
 Supermodel's own filter for the 2D tile layers at internal resolutions above
@@ -160,8 +173,19 @@ The Lost World, Ocean Hunter and L.A. Machineguns use one cursor per player.
 
 The left shot is the lightgun Trigger, the left mouse button or RetroPad B;
 the right shot is the lightgun Reload or Aux A, the right mouse button or
-RetroPad A. The lightgun's Start/Select and mouse buttons 4/5 also act as
-Start and Coin.
+RetroPad A. R and L double B and A when the shoulders are not Test/Service.
+The lightgun's Start/Select and mouse buttons 4/5 also act as Start and Coin.
+
+The Lost World has one trigger and reloads with a shot off-screen, which a
+real lightgun does by itself (trigger while pointing away). With
+`The Lost World: Off-Screen Reload Shortcut` (on by default) the lightgun
+Reload input, the right mouse button and RetroPad A (or L) also fire an
+off-screen shot without aiming away; `The Lost World: Mouse Edge Reload`
+treats a mouse shot within 5% of the screen edge the same way.
+
+`Show Crosshairs` is Automatic by default: player 1's crosshair in The Lost
+World, whose gun needs an aim marker, and none in L.A. Machineguns and The
+Ocean Hunter, which draw their own. The other values force a fixed choice.
 
 ### Star Wars Trilogy Arcade
 
@@ -184,12 +208,27 @@ frontend input driver that reports multiple pointing devices (for example
 
 ## Linked-cabinet networking
 
-`Network Board` controls whether supported games see the emulated network
-board. Experimental linked play through RetroArch Netplay is available for
-Daytona USA 2, Dirt Devils, Harley-Davidson, Le Mans 24, Scud Race, Sega Rally 2,
-Ski Champ, Spikeout, Spikeout Final Edition and Virtual On 2. During Netplay the
+Experimental linked play through RetroArch Netplay is available for Daytona
+USA 2, Dirt Devils, Harley-Davidson, Le Mans 24, Scud Race, Sega Rally 2, Ski
+Champ, Spikeout, Spikeout Final Edition and Virtual On 2. During Netplay the
 core uses only the official Libretro Netpacket interface; it does not open its
 own sockets or perform peer discovery.
+
+Two options appear for these games. `Linked Cabinets` is the total number of
+cabinets in the session, including a relay or satellite where the game has
+one; 1 Cabinet / Disabled (the default) disconnects the emulated network board.
+`Auto Network Role Settings` writes this cabinet's link role and number into
+the game's NVRAM, so no Service Menu visit is needed: Master for the RetroArch
+host, Slave with its own number for each client, or a Live, Relay or Satellite
+role where the game has one; Disabled leaves the NVRAM alone. Changing either
+option resets the machine. Both show Not Supported for other games.
+
+| Game | Cabinets |
+| --- | --- |
+| Daytona USA 2 | 2 to 17 |
+| Scud Race | 2 to 8 |
+| Dirt Devils, Le Mans 24, Sega Rally 2, Virtual On 2 | 2 to 5 |
+| Harley-Davidson, Ski Champ, Spikeout | 2 to 4 |
 
 RetroArch gives participant ID 0 to the host, which the core uses as the first
 Model 3 cabinet and network initiator. Therefore:
@@ -201,13 +240,13 @@ Model 3 cabinet and network initiator. Therefore:
   `Slave / Satellite` role;
 - give every cabinet its own car or machine number.
 
-The link role and number can be set in the game's Service Menu or, with
+The link role and number can also be set in the game's Service Menu or, with
 `NVRAM Settings` enabled, through the game's `Link Mode` and `Car Number`
 options, which are applied at every start.
 
 Every peer must use the same ROM set, core version and `Linked Cabinets` value.
 Two- and three-cabinet sessions have been tested; larger sessions are
-experimental. Changing the network options requires restarting the content.
+experimental.
 
 ## Performance
 

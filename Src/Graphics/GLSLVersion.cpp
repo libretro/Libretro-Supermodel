@@ -75,8 +75,8 @@ std::string GLSLVersion::GetR3D(bool useQuads)
         // GLES always uses version 300 es with advanced precision
         return Get3DAdvanced();
     } else {
-        // Desktop: use 450 core if quads, otherwise 410 core
-        return useQuads ? "#version 450 core\n" : "#version 410 core\n";
+        // Desktop: both native quads and triangles use GLSL 4.10
+        return "#version 410 core\n";
     }
 }
 
@@ -94,7 +94,7 @@ std::string GLSLVersion::GetR3DFragment(bool useQuads)
             // NOTE: FLOAT is intentionally omitted → default mediump float
         ) + "precision mediump float;\n";
     } else {
-        return useQuads ? "#version 450 core\n" : "#version 410 core\n";
+        return "#version 410 core\n";
     }
 }
 

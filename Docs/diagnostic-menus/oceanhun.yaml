@@ -1,0 +1,120 @@
+---
+schema_version: 1
+game:
+  set: oceanhun
+  parent: oceanhun
+  title: The Ocean Hunter
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/oceanhun/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 1
+      native_default: JAPAN
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      read_only_display:
+        menu: game_assignments
+        position: 1
+      observed_values_raw: JAPAN, USA, EXPORT, AUSTRALIA, KOREA
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  game_assignments:
+    options:
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 2
+      catalogue_position: 2
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, HARDEST, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 3
+      catalogue_position: 3
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/oceanhun/screenshots/oceanhun-20261018-cycle-advertise-sound-000.png"
+        sha256: b8c290021ab04bd56059b2f67cff8ee2e24fbeccc983425f7c1cbb4d0a48f809
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/oceanhun/screenshots/oceanhun-20261018-cycle-advertise-sound-001.png"
+        sha256: f769f2abcb192f31cc087d6fe36ddb4da02487fe94e2bb29cff249120c391b43
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/oceanhun/screenshots/oceanhun-20261018-cycle-advertise-sound-002.png"
+        sha256: b8c290021ab04bd56059b2f67cff8ee2e24fbeccc983425f7c1cbb4d0a48f809
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: cabinet_type
+      label: Cabinet Type
+      native_label_raw: CABINET TYPE
+      position: 4
+      catalogue_position: 4
+      native_default: DELUXE
+      implemented: true
+      observed_values_raw: DELUXE, STANDARD
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: controller_reaction
+      label: Controller Reaction
+      native_label_raw: CONTROLLER REACTION
+      position: 5
+      catalogue_position: 5
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/oceanhun/screenshots/oceanhun-20261018-cycle-controller-reaction-000.png"
+        sha256: 2cda24bd74367522d79c2923d4b93ed7c0fe0073a7081b73f0a878cddd0a587c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/oceanhun/screenshots/oceanhun-20261018-cycle-controller-reaction-001.png"
+        sha256: 38c1a943f6a4d87fce1706787fe36bf987f9f862dd834140bf08325149df9ee8
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/oceanhun/screenshots/oceanhun-20261018-cycle-controller-reaction-002.png"
+        sha256: 2cda24bd74367522d79c2923d4b93ed7c0fe0073a7081b73f0a878cddd0a587c
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested

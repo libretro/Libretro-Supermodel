@@ -1,0 +1,344 @@
+---
+schema_version: 1
+game:
+  set: skichamp
+  parent: skichamp
+  title: Ski Champ
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 1
+      catalogue_position: 1
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-advertise-sound-000.png"
+        sha256: e6b8d1cdc24fc50124cf789d41321d87678952c901bb4e5c4b50e2eef4cfd14a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-advertise-sound-001.png"
+        sha256: a3226885fb35cb8b2cad89a2737602e1b74944d072a9e2a0c5a638db5fb382ed
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-advertise-sound-002.png"
+        sha256: e6b8d1cdc24fc50124cf789d41321d87678952c901bb4e5c4b50e2eef4cfd14a
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: drive_board_power
+      label: Drive Board Power
+      native_label_raw: DRIVE BOARD POWER
+      position: 2
+      catalogue_position: 2
+      native_default: '2'
+      implemented: false
+      values:
+      - '2'
+      - '3'
+      - '4'
+      - '1'
+      photographed_cycle:
+      - '2'
+      - '3'
+      - '4'
+      - '1'
+      - '2'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-drive-board-power-000.png"
+        sha256: 65389f19e5d1b09e4e1cba9a55d38ab177eff26c5808c952b5191986f37ecbdd
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-drive-board-power-001.png"
+        sha256: adac219f2441be89f9cedf03771eb1aa9af04c4f4244fa2c787ceaad3d9b5279
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-drive-board-power-002.png"
+        sha256: d92d2a76296881f8206ae921f353853c57f4704896d627d1511a70dc8ab7306b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-drive-board-power-003.png"
+        sha256: d9ee7358e27ca87ca0b6e0c4bbc65787a49ff1b3f696ba1379e84235e2a7ad31
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-drive-board-power-004.png"
+        sha256: 65389f19e5d1b09e4e1cba9a55d38ab177eff26c5808c952b5191986f37ecbdd
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: initial_time
+      label: Initial Time
+      native_label_raw: INITIAL TIME
+      position: 3
+      catalogue_position: 3
+      native_default: 30[SEC]
+      implemented: false
+      values:
+      - 30[SEC]
+      - 35[SEC]
+      - 40[SEC]
+      - 45[SEC]
+      - 50[SEC]
+      - 55[SEC]
+      - 60[SEC]
+      photographed_cycle:
+      - 30[SEC]
+      - 35[SEC]
+      - 40[SEC]
+      - 45[SEC]
+      - 50[SEC]
+      - 55[SEC]
+      - 60[SEC]
+      - 30[SEC]
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-initial-time-000.png"
+        sha256: 4306c9ed147ea3313b32dc3682a8ffb7264babdb2009ab04f6b67e0c96accbb0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-initial-time-001.png"
+        sha256: d274a3c2ea8dc63d3679ad74ebe3910b33efbc0671c9d57f85b9817f49251d3c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-initial-time-002.png"
+        sha256: db59095b124ad98bce044b30a003e5832017fd351c9ef881011750f757b1c8b6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-initial-time-003.png"
+        sha256: 829e31d3aad54a7a109db39dd6c4e83596bf2260c6ad8c5d0a8c4a2e24363052
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-initial-time-004.png"
+        sha256: 36353cc1686d9f91d789633f973ae0a3797ca1b05d56ec27ffdf55f5c9e2c2a4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-initial-time-005.png"
+        sha256: de441aa542fff2169675732dc8fe20a8dde4f5cd56a1b3c13c39bb309e111608
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-initial-time-006.png"
+        sha256: ee421cf3917c6b4993e44b7bd803129afc68e7f9eef6086be44bfb25509c8ac0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-initial-time-007.png"
+        sha256: 4306c9ed147ea3313b32dc3682a8ffb7264babdb2009ab04f6b67e0c96accbb0
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: extend_time
+      label: Extend Time
+      native_label_raw: EXTEND TIME
+      position: 4
+      catalogue_position: 4
+      native_default: 20[SEC]
+      implemented: false
+      values:
+      - 20[SEC]
+      - 25[SEC]
+      - 30[SEC]
+      - 35[SEC]
+      - 10[SEC]
+      - 15[SEC]
+      photographed_cycle:
+      - 20[SEC]
+      - 25[SEC]
+      - 30[SEC]
+      - 35[SEC]
+      - 10[SEC]
+      - 15[SEC]
+      - 20[SEC]
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-extend-time-000.png"
+        sha256: 30fa27b266f0556243d5de1a32ada86d307a545dae462307189c5e21561bd7de
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-extend-time-001.png"
+        sha256: c9c5e0d128586c73d7b00ccf53f9322f81ada740b1cd832408cb43f3413c6d4e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-extend-time-002.png"
+        sha256: f675c290e04931628a5463684f9d5a62696ef18e307e7709072e4c5e21991a7e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-extend-time-003.png"
+        sha256: 78625ef432c59db8b0fe51615e2b89d8776ded2d7dd74de8e6612fa3b2c5b7c5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-extend-time-004.png"
+        sha256: d9a98960d44608e27ad6ea76848d111db0b471f6a9cf2a4b04897e4c7fce3e28
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-extend-time-005.png"
+        sha256: 93f7935dd0acf47456c2b8b6f12f1b1515e7dae080de7918db273f1802707793
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-extend-time-006.png"
+        sha256: 30fa27b266f0556243d5de1a32ada86d307a545dae462307189c5e21561bd7de
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: area1_mountaintop
+      label: Area1 (Mountaintop)
+      native_label_raw: AREA1 (MOUNTAINTOP)
+      position: 5
+      catalogue_position: 5
+      native_default: 25[SEC]
+      implemented: false
+      values:
+      - 25[SEC]
+      - 30[SEC]
+      - 35[SEC]
+      - 15[SEC]
+      - 20[SEC]
+      photographed_cycle:
+      - 25[SEC]
+      - 30[SEC]
+      - 35[SEC]
+      - 15[SEC]
+      - 20[SEC]
+      - 25[SEC]
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area1-mountaintop-000.png"
+        sha256: 800c36eb6c2f0d3f8013f8862b888715b7a1111e2b91884e22670f715f77bec3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area1-mountaintop-001.png"
+        sha256: d3bb92c845aadc4d23d9b8f402024571a69a2a2bf70f5978455ae43516b93067
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area1-mountaintop-002.png"
+        sha256: e792342dd57cb944b231006e0cdd6086de96a967b93e00bf65e3f61667a783b0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area1-mountaintop-003.png"
+        sha256: 599e65aabb47bd2714e1cea40da5cfec1c81a65f353cc4a1f350b7c1dc3947a7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area1-mountaintop-004.png"
+        sha256: fa293819c761d440c4b7c45b5c545d24ea94512a14e9a2653c371b1321a72178
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area1-mountaintop-005.png"
+        sha256: 800c36eb6c2f0d3f8013f8862b888715b7a1111e2b91884e22670f715f77bec3
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: area2_large_forest_snowy_wasteland
+      label: Area2 (Large Forest / Snowy Wasteland)
+      native_label_raw: AREA2 (LARGE FOREST / SNOWY WASTELAND)
+      position: 6
+      catalogue_position: 6
+      native_default: 25[SEC]
+      implemented: false
+      values:
+      - 25[SEC]
+      - 30[SEC]
+      - 35[SEC]
+      - 15[SEC]
+      - 20[SEC]
+      photographed_cycle:
+      - 25[SEC]
+      - 30[SEC]
+      - 35[SEC]
+      - 15[SEC]
+      - 20[SEC]
+      - 25[SEC]
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area2-large-forest-snowy-wasteland-000.png"
+        sha256: 6b8a229615758804cc68e07c1ea3eb1034f418aad32579e7715a46808701d4e3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area2-large-forest-snowy-wasteland-001.png"
+        sha256: e42e31a3dd17d475045b8cabb5fa33f8f44ba191445f1d48680a361354482aa2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area2-large-forest-snowy-wasteland-002.png"
+        sha256: 2fc41808c757b7393101b59bb4641486ffb05e7988e896d452438e7048a25ee9
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area2-large-forest-snowy-wasteland-003.png"
+        sha256: bfda36e80b6ad88f03870be5d683e31d19b4727c1b6229828c893287392f174f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area2-large-forest-snowy-wasteland-004.png"
+        sha256: 4eea649d59b1c131e9858f2e4b87ae44313bcdeb6a1b3f6eac8d542b7419ab71
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area2-large-forest-snowy-wasteland-005.png"
+        sha256: 6b8a229615758804cc68e07c1ea3eb1034f418aad32579e7715a46808701d4e3
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: area3_gigantic_glacier_snowy_canyon
+      label: Area3 (Gigantic Glacier / Snowy Canyon)
+      native_label_raw: AREA3 (GIGANTIC GLACIER / SNOWY CANYON)
+      position: 7
+      catalogue_position: 7
+      native_default: 30[SEC]
+      implemented: false
+      values:
+      - 30[SEC]
+      - 35[SEC]
+      - 15[SEC]
+      - 20[SEC]
+      - 25[SEC]
+      photographed_cycle:
+      - 30[SEC]
+      - 35[SEC]
+      - 15[SEC]
+      - 20[SEC]
+      - 25[SEC]
+      - 30[SEC]
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area3-gigantic-glacier-snowy-canyon-000.png"
+        sha256: f81c611fd469c0972ee3dac3b7161ba54bb9725af6bc7e2c4390a203967c4a25
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area3-gigantic-glacier-snowy-canyon-001.png"
+        sha256: b2d32e59f59b5181493e1bd65318d5b0c6a159c7d517b99542ebf4bc3debee9a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area3-gigantic-glacier-snowy-canyon-002.png"
+        sha256: e4e01a43b46878a8400d5e177c1cece322a72d2508728476631c08b51a966a95
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area3-gigantic-glacier-snowy-canyon-003.png"
+        sha256: 562c6af247e33a04bf6d4f7d0306f97fa3397da4c838ab17e8ece71e82652d68
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area3-gigantic-glacier-snowy-canyon-004.png"
+        sha256: c679433bdf3bc813e860b4cfc778bee8dc6fdbc282d4cd55baf6aa9f97208e62
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/skichamp/screenshots/skichamp-20261018-cycle-area3-gigantic-glacier-snowy-canyon-005.png"
+        sha256: f81c611fd469c0972ee3dac3b7161ba54bb9725af6bc7e2c4390a203967c4a25
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 8
+      native_default: JAPAN
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      observed_values_raw: JAPAN, USA, EXPORT, KOREA, AUSTRALIA
+      historical_photo_evidence: base + ciclo completo in Country Select Mode
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  network_assignments:
+    options:
+    - key: communication
+      label: Communication
+      native_label_raw: COMMUNICATION
+      position: 1
+      catalogue_position: 9
+      native_default: STAND-ALONE
+      implemented: true
+      observed_values_raw: STAND-ALONE, NETWORK
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: privilege_mode
+      label: Privilege Mode
+      native_label_raw: PRIVILEGE MODE
+      position: 2
+      catalogue_position: 10
+      native_default: non visibile con STAND-ALONE
+      implemented: true
+      dependency: Communication Network; Absent With Stand-Alone
+      observed_values_raw: MASTER, SLAVE
+      historical_photo_evidence: compare con COMMUNICATION NETWORK; ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: cabinet_id_number
+      label: Cabinet ID Number
+      native_label_raw: CABINET ID NUMBER
+      position: 3
+      catalogue_position: 11
+      native_default: non visibile con STAND-ALONE
+      implemented: true
+      dependency: Communication Network; Absent With Stand-Alone
+      observed_values_raw: 1, 2, 3, 4
+      historical_photo_evidence: compare con COMMUNICATION NETWORK; ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

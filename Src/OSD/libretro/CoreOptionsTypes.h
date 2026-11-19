@@ -13,15 +13,29 @@ enum class DrivingLayout {
 // Renderer capabilities behind the 3D Renderer, CRT Colour and Supersampling options.
 // HAVE_LEGACY3D comes from the Makefile (Legacy3D sources in the build). The SuperAA
 // pass (CRT colour, supersampling) is only validated on desktop OpenGL.
+// New3D's native quad path is a geometry shader written for desktop OpenGL 4.1.
 #if !defined(ANDROID) && !defined(CORE_GLES) && !defined(HAVE_OPENGLES)
 #define HAVE_CRT_COLOURS
 #define HAVE_SUPERSAMPLING
+#define HAVE_QUAD_RENDERING
 #endif
 
 enum class Renderer3D {
    New3D,
    Legacy3D
 };
+
+// Displayed aspect ratio. Auto follows the Widescreen Hack: 16:9 when it is on, 4:3
+// otherwise. 4:3 also disables the widescreen expansion; 16:9 with the hack off
+// stretches the 4:3 image.
+enum class AspectRatioMode {
+   Auto,
+   FourThree,
+   SixteenNine
+};
+
+// Crosshairs value meaning "decide per game": The Lost World gets player 1's.
+constexpr unsigned CROSSHAIRS_AUTOMATIC = 4u;
 
 // Source of the per-player virtual gun cursors (Supermodel MOUSE5/MOUSE6).
 enum class GunInput {
@@ -58,12 +72,13 @@ struct CoreOptions {
    bool initial_nvram_setup;
    bool nvram_settings_enabled;   // per-game NVRAM Settings options are applied at start
    float resolution_multiplier;
+   AspectRatioMode aspect_ratio;
    bool widescreen;
    bool wide_background;     // stretch the lower 2D layer too (needs widescreen)
    int upscale_mode;         // Supermodel UpscaleMode: 0=Nearest 1=Biquintic 2=Bilinear 3=Bicubic
    bool no_white_flash;      // Supermodel NoWhiteFlash: no white screen while 3D is disabled
    AVTimingMode av_timing_mode;
-   unsigned crosshairs;      // native Supermodel mask: 0=off, 1=P1, 2=P2, 3=both
+   unsigned crosshairs;      // Supermodel mask 0=off, 1=P1, 2=P2, 3=both, or CROSSHAIRS_AUTOMATIC
    bool force_feedback;
    bool steering_progressive;             // driving: quadratic fine-center steering curve
    int steering_output_range;             // driving: percent, 50..150
@@ -81,14 +96,17 @@ struct CoreOptions {
    bool timing_overlay;      // draw the ImGui frame-timing overlay (costs a draw pass every frame)
    DrivingLayout driving_layout;
    GunInput gun_input;
+   bool offscreen_trigger_reload;     // The Lost World: Reload/right button/A force an off-screen shot
+   bool mouse_edge_offscreen_reload;  // The Lost World: a mouse shot at the screen edge reloads
    StarWarsInput star_wars_input;
    bool star_wars_upright_x_inversion;
    Renderer3D renderer_3d;
    bool legacy_multi_texture; // Supermodel MultiTexture (Legacy3D only)
+   bool quad_rendering;      // Supermodel QuadRendering: New3D's geometry-shader quad path
    int crt_colors;           // Supermodel CRTcolors: 0 = none, 1-5 = monitor profiles
    int supersampling;        // Supermodel Supersampling: 1 = off, 2-8 = N x N samples
    bool network_board;       // Supermodel Network: connect the Model 3 network board
-   unsigned network_cabinets; // Supermodel NetworkCabinets: 2-16 linked cabinets
+   unsigned network_cabinets; // Supermodel NetworkCabinets: 1-17 linked cabinets (1 = none)
 };
 
 extern CoreOptions g_options;

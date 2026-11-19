@@ -1,0 +1,196 @@
+---
+schema_version: 1
+game:
+  set: vs298
+  parent: vs298
+  title: Virtua Striker 2 '98
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: 'blocked: epr-20917.17 CRC C3BBB270; expected 969E4BDA'
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vs298/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 1
+      native_default: JAPAN
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      read_only_display:
+        menu: game_assignments
+        position: 1
+      observed_values_raw: JAPAN, USA, AUSTRALIA, EXPORT
+      historical_photo_evidence: base + ciclo completo nella schermata nascosta Change
+        Country
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  game_assignments:
+    options:
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 2
+      catalogue_position: 2
+      native_default: 'ON'
+      implemented: false
+      observed_values_raw: 'ON'
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 3
+      catalogue_position: 3
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, HARDEST, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: virtual_time
+      label: Virtual Time
+      native_label_raw: VIRTUAL TIME
+      position: 4
+      catalogue_position: 4
+      native_default: REAL
+      implemented: false
+      observed_values_raw: REAL
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: billboard
+      label: Billboard
+      native_label_raw: BILLBOARD
+      position: 5
+      catalogue_position: 5
+      native_default: 'ON'
+      implemented: false
+      observed_values_raw: 'ON'
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: one_match_mode
+      label: One Match Mode
+      native_label_raw: ONE MATCH MODE
+      position: 6
+      catalogue_position: 6
+      native_default: 'OFF'
+      implemented: false
+      observed_values_raw: 'OFF'
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: 1p_time_set
+      label: 1P Time Set
+      native_label_raw: 1P TIME SET
+      position: 7
+      catalogue_position: 7
+      native_default: 2'00\"
+      implemented: false
+      observed_values_raw: 2'00\"
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: 1p_v_goal_system
+      label: 1P V Goal System
+      native_label_raw: 1P V GOAL SYSTEM
+      position: 8
+      catalogue_position: 8
+      native_default: 'OFF'
+      implemented: false
+      observed_values_raw: 'OFF'
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: 1p_pk_system
+      label: 1P Pk System
+      native_label_raw: 1P PK SYSTEM
+      position: 9
+      catalogue_position: 9
+      native_default: 'OFF'
+      implemented: false
+      observed_values_raw: 'OFF'
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: vs_time_set
+      label: VS Time Set
+      native_label_raw: VS TIME SET
+      position: 10
+      catalogue_position: 10
+      native_default: 2'00\"
+      implemented: false
+      observed_values_raw: 2'00\"
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: vs_v_goal_system
+      label: VS V Goal System
+      native_label_raw: VS V GOAL SYSTEM
+      position: 11
+      catalogue_position: 11
+      native_default: 'OFF'
+      implemented: false
+      observed_values_raw: 'OFF'
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: vs_pk_system
+      label: VS Pk System
+      native_label_raw: VS PK SYSTEM
+      position: 12
+      catalogue_position: 12
+      native_default: 'OFF'
+      implemented: false
+      observed_values_raw: 'OFF'
+      historical_photo_evidence: sola schermata base; ciclo da acquisire
+      verification: 'Value Cycle Pending: ROM CRC Mismatch'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested

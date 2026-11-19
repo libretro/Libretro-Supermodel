@@ -1,0 +1,222 @@
+---
+schema_version: 1
+game:
+  set: srally2
+  parent: srally2
+  title: Sega Rally 2
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 1
+      catalogue_position: 1
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-advertise-sound-000.png"
+        sha256: 4a2dc96dc53d3bffce088a266dd4606c42b0e9d1b0ee122327d776d40d43b3ec
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-advertise-sound-001.png"
+        sha256: 22d8ae9aebf608bdb36b5be9855bc5306c0a2c8925045de636a584d64ebc430b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-advertise-sound-002.png"
+        sha256: 4a2dc96dc53d3bffce088a266dd4606c42b0e9d1b0ee122327d776d40d43b3ec
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 2
+      catalogue_position: 2
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, VERY HARD, VERY EASY, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: game_mode
+      label: Game Mode
+      native_label_raw: GAME MODE
+      position: 3
+      catalogue_position: 3
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - SPECIAL
+      photographed_cycle:
+      - NORMAL
+      - SPECIAL
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-game-mode-000.png"
+        sha256: 400082187fcce3081cf0c6765f78fbeb2b05463df275725fe502a7d727d0e1f8
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-game-mode-001.png"
+        sha256: b7bbce397702d2290b4a499d88c5fbdd7d53badc35c30de06da02c4fb5c3c1be
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-game-mode-002.png"
+        sha256: 400082187fcce3081cf0c6765f78fbeb2b05463df275725fe502a7d727d0e1f8
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: default_view
+      label: Default View
+      native_label_raw: DEFAULT VIEW
+      position: 4
+      catalogue_position: 4
+      native_default: DRIVER
+      implemented: true
+      observed_values_raw: DRIVER, BEHIND
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: speed
+      label: Speed
+      native_label_raw: SPEED
+      position: 5
+      catalogue_position: 5
+      native_default: KM/H
+      implemented: false
+      values:
+      - KM/H
+      - MPH
+      photographed_cycle:
+      - KM/H
+      - MPH
+      - KM/H
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-speed-000.png"
+        sha256: 443325b3412478811cda21a2a2768f79342471292ad6c0b25dbbe9b962ff2745
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-speed-001.png"
+        sha256: 11e095dd74433496b073ff5a22144bafddec6f76255e6b350973c797dfd22cb9
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-speed-002.png"
+        sha256: 443325b3412478811cda21a2a2768f79342471292ad6c0b25dbbe9b962ff2745
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: cockpit_reaction
+      label: Cockpit Reaction
+      native_label_raw: COCKPIT REACTION
+      position: 6
+      catalogue_position: 6
+      native_default: ENABLE
+      implemented: false
+      values:
+      - ENABLE
+      - DISABLE
+      photographed_cycle:
+      - ENABLE
+      - DISABLE
+      - ENABLE
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-cockpit-reaction-000.png"
+        sha256: 15c6c92225c71e27f33e3630084a541e04b00eae747935bebd23aac074615540
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-cockpit-reaction-001.png"
+        sha256: 4e9778e48edb121633dab18d324d7bd2c4ad68d143faa57bd07762c55df12c4c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-cockpit-reaction-002.png"
+        sha256: 15c6c92225c71e27f33e3630084a541e04b00eae747935bebd23aac074615540
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: display_url
+      label: Display URL
+      native_label_raw: DISPLAY URL
+      position: 7
+      catalogue_position: 7
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-display-url-000.png"
+        sha256: aa38748c4d4c62e3c2d22a3dc9026cd230e6fdc7cc53072933b6c0a7451ff910
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-display-url-001.png"
+        sha256: ccb2d7d81b7a14a0e99694187833a446f3fbb14bd1c8d8add5feba44a6e72c04
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/srally2/screenshots/srally2-20261018-cycle-display-url-002.png"
+        sha256: aa38748c4d4c62e3c2d22a3dc9026cd230e6fdc7cc53072933b6c0a7451ff910
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: cabinet_type
+      label: Cabinet Type
+      native_label_raw: CABINET TYPE
+      position: 8
+      catalogue_position: 8
+      native_default: DELUXE
+      implemented: true
+      observed_values_raw: DELUXE, TWIN
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: link_type
+      label: Link Type
+      native_label_raw: LINK TYPE
+      position: 9
+      catalogue_position: 9
+      native_default: STAND ALONE
+      implemented: true
+      observed_values_raw: STAND ALONE, MASTER (CAR 1), SLAVE (CAR 2), SLAVE (CAR
+        3), SLAVE (CAR 4), RELAY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 10
+      native_default: EXPORT
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      observed_values_raw: EXPORT, JAPAN, USA, AUSTRALIA
+      historical_photo_evidence: ciclo completo in Country Select
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

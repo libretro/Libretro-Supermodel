@@ -1,0 +1,108 @@
+---
+schema_version: 1
+game:
+  set: swtrilgy
+  parent: swtrilgy
+  title: Star Wars Trilogy Arcade
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/swtrilgy/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 1
+      native_default: EXPORT
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      read_only_display:
+        menu: game_assignments
+        position: 1
+      observed_values_raw: EXPORT, JAPAN, USA, AUSTRALIA, KOREA
+      historical_photo_evidence: base + ciclo completo nella schermata Country Select
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  game_assignments:
+    options:
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 2
+      catalogue_position: 2
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/swtrilgy/screenshots/swtrilgy-20261018-cycle-advertise-sound-000.png"
+        sha256: 42a0c91cd2eb5f986cf3c37fdee27cf2c3ea89cc34293374b9fe0339aa73c248
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/swtrilgy/screenshots/swtrilgy-20261018-cycle-advertise-sound-001.png"
+        sha256: ee0199f2135b96002ee3d76d8ad62ac716dae2ff3eb368b6ddbe9809d595d8bd
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/swtrilgy/screenshots/swtrilgy-20261018-cycle-advertise-sound-002.png"
+        sha256: 42a0c91cd2eb5f986cf3c37fdee27cf2c3ea89cc34293374b9fe0339aa73c248
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 3
+      catalogue_position: 3
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, VERY HARD, VERY EASY, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: cabinet_type
+      label: Cabinet Type
+      native_label_raw: CABINET TYPE
+      position: 4
+      catalogue_position: 4
+      native_default: DX
+      implemented: true
+      observed_values_raw: DX, U/R
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: feedback_lever
+      label: Feedback Lever
+      native_label_raw: FEEDBACK LEVER
+      position: 5
+      catalogue_position: 5
+      native_default: ENABLE
+      implemented: true
+      dependency: Cabinet Type DX Only
+      observed_values_raw: ENABLE, DISABLE
+      historical_photo_evidence: visibile con CABINET TYPE DX; ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

@@ -1,0 +1,573 @@
+---
+schema_version: 1
+game:
+  set: vf3
+  parent: vf3
+  title: Virtua Fighter 3
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: match_count_1p
+      label: Match Count(1P)
+      native_label_raw: MATCH COUNT(1P)
+      position: 1
+      catalogue_position: 1
+      native_default: '2'
+      implemented: false
+      values:
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      photographed_cycle:
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '2'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-1p-000.png"
+        sha256: afd44189bf74ebd6769ce3204098d7010274539a946272eaa66d0498e68b0cbc
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-1p-001.png"
+        sha256: 4d0b715867589a982eba0d8be7d0758bd17d7edf03c315710189119987dfcd41
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-1p-002.png"
+        sha256: b5b3fca156d76c38ae1a64350f3c88630a066cafd99142487b02dfa64d177269
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-1p-003.png"
+        sha256: 2ca91b88eda420daf4642cf71834ba274714146b332d761f46ac1a9709bdf403
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-1p-004.png"
+        sha256: afd44189bf74ebd6769ce3204098d7010274539a946272eaa66d0498e68b0cbc
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: match_count_vs
+      label: Match Count(VS)
+      native_label_raw: MATCH COUNT(VS)
+      position: 2
+      catalogue_position: 2
+      native_default: '3'
+      implemented: false
+      values:
+      - '3'
+      - '4'
+      - '5'
+      - '2'
+      photographed_cycle:
+      - '3'
+      - '4'
+      - '5'
+      - '2'
+      - '3'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-vs-000.png"
+        sha256: 4697288378334873c89ffaf098a9aee52d7afdeb92422684665d0ce288b47636
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-vs-001.png"
+        sha256: 7a48b05f5d56a1e51fb9ff5e82bb2e8f01d46d924fd4e943f82851b658b266c6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-vs-002.png"
+        sha256: 96a00c91ba906103caf9e038a543e9431f94f50c7a1c4502259e5115f87e0a4a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-vs-003.png"
+        sha256: f6de7f97a4915077e1ac0b19ac8d36bd14d770fd260f24a37048d349d5efe6c1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-match-count-vs-004.png"
+        sha256: 4697288378334873c89ffaf098a9aee52d7afdeb92422684665d0ce288b47636
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 3
+      catalogue_position: 3
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, HARDEST, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: energy_max_1p
+      label: Energy Max(1P)
+      native_label_raw: ENERGY MAX(1P)
+      position: 4
+      catalogue_position: 4
+      native_default: '180'
+      implemented: false
+      values:
+      - '180'
+      - '190'
+      - '200'
+      - '210'
+      - '220'
+      - '230'
+      - '240'
+      - '250'
+      - '260'
+      - '270'
+      - '280'
+      - '290'
+      - '300'
+      - '310'
+      - '320'
+      - '330'
+      - '340'
+      - '350'
+      - '360'
+      - '160'
+      - '170'
+      photographed_cycle:
+      - '180'
+      - '190'
+      - '200'
+      - '210'
+      - '220'
+      - '230'
+      - '240'
+      - '250'
+      - '260'
+      - '270'
+      - '280'
+      - '290'
+      - '300'
+      - '310'
+      - '320'
+      - '330'
+      - '340'
+      - '350'
+      - '360'
+      - '160'
+      - '170'
+      - '180'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-000.png"
+        sha256: b8611345592a24765dc9dd57e9ab86a01dd70231f4eb6bf3d03b1f08629ff6bb
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-001.png"
+        sha256: c63334599be6a15aaf8d5c52041f011c98166cc47aac7aa409809fb6d5072252
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-002.png"
+        sha256: f05efaafa310d3e97b2537bc5d8c62264a3b88de948e6b0c10bdb55e9b64fc81
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-003.png"
+        sha256: 850170a83177142f834ed3ac7dbacb76ebc20cfaf670306693718c752d6b16b6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-004.png"
+        sha256: 37a9afd407b74e69ecc0917bdeb62bd4e8c95f217982fc8a20ff100dfb8d8881
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-005.png"
+        sha256: '0952dc2acbff46cdc49f9d71b7e42cb22121d28839f1fa66b0ae2bb692f27b6a'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-006.png"
+        sha256: cc6938e16caa5d0a6bd579e0db9c346c9237e934a09c93dcb2ac883b094c1c13
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-007.png"
+        sha256: b3b0c671e583f8c59faa80cce4678c05bcf8c11078fa7f3348fa82ad6e0d0eb3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-008.png"
+        sha256: 6f50312db6f49ebd7a3ae83b7fb6c2e99e90ffbbc40985499a2c5d9636034e47
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-009.png"
+        sha256: 28543ea23c6590ff76754cf691b62eb77f07a0ccada728b4788611c6dfa3636e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-010.png"
+        sha256: 43f933f75a4f197ef111000e11b460cc24ed64e4f37cf60f7f639db44d67d8c3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-011.png"
+        sha256: 5241e27f639510863d0e075c8659bdba0144ceea6c4eaf3c1eb06278673499d4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-012.png"
+        sha256: c02fc376cebf5cfb416aa3467e9e2879966616d9c53040b3c0ce541f2efa9f37
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-013.png"
+        sha256: 71b341a58f66de578b95005baac283c56e0587e7cb1dadbfe83f481da74eeb62
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-014.png"
+        sha256: 77c3b810bbf1d210be1f681f07f6ceb39ac7442e6825e8f8cec63ae704fa4aaf
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-015.png"
+        sha256: 448a1992f2cc9f2d530ee9ce4d366aae9483e6d0d581d9e2541f68f56743348d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-016.png"
+        sha256: 3c897d69a44480995e2920e2fe6e787e9e5d0c6b648d60b9e0b67624ff91f864
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-017.png"
+        sha256: e9f9d1783f75510f9efa8ede387098569e3f2e88252374de783a0eaf274aaacc
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-018.png"
+        sha256: a295f3a95997cb4ba8a7595555ee17d59ee20fe0e386662dd725a1ccd236e0db
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-019.png"
+        sha256: 311edde7d76e77107a5e78b99320721befac8767c75e7883b2fdd732f60fefef
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-020.png"
+        sha256: 04c3c5697c40fab8d50981eed7e58f65ef40d2ac7abe8129c693fd3d87ca94ff
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-1p-021.png"
+        sha256: b8611345592a24765dc9dd57e9ab86a01dd70231f4eb6bf3d03b1f08629ff6bb
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: energy_max_vs
+      label: Energy Max(VS)
+      native_label_raw: ENERGY MAX(VS)
+      position: 5
+      catalogue_position: 5
+      native_default: '200'
+      implemented: false
+      values:
+      - '200'
+      - '210'
+      - '220'
+      - '230'
+      - '240'
+      - '250'
+      - '260'
+      - '270'
+      - '280'
+      - '290'
+      - '300'
+      - '310'
+      - '320'
+      - '330'
+      - '340'
+      - '350'
+      - '360'
+      - '370'
+      - '380'
+      - '390'
+      - '400'
+      - '180'
+      - '190'
+      photographed_cycle:
+      - '200'
+      - '210'
+      - '220'
+      - '230'
+      - '240'
+      - '250'
+      - '260'
+      - '270'
+      - '280'
+      - '290'
+      - '300'
+      - '310'
+      - '320'
+      - '330'
+      - '340'
+      - '350'
+      - '360'
+      - '370'
+      - '380'
+      - '390'
+      - '400'
+      - '180'
+      - '190'
+      - '200'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-000.png"
+        sha256: 903a808022c060032931e87acbf1e66481327cb9b86d17524fa25b382d01d5a2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-001.png"
+        sha256: 2148ef00343e1c119eabfcf6274d059768dca9004e8e799c607b3da4837960df
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-002.png"
+        sha256: a03ad77367d1a51d70a44df5c647ea3ca41e5dcfa50a6a42ddd1473da8c1ae7c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-003.png"
+        sha256: e771f7bb871930db791437e0614df15fa623dc7bea7f2332ccd8746f550df5bd
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-004.png"
+        sha256: ad76904adec3c3a8d582a9b84af9ac3fcd31adf59868a9f25ecf55c128580fa5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-005.png"
+        sha256: fc37e4c6f1715ad145c27538976e5eee4acfe82353317cd580430afd6bf6ae1b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-006.png"
+        sha256: 22a905b0ac77dce3f9454b8becd1bf9376be477998050be378ad81ccc9f8ad45
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-007.png"
+        sha256: f2f783e118e15641a36243b0ae67a96ccfc9c951532e0461209a030847da1fec
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-008.png"
+        sha256: 368e89e7ea29665d6e4bdeaa31aa883cddb10d357916e285b0fc8a7066bbd2f3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-009.png"
+        sha256: 955173aa9c715ab87e72776c8dc39d482283a2017f6e9be35306b8b3f0792fc4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-010.png"
+        sha256: 14f3ddbe18841232190bdf1a5457788adfe8352e3a7fe514b30f872993f9157a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-011.png"
+        sha256: d17e0ae865286043732e769477cc9f40a81f29bf947bd68fdf8ac0376b39838b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-012.png"
+        sha256: a45b4449410068432f20c9cd03b3a4e8b36c95435633fda260ba4dda66b4d455
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-013.png"
+        sha256: eb8721e20d2289e36f193d49ffa80968fbb44ceb461e151af352c724ae9e0458
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-014.png"
+        sha256: 784b5f60239a3ab01654ad266e2832e4a63f452cba303aebdd85390c1f337549
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-015.png"
+        sha256: 93a53442c9699b74a982b0570466ea8827dd1ade9290c5263fb39b201c1a1a87
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-016.png"
+        sha256: e122605d1c24bdb0563eb2eb2d1fa6fe6180806ef65d8c397bd82f59b6444f3a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-017.png"
+        sha256: c6eff4b968642785b4ad0641bf2326cb7ac5edc84e4f48588ea0d901ba3e6e4f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-018.png"
+        sha256: 1b67f592143cbb56b682278d84b6be957403bbf5d12922b944ea4022c7deb935
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-019.png"
+        sha256: 53d3b8ab1daa86dac266685d85b178b1e93d7b9c26337af2bfcef98362c6309d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-020.png"
+        sha256: 40acfe2df01de9960dbfe05a165a0685209b7e319b85026c0b84a20b89be1f14
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-021.png"
+        sha256: ca2dc7fab6ee7237ca0299dfc19ee7a37f4d8096ed061ce0fe95a2521828df90
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-022.png"
+        sha256: 7184c7ec78fbead0723c5b96b844eb0ed5c205b3f20ad68cc8c6986b6e0b0d43
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-energy-max-vs-023.png"
+        sha256: 903a808022c060032931e87acbf1e66481327cb9b86d17524fa25b382d01d5a2
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 6
+      catalogue_position: 6
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-advertise-sound-000.png"
+        sha256: a5784e043a76d3b90c82c3e5cbce66fe9784326ec5f35575f9b2dba5c542015e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-advertise-sound-001.png"
+        sha256: c964fd81e2c1ea01a1d590aff4db5ffe43238d0715d07e273926c70ade417bf2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-advertise-sound-002.png"
+        sha256: a5784e043a76d3b90c82c3e5cbce66fe9784326ec5f35575f9b2dba5c542015e
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: ranking_mode
+      label: Ranking Mode
+      native_label_raw: RANKING MODE
+      position: 7
+      catalogue_position: 7
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-ranking-mode-000.png"
+        sha256: 5f44e2e21f8db63b595cd551dcf99f81814902a3e4f1aabf8b5cd877f62ffa2f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-ranking-mode-001.png"
+        sha256: 065a7f226d1eb67f585c9a411f503ae108bf84611bc9b9a06d93ebc9c5006468
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-ranking-mode-002.png"
+        sha256: 5f44e2e21f8db63b595cd551dcf99f81814902a3e4f1aabf8b5cd877f62ffa2f
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: replay_cancel
+      label: Replay Cancel
+      native_label_raw: REPLAY CANCEL
+      position: 8
+      catalogue_position: 8
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-replay-cancel-000.png"
+        sha256: 5dc5fb2d0536f75997c9b084ed36b91f8236daf30d5e45ab98d9ae3193738070
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-replay-cancel-001.png"
+        sha256: 415e413ec19e4546c83faab68a050be07f9dcc1739c3f10ba69669d4efaa0c82
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-replay-cancel-002.png"
+        sha256: 5dc5fb2d0536f75997c9b084ed36b91f8236daf30d5e45ab98d9ae3193738070
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: command_disp
+      label: Command Disp
+      native_label_raw: COMMAND DISP
+      position: 9
+      catalogue_position: 9
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-command-disp-000.png"
+        sha256: 2751b0411b7c5258f29e2ea6f58baba1bf872fb7238c61b79953f3584c85be17
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-command-disp-001.png"
+        sha256: 02f7f6d2b8f004e7f690fac49200a53537f844a9e54299a159e3ddba6e01bf69
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-command-disp-002.png"
+        sha256: 2751b0411b7c5258f29e2ea6f58baba1bf872fb7238c61b79953f3584c85be17
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: stage_select
+      label: Stage Select
+      native_label_raw: STAGE SELECT
+      position: 10
+      catalogue_position: 10
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - CHALLENGER
+      photographed_cycle:
+      - 'OFF'
+      - CHALLENGER
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-stage-select-000.png"
+        sha256: f34942f0e9a8685882db5e4429aecdb6bda7ad198ad18d4bc7f937603b468d7f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-stage-select-001.png"
+        sha256: 0caa59496b70ca85b083e92242d2e65571604e93ef4b00d93f012fff6d63ad7d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-stage-select-002.png"
+        sha256: f34942f0e9a8685882db5e4429aecdb6bda7ad198ad18d4bc7f937603b468d7f
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: drink
+      label: Drink
+      native_label_raw: DRINK
+      position: 11
+      catalogue_position: 11
+      native_default: OK
+      implemented: false
+      values:
+      - OK
+      - NG
+      photographed_cycle:
+      - OK
+      - NG
+      - OK
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-drink-000.png"
+        sha256: 5a76f8e4994f3334b1fd1f5914ee146388ca93aaf4c4c23e526b2379856ef0cd
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-drink-001.png"
+        sha256: 8f881da2b1fe3a85900a48ed7b9c501196baf39c30357aa9c649aae0b7eb0771
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-drink-002.png"
+        sha256: 5a76f8e4994f3334b1fd1f5914ee146388ca93aaf4c4c23e526b2379856ef0cd
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: naked
+      label: Naked
+      native_label_raw: NAKED
+      position: 12
+      catalogue_position: 12
+      native_default: OK
+      implemented: false
+      values:
+      - OK
+      - NG
+      photographed_cycle:
+      - OK
+      - NG
+      - OK
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-naked-000.png"
+        sha256: 90767ec52d54a28f3fcb18f9ac2a39afd7910ee3e54ea344ecef9d1bec065d88
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-naked-001.png"
+        sha256: 2b8d22d2b6706afbff64e00bd2075991ec945b1cd173ab803ef707e70a05c28f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-naked-002.png"
+        sha256: 90767ec52d54a28f3fcb18f9ac2a39afd7910ee3e54ea344ecef9d1bec065d88
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 13
+      catalogue_position: 13
+      native_default: JAPAN
+      implemented: true
+      observed_values_raw: JAPAN, USA, EXPORT, ASIA
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: vs_finish
+      label: VS Finish
+      native_label_raw: VS FINISH
+      position: 14
+      catalogue_position: 14
+      native_default: '0'
+      implemented: false
+      values:
+      - '0'
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      - '8'
+      - '9'
+      - '10'
+      photographed_cycle:
+      - '0'
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      - '8'
+      - '9'
+      - '10'
+      - '0'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-000.png"
+        sha256: 551a0e636521d3b5d0096da05e1183ee1df351772aafacb2c4c2e651f91a9f95
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-001.png"
+        sha256: 8a67e3c3776572448f96eb2b296aad8da8c63884f1fe989518629639697be27e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-002.png"
+        sha256: 7adfe94622593f13d8cd4a750772f794cfeaf86446d2088e357d495c136e7b5a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-003.png"
+        sha256: bd06b1195b7d20f8fcbbf8b7f5c8d5c0333d1a6f7030153b11852b77b5d1187a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-004.png"
+        sha256: 5d7926ea313585ecb155bda4048555c3f694bcfd945ed776ddb54844ff009f62
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-005.png"
+        sha256: a0e0934c54696b7a20e783f63135555d0ac4a5730473a42a3004387751a2ed13
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-006.png"
+        sha256: 316a8897271fe83972d7499d305c917e431e622120c8dca1b2804e1c0b069e47
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-007.png"
+        sha256: 1e29d9087515775cec5202cbe035d52033aafb2918408e94a98c77942df26478
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-008.png"
+        sha256: 6c0b24ef909680191d0069574ef00675373849c786b94291b43c0471ca76e6ee
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-009.png"
+        sha256: f3f6a1916dca9c790b4a60f56081af8bdc1d42821f2c03ae2c24a9d75c2c4962
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-010.png"
+        sha256: ecb02f02dca7524faa52678f598e20fc19a7a755761c3254af1a044f57291592
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/vf3/screenshots/vf3-20261018-cycle-vs-finish-011.png"
+        sha256: 551a0e636521d3b5d0096da05e1183ee1df351772aafacb2c4c2e651f91a9f95
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested

@@ -1,0 +1,638 @@
+---
+schema_version: 1
+game:
+  set: von2
+  parent: von2
+  title: Cyber Troopers Virtual-On Oratorio Tangram
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: game_difficulty
+      label: Game Difficulty
+      native_label_raw: GAME DIFFICULTY
+      position: 1
+      catalogue_position: 1
+      native_default: barra 10 / 16
+      implemented: true
+      observed_values_raw: barre da 1 / 16 a 16 / 16
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 2
+      catalogue_position: 2
+      native_default: LOUD
+      implemented: false
+      values:
+      - LOUD
+      - 'OFF'
+      - SOFT
+      photographed_cycle:
+      - LOUD
+      - 'OFF'
+      - SOFT
+      - LOUD
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-advertise-sound-000.png"
+        sha256: 57f56cebd30409784ec2085dfd47d2831b9414dcd75b76a252e7118fbc27e08c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-advertise-sound-001.png"
+        sha256: 2b4fff95323b3452b8830a6a1801e89b7a31ebc00e14cda0bb8310341487543d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-advertise-sound-002.png"
+        sha256: e744ff2d930aa9fbe50ec4672c92620eb7c8a718814c63af4680de268f21d4a9
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-advertise-sound-003.png"
+        sha256: 57f56cebd30409784ec2085dfd47d2831b9414dcd75b76a252e7118fbc27e08c
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: communication_mode
+      label: Communication Mode
+      native_label_raw: COMMUNICATION MODE
+      position: 3
+      catalogue_position: 3
+      native_default: NO LINK
+      implemented: true
+      observed_values_raw: NO LINK, MASTER, SLAVE, SATELLITE
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: seat_letter_attrib
+      label: Seat Letter & Attrib.
+      native_label_raw: SEAT LETTER & ATTRIB.
+      position: 4
+      catalogue_position: 4
+      native_default: 'SEAT A : GOOD'
+      implemented: true
+      observed_values_raw: 'SEAT A : GOOD, SEAT B : EVIL, SEAT C : GOOD, SEAT D :
+        EVIL'
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: billboard_config
+      label: Billboard Config
+      native_label_raw: BILLBOARD CONFIG
+      position: 5
+      catalogue_position: 5
+      native_default: NO CONNECTION
+      implemented: false
+      values:
+      - NO CONNECTION
+      - SIBLING IS A SEAT
+      - SIBLING IS B SEAT
+      - SIBLING IS C SEAT
+      - SIBLING IS D SEAT
+      photographed_cycle:
+      - NO CONNECTION
+      - SIBLING IS A SEAT
+      - SIBLING IS B SEAT
+      - SIBLING IS C SEAT
+      - SIBLING IS D SEAT
+      - NO CONNECTION
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-billboard-config-000.png"
+        sha256: 142a6993a2529f60fd9a31ae882a09dce954af334392e5314dc36671ea9388ca
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-billboard-config-001.png"
+        sha256: bf00e609f216d3f30606cf4dab4ecfee4e5e4db9ad893603f8e3269a6379ba4d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-billboard-config-002.png"
+        sha256: 441c100c2b5feefc5ca666b2766e3ec5dfc3ceef495f35f7f3e3a47332f2244b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-billboard-config-003.png"
+        sha256: 0eb998423ddc15666d22ac811525ed4b54c3df0d3b81955f9cdcf398ce168d50
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-billboard-config-004.png"
+        sha256: 9c99e1f2b0c2f8451c33f2e5b076b17d6d0e920f00e1d1653b1f7da6d712b5bd
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-billboard-config-005.png"
+        sha256: 142a6993a2529f60fd9a31ae882a09dce954af334392e5314dc36671ea9388ca
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: play_time_1p_ground
+      label: Play Time (1P:Ground)
+      native_label_raw: PLAY TIME (1P:GROUND)
+      position: 6
+      catalogue_position: 6
+      native_default: 80 SECS
+      implemented: false
+      values:
+      - 80 SECS
+      - 85 SECS
+      - 90 SECS
+      - 95 SECS
+      - 99 SECS
+      - DEATHMATCH
+      - 60 SECS
+      - 65 SECS
+      - 70 SECS
+      - 75 SECS
+      photographed_cycle:
+      - 80 SECS
+      - 85 SECS
+      - 90 SECS
+      - 95 SECS
+      - 99 SECS
+      - DEATHMATCH
+      - 60 SECS
+      - 65 SECS
+      - 70 SECS
+      - 75 SECS
+      - 80 SECS
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-000.png"
+        sha256: 02c9ed6447ace54555d486ad311c3c114d3569ce92782f7d6cca1ad32f39daab
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-001.png"
+        sha256: 1bd1c178dd9cd41415fea25829f09ba13fb31ef9c8b5e1353b1ec03bdfbddbb0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-002.png"
+        sha256: 46242264993eb1b7c2ac6b728c3748951d27b05db1cdc503f8deed827da0aa2d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-003.png"
+        sha256: 5f221a7450f716c3b51446111f6911227ac4445c6176a440f482f4cda9808a96
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-004.png"
+        sha256: 8b0f51717d607af03a8ae8748d48ff23a2f924b7bc123c31a2c338bbce61daa5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-005.png"
+        sha256: c929b88a18a1fb70faa2d742697cd0b4397e94b0faa2199e21dcd6f75cd0b74f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-006.png"
+        sha256: a788118183073e7337ec3894b02e3aaf05804cd3e8e2ec05ca9d90e69ade1aad
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-007.png"
+        sha256: 2e4a0c206a9526e4aa3653c5a12db8ee2a208cf9d471e680ea5e3060eb8f7390
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-008.png"
+        sha256: 2eb4e71b88b87812d0e9e076f71deb089ab0c89fe9e54e12ec035238e1c75876
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-009.png"
+        sha256: 027416d88a670a3cdbb388efc02eef910eca0871dc2aa60c5d3d588a467cb88a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-ground-010.png"
+        sha256: 02c9ed6447ace54555d486ad311c3c114d3569ce92782f7d6cca1ad32f39daab
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: play_time_1p_space
+      label: Play Time (1P:Space)
+      native_label_raw: PLAY TIME (1P:SPACE)
+      position: 7
+      catalogue_position: 7
+      native_default: 80 SECS
+      implemented: false
+      values:
+      - 80 SECS
+      - 85 SECS
+      - 90 SECS
+      - 95 SECS
+      - 99 SECS
+      - DEATHMATCH
+      - 60 SECS
+      - 65 SECS
+      - 70 SECS
+      - 75 SECS
+      photographed_cycle:
+      - 80 SECS
+      - 85 SECS
+      - 90 SECS
+      - 95 SECS
+      - 99 SECS
+      - DEATHMATCH
+      - 60 SECS
+      - 65 SECS
+      - 70 SECS
+      - 75 SECS
+      - 80 SECS
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-000.png"
+        sha256: cf9602004aa6613018608f008d3d82277edb5d98b900d7b841a3c35cf7c2a1d5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-001.png"
+        sha256: d484125ffcee97e31b2820999b42e06e7bc978aa80dd0c18cd3141d6399079f6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-002.png"
+        sha256: 7cdf8f8284030ac84d667718dab32239a9d675a246f6af8b5ffd42bfdcb84bb7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-003.png"
+        sha256: c5d36487e6dd8f0d0e195f3f4c068de7eb0917f218e2b55840a5c9fe07d658ed
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-004.png"
+        sha256: 647c89f868fe7fe17ea3681e2bf322334e811757cf57244b27732449ad10cb86
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-005.png"
+        sha256: ede58de8d4e349adbf7055dd12f374976ac1bbdc6036cfbeeee50fee2c583dad
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-006.png"
+        sha256: 9d40c60b540e347903770fbae824e70519d755da3db3d48db8771598d844718b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-007.png"
+        sha256: 99eb888b50b672db82adf606ff2ca7a83dee55c9ab36e1b66dd4c7140c2ddaaa
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-008.png"
+        sha256: 3af5eb4fa16b64a6602fe51198cca173b1feef60442e804d23c08b6538256657
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-009.png"
+        sha256: ed8650830acc7fc87131857055c3090c52386aa436a44b83a881288fe74388b9
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-1p-space-010.png"
+        sha256: cf9602004aa6613018608f008d3d82277edb5d98b900d7b841a3c35cf7c2a1d5
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: play_time_versus
+      label: Play Time (Versus)
+      native_label_raw: PLAY TIME (VERSUS)
+      position: 8
+      catalogue_position: 8
+      native_default: 80 SECS
+      implemented: false
+      values:
+      - 80 SECS
+      - 85 SECS
+      - 90 SECS
+      - 95 SECS
+      - 99 SECS
+      - DEATHMATCH
+      - 60 SECS
+      - 65 SECS
+      - 70 SECS
+      - 75 SECS
+      photographed_cycle:
+      - 80 SECS
+      - 85 SECS
+      - 90 SECS
+      - 95 SECS
+      - 99 SECS
+      - DEATHMATCH
+      - 60 SECS
+      - 65 SECS
+      - 70 SECS
+      - 75 SECS
+      - 80 SECS
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-000.png"
+        sha256: 6504a0c0bfa09fd93fead53945cae0f7de1bd90cb55ec75ae59319a4ecf4e491
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-001.png"
+        sha256: e0d047db7f6e617c624b4651e1301ef55fc6e18a83c622ea9dbae3727e9e4e76
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-002.png"
+        sha256: 3f68866a1e7a33bf11277a44175d5dd67321e6729b1605d76d4359ba9bd9c24f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-003.png"
+        sha256: 0c87ede3cec71609c86e638fa8bd41050a14ab8b0e9f47014c67b972ae03c4ad
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-004.png"
+        sha256: f4eb5f6c52243c7ea308d512d45882d6b71a25be7cbd1f577ae19956361cdebc
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-005.png"
+        sha256: 653454293156fc77b565ff699e9346950b87ae48fe934480ad6109a05218cbbd
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-006.png"
+        sha256: b3736ba98a52069b7d2b92dd0a4ff83a59bf150abf23f0fbd4dc203225c24e27
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-007.png"
+        sha256: e06c77787c0da837e7ee1541e728fc058fbaf626060188a987dea70a495ea581
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-008.png"
+        sha256: f23a6e60b5bbf8d9fc2806979e50e2c9379abbca7ffc5839bbb8a7d8877ba719
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-009.png"
+        sha256: e650c001aa86388051efeb179318fa5c43a33f68cbcb4655ecee5ba2459dad7d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-play-time-versus-010.png"
+        sha256: 6504a0c0bfa09fd93fead53945cae0f7de1bd90cb55ec75ae59319a4ecf4e491
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: match_count_1p_ground
+      label: Match Count (1P:Ground)
+      native_label_raw: MATCH COUNT (1P:GROUND)
+      position: 9
+      catalogue_position: 9
+      native_default: '1'
+      implemented: false
+      values:
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      photographed_cycle:
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '1'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-ground-000.png"
+        sha256: '0508f54c45b76b141b0bfd1dd6b923785cd0754ce9c6beac900b17f157ba8ce9'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-ground-001.png"
+        sha256: d6bdc54f1741ff9a01347c730d1ce04d1940287b18c7012ad1da202eb9821eab
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-ground-002.png"
+        sha256: 13cddaf8e36d7be2edf84d17d4d4c25b51f95b420aabbf2ec1a06a5b796917bd
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-ground-003.png"
+        sha256: 38d83013b87ebfcc2bcfdce5a6ecb4f465518839ce2747c03700ab0dd005f4c6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-ground-004.png"
+        sha256: 12102618841281570ceeb0e857dd407cd5eb7ea56406572454e81b09163c4714
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-ground-005.png"
+        sha256: '0508f54c45b76b141b0bfd1dd6b923785cd0754ce9c6beac900b17f157ba8ce9'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: match_count_1p_space
+      label: Match Count (1P:Space)
+      native_label_raw: MATCH COUNT (1P:SPACE)
+      position: 10
+      catalogue_position: 10
+      native_default: '1'
+      implemented: false
+      values:
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      photographed_cycle:
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '1'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-space-000.png"
+        sha256: c4c10551f435748a93443a1d222f33d77c2927a3bcb810d7690f44945c89396c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-space-001.png"
+        sha256: 935af975dcc8f67ac30660ec09833b9065564288d3816c619d6edf9e137b46e7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-space-002.png"
+        sha256: 6554f29d663aa471721008240129b5e85892627d855e9fff30ebb8ab5c5baabc
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-space-003.png"
+        sha256: ab9dcdc87cb3ba616364c4fa9ecad682f6206ee55a2b5e3159eb5c15329c0656
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-space-004.png"
+        sha256: 0cdc394d59f7ff49a797653c04a899317238d64898a0b830b598abc681c11bd1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-1p-space-005.png"
+        sha256: c4c10551f435748a93443a1d222f33d77c2927a3bcb810d7690f44945c89396c
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: match_count_versus
+      label: Match Count (Versus)
+      native_label_raw: MATCH COUNT (VERSUS)
+      position: 11
+      catalogue_position: 11
+      native_default: '2'
+      implemented: false
+      values:
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '1'
+      photographed_cycle:
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '1'
+      - '2'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-versus-000.png"
+        sha256: d39ed5d18949cc47de772248d321d2d9886369dc6916d24571248eea81bb8ed3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-versus-001.png"
+        sha256: a7bedee607cfa173c0f8eb944e929865dcf191866bb8411d7b7571d002c373a6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-versus-002.png"
+        sha256: bc7e617d9914237b02270bdb676e70c00a383f74831f331c66c8570e2e1df95e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-versus-003.png"
+        sha256: ab9773a5cd5f4f91f01cbe6e8e9a19e66e6942908fc1ea8999c660940df5be02
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-versus-004.png"
+        sha256: 1832e472dcc184bdae0b323a84f007f613a52cac4a77346d85fee3a7c6826170
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-match-count-versus-005.png"
+        sha256: d39ed5d18949cc47de772248d321d2d9886369dc6916d24571248eea81bb8ed3
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: instant_replay
+      label: Instant Replay
+      native_label_raw: INSTANT REPLAY
+      position: 12
+      catalogue_position: 12
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-instant-replay-000.png"
+        sha256: 1f814ff8dc78afcb447028fbbae0a9e419baf98556976ffae60b516730aa3cfe
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-instant-replay-001.png"
+        sha256: 3ccea4fbe6f269dafc8510c8a03f55e94fd04ff2c2a58a062fac9255c1fdf882
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-instant-replay-002.png"
+        sha256: 1f814ff8dc78afcb447028fbbae0a9e419baf98556976ffae60b516730aa3cfe
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: ranking_mode
+      label: Ranking Mode
+      native_label_raw: RANKING MODE
+      position: 13
+      catalogue_position: 13
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-ranking-mode-000.png"
+        sha256: e4635935aa470ef5dc7887e088bbe6305bc072a9f1126e372365c91694c8cd1e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-ranking-mode-001.png"
+        sha256: 3a301b2b6921b8c7d47796bea843bbe796d69bb78ac5b7403685db1a22e96266
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-ranking-mode-002.png"
+        sha256: e4635935aa470ef5dc7887e088bbe6305bc072a9f1126e372365c91694c8cd1e
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: continue
+      label: Continue
+      native_label_raw: CONTINUE
+      position: 14
+      catalogue_position: 14
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-continue-000.png"
+        sha256: a45d78aafc32f4fe791cee2d43cc1df470faf31fa02fa12614fd9e7cad01334b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-continue-001.png"
+        sha256: 2260a36d4f4139c1c11b744cf4658c179586b4484f7954033fea4181cbad9d29
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-continue-002.png"
+        sha256: a45d78aafc32f4fe791cee2d43cc1df470faf31fa02fa12614fd9e7cad01334b
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: versus_finish
+      label: Versus Finish
+      native_label_raw: VERSUS FINISH
+      position: 15
+      catalogue_position: 15
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - ALWAYS
+      - LOSE OR 5 WINS
+      - LOSE OR 10 WINS
+      photographed_cycle:
+      - 'OFF'
+      - ALWAYS
+      - LOSE OR 5 WINS
+      - LOSE OR 10 WINS
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-versus-finish-000.png"
+        sha256: cfedd2b8aff46ffbee181ea70d9ab0723a12e23b9c099748f40f98256b1fab3f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-versus-finish-001.png"
+        sha256: 374cf574ba1aff18c1fdc3c229ee5f6c2501a0fea69375d181b386cdd3b1c4e4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-versus-finish-002.png"
+        sha256: '05991c6a12a7a2fc259de6962d0d99f3f33c6c3bd971d48127062b905072e58c'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-versus-finish-003.png"
+        sha256: '0989ec7ef9eddc12b9a9cf66cfca851db56333b272628a196768cac939f6c500'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-versus-finish-004.png"
+        sha256: cfedd2b8aff46ffbee181ea70d9ab0723a12e23b9c099748f40f98256b1fab3f
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: chain_versus
+      label: Chain Versus
+      native_label_raw: CHAIN VERSUS
+      position: 16
+      catalogue_position: 16
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-chain-versus-000.png"
+        sha256: '03860972e4e0d3187998a90451ebb2730aad7156658bfb12dbf75292c7f0b0ab'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-chain-versus-001.png"
+        sha256: 161152908bd67b6bb1935be2180cb7f8a9eee1c180460d5a9f87b5c29ab8d3a7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-chain-versus-002.png"
+        sha256: '03860972e4e0d3187998a90451ebb2730aad7156658bfb12dbf75292c7f0b0ab'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: display_type
+      label: Display Type
+      native_label_raw: DISPLAY TYPE
+      position: 17
+      catalogue_position: 17
+      native_default: C.R.T
+      implemented: true
+      observed_values_raw: C.R.T, PROJECTOR
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: forcedly_go_versus
+      label: Forcedly Go Versus
+      native_label_raw: FORCEDLY GO VERSUS
+      position: 18
+      catalogue_position: 18
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-forcedly-go-versus-000.png"
+        sha256: 59371bd94767af7d9c8c334df1739939a474a867075c5bdc3ae12bdb3649d450
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-forcedly-go-versus-001.png"
+        sha256: '0002875250b4e260ea94163cb870870ae86739e48ed293d8cf6c3dbb61a5b5e6'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-forcedly-go-versus-002.png"
+        sha256: 59371bd94767af7d9c8c334df1739939a474a867075c5bdc3ae12bdb3649d450
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: survival_mode
+      label: Survival Mode
+      native_label_raw: SURVIVAL MODE
+      position: 19
+      catalogue_position: 19
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-survival-mode-000.png"
+        sha256: 19953fbbd7917aa401db1dcdc0fb69315872a6483b862a98dec0916980e91f93
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-survival-mode-001.png"
+        sha256: 8d0b60002fc626bc8ac8b6df3e9c0811597a8faabdfaca67f3833fd826ff0684
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/von2/screenshots/von2-20261018-cycle-survival-mode-002.png"
+        sha256: 19953fbbd7917aa401db1dcdc0fb69315872a6483b862a98dec0916980e91f93
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 20
+      native_default: JAPAN
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      observed_values_raw: JAPAN, USA, EXPORT, AUSTRALIA
+      historical_photo_evidence: ciclo completo in Country Select Mode
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

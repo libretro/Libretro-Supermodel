@@ -47,9 +47,34 @@ static LibretroWrapper wrapper = LibretroWrapper();
 // Star Wars Trilogy Upright cabinets wire the yoke's horizontal axis the
 // opposite way to Deluxe. Set from the game's NVRAM on the first frame.
 bool g_star_wars_invert_x = false;
+// Ports whose device is not "None" (retro_set_controller_port_device).
+bool g_joypad_enabled[2] = { true, true };
 // Whether the drive board was started with force feedback for this content.
 static bool g_ffb_drive_board_enabled = false;
+// RetroArch clears its options-updated flag when it is read. The options display
+// callback reads options while the menu is open, so it records the flag here for
+// the next retro_run().
+static bool g_core_options_update_pending = false;
 void set_input_descriptors(bool service_on_sticks);
+
+// On-screen notification through the message interface when the frontend has
+// it (RetroArch 1.9+), otherwise the classic message.
+static void notify_frontend(const char *text, unsigned frames = 180)
+{
+   if (!environ_cb) return;
+   unsigned version = 0;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION, &version) &&
+       version >= 1)
+   {
+      struct retro_message_ext message = {
+         text, frames * 1000 / 60, 1, RETRO_LOG_INFO,
+         RETRO_MESSAGE_TARGET_OSD, RETRO_MESSAGE_TYPE_NOTIFICATION, -1
+      };
+      if (environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE_EXT, &message)) return;
+   }
+   struct retro_message message = { text, frames };
+   environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &message);
+}
 
 // Game-aware NVRAM settings: one hidden core option per supported ROM set and
 // setting, generated from LibretroNvramSettings.h and shown only for the loaded
@@ -138,6 +163,139 @@ static void append_nvram_core_options(void)
    }
 }
 
+// Linked Cabinets and Auto Network Role Settings: one pair of hidden options per
+// game with a network board, shown for the loaded game. Linked Cabinets sets the
+// total of the RetroArch Netplay session (1 = board disconnected). The role option
+// writes the game's link mode and cabinet identity into NVRAM through the NVRAM
+// settings tables, so a session needs no trip through the Service Menu.
+struct LinkedCabinetOptionSpec
+{
+   const char *game_name;
+   unsigned max_cabinets;
+};
+
+static constexpr LinkedCabinetOptionSpec kLinkedCabinetOptionSpecs[] = {
+   { "daytona2", 17 }, { "dayto2pe", 17 },
+   { "dirtdvls", 5 }, { "dirtdvlsu", 5 }, { "dirtdvlsau", 5 },
+   { "dirtdvlsj", 5 }, { "dirtdvlsg", 5 },
+   { "harley", 4 }, { "harleya", 4 },
+   { "lemans24", 5 },
+   { "scud", 8 }, { "scudau", 8 }, { "scudplus", 8 },
+   { "scudplusa", 8 },
+   { "skichamp", 4 },
+   { "spikeout", 4 }, { "spikeofe", 4 },
+   { "srally2", 5 },
+   { "von2", 5 }, { "von254g", 5 }, { "von2a", 5 }, { "von2o", 5 },
+};
+static constexpr size_t kLinkedCabinetSpecCount =
+   sizeof(kLinkedCabinetOptionSpecs) / sizeof(kLinkedCabinetOptionSpecs[0]);
+
+struct LinkedCabinetOptionSet
+{
+   const char *game_name;
+   unsigned max_cabinets;
+   size_t definition_index;
+   size_t automatic_definition_index = std::numeric_limits<size_t>::max();
+};
+
+static std::vector<LinkedCabinetOptionSet> g_linked_option_sets;
+static std::vector<std::vector<char>> g_network_label_storage;
+static std::string g_visible_network_game(1, '\1');   // never equal to a game name
+static int g_visible_network_role_managed = -1;
+static int g_visible_lost_world_options = -1;
+
+static const char *network_string(const std::string &text)
+{
+   g_network_label_storage.emplace_back(text.begin(), text.end());
+   g_network_label_storage.back().push_back('\0');
+   return g_network_label_storage.back().data();
+}
+
+static void append_linked_cabinet_core_options(void)
+{
+   static constexpr const char *kInfo =
+      "Total number of cabinets in the RetroArch Netplay session, including a relay or satellite where the game has one. 1 Cabinet / Disabled disconnects the network board. The host waits for this exact number before starting the emulated link; every instance must use the same value and the host starts first. Two- and three-cabinet sessions have been tested. Changing it resets the machine.";
+   static constexpr const char *kRoleInfo =
+      "Write this cabinet's link role and number into the game's NVRAM, whatever NVRAM Settings says, so no Service Menu visit is needed: the RetroArch host is the Master, clients are Slaves with their own number. Disabled leaves the NVRAM alone. Changing it resets the machine.";
+   // One visible pair also exists for games without a network board.
+   for (bool role : { false, true })
+   {
+      retro_core_option_v2_definition d = {};
+      d.key = role ? "supermodel_automatic_network_unsupported"
+                   : "supermodel_network_cabinets_unsupported";
+      d.desc = role ? "Auto Network Role Settings" : "Linked Cabinets";
+      d.info = "This game has no network board.";
+      d.category_key = "system";
+      d.values[0] = { "-1", "Not Supported" };
+      d.default_value = "-1";
+      g_registered_option_definitions.push_back(d);
+   }
+   for (const auto &spec : kLinkedCabinetOptionSpecs)
+   {
+      retro_core_option_v2_definition definition = {};
+      definition.key = network_string(std::string("supermodel_network_cabinets_") + spec.game_name);
+      definition.desc = "Linked Cabinets";
+      definition.info = kInfo;
+      definition.category_key = "system";
+      definition.values[0] = { "-1", "1 Cabinet / Disabled" };
+      definition.values[1] = { "0", "1 Cabinet / Disabled" };
+      definition.values[2] = { "1", "1 Cabinet / Disabled" };
+      for (unsigned i = 2; i <= spec.max_cabinets; ++i)
+         definition.values[i + 1] = {
+            network_string(std::to_string(i)),
+            network_string(std::to_string(i) + " Cabinets") };
+      definition.default_value = "-1";
+      g_linked_option_sets.push_back({ spec.game_name, spec.max_cabinets,
+                                       g_registered_option_definitions.size() });
+      g_registered_option_definitions.push_back(definition);
+
+      Game game;
+      game.name = spec.game_name;
+      size_t count = 0;
+      const auto *games = LibretroNvramSettings::GetSupportedGames(count);
+      for (size_t i = 0; i < count; ++i)
+         if (game.name == games[i].name && games[i].parent)
+            game.parent = games[i].parent;
+      using namespace LibretroNvramSettings;
+      const unsigned cabinets = AutomaticNetworkCabinets(&game);
+      definition = {};
+      definition.key = network_string(std::string("supermodel_automatic_network_") + spec.game_name);
+      definition.desc = "Auto Network Role Settings";
+      definition.info = cabinets ? kRoleInfo
+         : "No link role settings are known for this game.";
+      definition.category_key = "system";
+      definition.values[0] = { "-1", cabinets ? "Disabled" : "Not Supported" };
+      definition.default_value = cabinets ? "0" : "-1";
+      if (cabinets)
+      {
+         const auto *mode = GetSettingInfo(&game, Setting::LinkMode);
+         const auto *identity = GetSettingInfo(&game, Setting::LinkId);
+         const char *offline = GetDefaultValue(&game, Setting::LinkMode);
+         for (size_t v = 0; mode && v < mode->valueCount; ++v)
+            if (strcmp(mode->values[v].key, offline) == 0)
+               definition.values[1] = { "0", mode->values[v].label };
+         for (unsigned i = 1; i <= cabinets; ++i)
+         {
+            std::string label = i == 1 ? "Master" : "Slave";
+            if (identity && i - 1 < identity->valueCount)
+               label = std::string(identity->values[i - 1].label) + " (" + label + ")";
+            else if (game.name == "srally2")
+               label = "Car " + std::to_string(i) + " (" + label + ")";
+            definition.values[i + 1] = { network_string(std::to_string(i)), network_string(label) };
+         }
+         if (AutomaticNetworkRelay(&game))
+         {
+            const char *label = game.name == "daytona2" || game.name == "dayto2pe"
+               ? "Live" : game.name == "srally2" ? "Relay" : "Satellite";
+            definition.values[cabinets + 2] = { "r", label };
+         }
+      }
+      g_linked_option_sets.back().automatic_definition_index =
+         g_registered_option_definitions.size();
+      g_registered_option_definitions.push_back(definition);
+   }
+}
+
 static void build_core_option_definitions(void)
 {
    if (!g_registered_option_definitions.empty())
@@ -165,7 +323,8 @@ static void build_core_option_definitions(void)
       if (definition.key)
          ++base_option_count;
    g_registered_option_definitions.reserve(
-      base_option_count + nvram_option_count + 1);
+      base_option_count + nvram_option_count + 2 * kLinkedCabinetSpecCount + 3);
+   g_linked_option_sets.reserve(kLinkedCabinetSpecCount);
    g_nvram_option_key_storage.reserve(nvram_option_count);
    g_nvram_default_label_storage.reserve(nvram_option_count);
    g_nvram_option_sets.reserve(game_count);
@@ -175,6 +334,8 @@ static void build_core_option_definitions(void)
       if (!definition.key)
          break;
       g_registered_option_definitions.push_back(definition);
+      if (strcmp(definition.key, "supermodel_initial_nvram_setup") == 0)
+         append_linked_cabinet_core_options();
       if (strcmp(definition.key, "supermodel_nvram_settings") == 0)
          append_nvram_core_options();
    }
@@ -206,24 +367,168 @@ static const char *active_nvram_option_key(
 static void register_core_options(void)
 {
    build_core_option_definitions();
-   struct retro_core_options_v2 options_v2 = {
-      option_cats, g_registered_option_definitions.data()
-   };
-   environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, &options_v2);
+   unsigned version = 0;
+   environ_cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &version);
+   if (version >= 2)
+   {
+      struct retro_core_options_v2 options_v2 = {
+         option_cats, g_registered_option_definitions.data()
+      };
+      environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, &options_v2);
+   }
+   else if (version == 1)
+   {
+      // Older frontends: the same options without categories.
+      static std::vector<retro_core_option_definition> definitions;
+      definitions.clear();
+      for (const auto &source : g_registered_option_definitions)
+      {
+         retro_core_option_definition target = {};
+         target.key = source.key;
+         target.desc = source.desc;
+         target.info = source.info;
+         std::copy(std::begin(source.values), std::end(source.values),
+                   std::begin(target.values));
+         target.default_value = source.default_value;
+         definitions.push_back(target);
+      }
+      environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS, definitions.data());
+   }
+   else
+   {
+      // Oldest frontends: "label; default|value|value" strings.
+      static std::vector<std::string> strings;
+      static std::vector<retro_variable> variables;
+      strings.clear();
+      variables.clear();
+      strings.reserve(g_registered_option_definitions.size());
+      for (const auto &source : g_registered_option_definitions)
+      {
+         if (!source.key) break;
+         std::string text = std::string(source.desc) + "; " + source.default_value;
+         for (const auto &value : source.values)
+         {
+            if (!value.value) break;
+            if (strcmp(value.value, source.default_value) != 0)
+               text += std::string("|") + value.value;
+         }
+         strings.push_back(std::move(text));
+         variables.push_back({ source.key, strings.back().c_str() });
+      }
+      variables.push_back({ nullptr, nullptr });
+      environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables.data());
+   }
 }
 
-static void update_nvram_option_visibility(void)
+static const LinkedCabinetOptionSet *active_linked_cabinet_option_set(void)
 {
+   if (g_nvram_game.empty())
+      return nullptr;
+   for (const auto &option_set : g_linked_option_sets)
+      if (g_nvram_game == option_set.game_name)
+         return &option_set;
+   return nullptr;
+}
+
+// The saved value of a generated network option, or its default when the saved
+// value is not one of its choices (an .opt file from another build).
+static std::string configured_network_value(size_t index)
+{
+   const auto &definition = g_registered_option_definitions[index];
+   const std::string value = option_get(definition.key, definition.default_value);
+   for (const auto &choice : definition.values)
+   {
+      if (!choice.value) break;
+      if (value == choice.value) return value;
+   }
+   return definition.default_value;
+}
+
+static unsigned configured_network_cabinets(void)
+{
+   const auto *set = active_linked_cabinet_option_set();
+   if (!set) return 1;
+   const std::string value = configured_network_value(set->definition_index);
+   const int cabinets = atoi(value.c_str());
+   return cabinets < 2 ? 1u : static_cast<unsigned>(cabinets);
+}
+
+// "-1" when the role is not managed, otherwise the preset for ApplyAutomaticNetwork.
+static std::string configured_network_role(void)
+{
+   const auto *set = active_linked_cabinet_option_set();
+   return set ? configured_network_value(set->automatic_definition_index) : "-1";
+}
+
+// The network board is connected exactly when the session has more than one
+// cabinet. The role is a separate, NVRAM-side choice.
+static void configure_network_topology(void)
+{
+   g_options.network_cabinets = configured_network_cabinets();
+   g_options.network_board = g_options.network_cabinets >= 2;
+   wrapper.SetNetworkBoard(g_options.network_board);
+   wrapper.SetNetworkCabinets(g_options.network_cabinets);
+}
+
+static bool lost_world_loaded(void)
+{
+   if (wrapper.getEmulator() == nullptr) return false;
+   const Game &game = wrapper.getGame();
+   return game.name == "lostwsga" || game.parent == "lostwsga";
+}
+
+// Shows the loaded game's generated options (NVRAM settings, Linked Cabinets, the
+// network role) and The Lost World's reload options; hides everything else.
+static void update_core_option_visibility(void)
+{
+   struct retro_core_option_display display = { nullptr, false };
+
+   const auto *linked_set = active_linked_cabinet_option_set();
+   const std::string linked_game = linked_set ? linked_set->game_name : "";
+   const bool managed = configured_network_role() != "-1";
+   const bool network_changed = g_visible_network_game != linked_game ||
+      g_visible_network_role_managed != static_cast<int>(managed);
+   if (network_changed)
+   {
+      for (const auto &option_set : g_linked_option_sets)
+         for (size_t index : { option_set.definition_index,
+                               option_set.automatic_definition_index })
+         {
+            display.key = g_registered_option_definitions[index].key;
+            display.visible = linked_game == option_set.game_name;
+            environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
+         }
+      for (const char *key : { "supermodel_network_cabinets_unsupported",
+                               "supermodel_automatic_network_unsupported" })
+      {
+         display = { key, linked_game.empty() };
+         environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
+      }
+      g_visible_network_game = linked_game;
+      g_visible_network_role_managed = managed;
+   }
+
+   const bool lost_world = lost_world_loaded();
+   if (g_visible_lost_world_options != static_cast<int>(lost_world))
+   {
+      for (const char *key : { "supermodel_offscreen_reload_shortcut",
+                               "supermodel_mouse_edge_offscreen_reload" })
+      {
+         display = { key, lost_world };
+         environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
+      }
+      g_visible_lost_world_options = lost_world;
+   }
+
    const bool enabled =
       strcmp(option_get("supermodel_nvram_settings", "disabled"),
              "enabled") == 0;
    const auto *active_set = active_nvram_option_set();
    const std::string active_game = active_set ? active_set->game_name : "";
    if (g_visible_nvram_enabled == static_cast<int>(enabled) &&
-       g_visible_nvram_game == active_game)
+       g_visible_nvram_game == active_game && !network_changed)
       return;
 
-   struct retro_core_option_display display = { nullptr, false };
    for (const auto &option_set : g_nvram_option_sets)
    {
       const bool game_visible =
@@ -233,14 +538,29 @@ static void update_nvram_option_visibility(void)
          const size_t index = option_set.definition_indices[i];
          if (index == std::numeric_limits<size_t>::max())
             continue;
+         // The managed link fields are written by the role option.
+         const bool link_field =
+            i == static_cast<unsigned>(LibretroNvramSettings::Setting::LinkMode) ||
+            i == static_cast<unsigned>(LibretroNvramSettings::Setting::LinkId);
          display.key = g_registered_option_definitions[index].key;
-         display.visible = game_visible;
+         display.visible = game_visible && !(managed && link_field);
          environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
       }
    }
 
    g_visible_nvram_enabled = enabled;
    g_visible_nvram_game = active_game;
+}
+
+// Called by RetroArch while its menu is open. Reading the options here would
+// clear the frontend's updated flag before retro_run() sees it, so keep it.
+static bool update_display_cb(void)
+{
+   bool updated = false;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+      g_core_options_update_pending = true;
+   update_core_option_visibility();
+   return true;
 }
 
 // GPU timer queries (double-buffered: write slot N, read slot N-1)
@@ -259,12 +579,13 @@ CoreOptions g_options = {
    /* initial_nvram_setup */ true,
    /* nvram_settings_enabled */ false,
    /* resolution_multiplier */ 1,
+   /* aspect_ratio         */ AspectRatioMode::Auto,
    /* widescreen           */ false,
    /* wide_background      */ false,
    /* upscale_mode         */ 2,
    /* no_white_flash       */ false,
    /* av_timing_mode       */ AVTimingMode::Default60Hz,
-   /* crosshairs           */ 0,
+   /* crosshairs           */ CROSSHAIRS_AUTOMATIC,
    /* force_feedback       */ true,
    /* steering_progressive */ false,
    /* steering_output_range */ 100,
@@ -287,14 +608,17 @@ CoreOptions g_options = {
    /* timing_overlay      */ false,
    /* driving_layout      */ DrivingLayout::TriggersHGate,
    /* gun_input           */ GunInput::Hybrid,
+   /* offscreen_trigger_reload */ true,
+   /* mouse_edge_offscreen_reload */ false,
    /* star_wars_input     */ StarWarsInput::Hybrid,
    /* star_wars_upright_x_inversion */ true,
    /* renderer_3d         */ Renderer3D::New3D,
    /* legacy_multi_texture */ false,
+   /* quad_rendering      */ false,
    /* crt_colors          */ 0,
    /* supersampling       */ 1,
-   /* network_board       */ true,
-   /* network_cabinets    */ 2,
+   /* network_board       */ false,
+   /* network_cabinets    */ 1,
 };
 
 // Optimization: Cache last known resolution to avoid redundant updates
@@ -331,8 +655,30 @@ static void get_maximum_video_dimensions(unsigned &max_width, unsigned &max_heig
    max_width = std::max(scaled_native_dimension(496), widescreen_width(max_height));
 }
 
+// The aspect ratio reported to the frontend: 16:9 for a wide frame (Widescreen
+// Hack) or when the 4:3 frame is to be stretched (Aspect Ratio 16:9).
+static float effective_aspect_ratio(void)
+{
+   return g_options.aspect_ratio == AspectRatioMode::SixteenNine || g_options.widescreen
+      ? (16.0f / 9.0f) : (4.0f / 3.0f);
+}
+
+// The Show Crosshairs mask for the loaded game. Automatic: player 1's in The Lost
+// World, whose gun needs an aim marker; none in L.A. Machineguns and The Ocean
+// Hunter, which draw their own.
+static unsigned effective_crosshair_mask(void)
+{
+   if (g_options.crosshairs != CROSSHAIRS_AUTOMATIC)
+      return g_options.crosshairs & 3u;
+   if (wrapper.getEmulator() == nullptr)
+      return 0u;
+   const Game &game = wrapper.getGame();
+   return game.name == "lostwsga" || game.parent == "lostwsga" ? 1u : 0u;
+}
+
 static unsigned last_width = 0;
 static unsigned last_height = 0;
+static float last_aspect_ratio = 0.0f;
 #define NVRAM_BUFFER_SIZE (0x20000 + 2048) 
 static uint8_t g_nvram_buffer[NVRAM_BUFFER_SIZE];
 static constexpr int32_t NVRAM_FILE_VERSION = 0;
@@ -551,6 +897,11 @@ static NvramPatchResult apply_initial_nvram_settings(void)
    const Game &game = wrapper.getGame();
 
    LibretroNvramSettings::Selection selection;
+   const auto country = LibretroNvramSettings::Setting::Country;
+   if (LibretroNvramSettings::GetSettingInfo(&game, country))
+      selection.values[static_cast<unsigned>(country)] =
+         LibretroNvramSettings::GetDefaultValue(&game, country);
+
    const auto link_mode = LibretroNvramSettings::Setting::LinkMode;
    if (LibretroNvramSettings::GetSettingInfo(&game, link_mode))
       selection.values[static_cast<unsigned>(link_mode)] =
@@ -627,26 +978,41 @@ static void initialize_new_nvram(void)
              game.name.c_str());
 }
 
-// Writes the values of the visible NVRAM Settings options into the loaded
-// game's NVRAM. Returns true when something changed.
+// Writes the values of the visible NVRAM Settings options, and the link role
+// chosen with Auto Network Role Settings, into the loaded game's NVRAM.
+// Returns true when something changed.
 static bool apply_configured_nvram_settings(void)
 {
-   if (!g_options.nvram_settings_enabled || wrapper.getEmulator() == nullptr)
+   if (wrapper.getEmulator() == nullptr)
       return false;
    const Game &game = wrapper.getGame();
 
    LibretroNvramSettings::Selection selection;
-   for (unsigned i = 0; i < kNvramSettingCount; ++i)
+   if (g_options.nvram_settings_enabled)
    {
-      const auto setting = static_cast<LibretroNvramSettings::Setting>(i);
-      const char *key = active_nvram_option_key(setting);
-      const char *default_value =
-         LibretroNvramSettings::GetDefaultValue(&game, setting);
-      const char *selected = key && default_value
-         ? option_get(key, default_value) : nullptr;
-      selection.values[i] = LibretroNvramSettings::IsValueSupported(
-            &game, setting, selected)
-         ? selected : default_value;
+      for (unsigned i = 0; i < kNvramSettingCount; ++i)
+      {
+         const auto setting = static_cast<LibretroNvramSettings::Setting>(i);
+         const char *key = active_nvram_option_key(setting);
+         const char *default_value =
+            LibretroNvramSettings::GetDefaultValue(&game, setting);
+         const char *selected = key && default_value
+            ? option_get(key, default_value) : nullptr;
+         selection.values[i] = LibretroNvramSettings::IsValueSupported(
+               &game, setting, selected)
+            ? selected : default_value;
+      }
+   }
+   // The role option owns the link fields while it is not Disabled, with or
+   // without NVRAM Settings.
+   const std::string preset = configured_network_role();
+   LibretroNvramSettings::Selection requested;
+   if (LibretroNvramSettings::ApplyAutomaticNetwork(&game, preset.c_str(), requested))
+   {
+      for (auto setting : { LibretroNvramSettings::Setting::LinkMode,
+                            LibretroNvramSettings::Setting::LinkId })
+         if (requested.Get(setting))
+            selection.values[static_cast<unsigned>(setting)] = requested.Get(setting);
    }
    if (!selection.HasAny())
       return false;
@@ -853,14 +1219,22 @@ unsigned retro_api_version(void)
 
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
-    log_cb(RETRO_LOG_INFO, "Plugging device %u into port %u\n", device, port);
+   log_cb(RETRO_LOG_INFO, "Plugging device %u into port %u\n", device, port);
+   if (port >= 2)
+      return;
+   // The core declares no device types, so the frontend offers RetroPad and
+   // None. Earlier builds declared a RetroPad subclass; accept it as a RetroPad.
+   if (device != RETRO_DEVICE_NONE &&
+       (device & RETRO_DEVICE_MASK) != RETRO_DEVICE_JOYPAD)
+      return;
+   g_joypad_enabled[port] = device != RETRO_DEVICE_NONE;
 }
 
 void retro_get_system_info(struct retro_system_info *info)
 {
    memset(info, 0, sizeof(*info));
    info->library_name     = "Supermodel";
-   info->library_version  = "v0.3a-libretro";
+   info->library_version  = "v0.3a";   // must match display_version in supermodel_libretro.info
    info->need_fullpath    = true;
    // GameLoader currently opens MAME-style ZIP sets. Do not advertise CHD or
    // 7z until the content path can actually consume those formats.
@@ -875,7 +1249,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.base_width   = output_width;
    info->geometry.base_height  = output_height;
    get_maximum_video_dimensions(info->geometry.max_width, info->geometry.max_height);
-   info->geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
+   info->geometry.aspect_ratio = effective_aspect_ratio();
 
    info->timing.fps         = wrapper.GetFramesPerSecond();
    info->timing.sample_rate = LibretroTiming::kAudioSampleRate;
@@ -959,7 +1333,9 @@ bool retro_load_game(const struct retro_game_info *info)
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
+   last_aspect_ratio = 0.0f;
    g_context_ready = false;
+   g_core_options_update_pending = false;
 
    // The selected renderer decides which OpenGL context to ask for, so the options
    // have to be read before SET_HW_RENDER.
@@ -993,9 +1369,11 @@ bool retro_load_game(const struct retro_game_info *info)
       hw_render.version_minor = 1;
    }
 #endif
-   log_cb(RETRO_LOG_INFO, "[Supermodel] 3D renderer: %s, OpenGL context %u.%u\n",
+   log_cb(RETRO_LOG_INFO, "[Supermodel] 3D renderer: %s, OpenGL context %u.%u%s\n",
           g_options.renderer_3d == Renderer3D::Legacy3D ? "Legacy3D" : "New3D",
-          hw_render.version_major, hw_render.version_minor);
+          hw_render.version_major, hw_render.version_minor,
+          g_options.renderer_3d == Renderer3D::New3D && g_options.quad_rendering
+             ? ", Quad Rendering" : "");
    if (!environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
        log_cb(RETRO_LOG_ERROR, "[Supermodel] HW Render Context negotiation failed.\n");
        return false;
@@ -1031,7 +1409,20 @@ bool retro_load_game(const struct retro_game_info *info)
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
    g_nvram_game = wrapper.getGame().name;
-   update_nvram_option_visibility();
+   // Known only now that the game is loaded, before the machine is built.
+   configure_network_topology();
+   update_core_option_visibility();
+   {
+      auto libretro_input =
+         std::static_pointer_cast<CLibretroInputSystem>(wrapper.getInputSystem());
+      if (libretro_input)
+      {
+         using GunSecondaryInput = CLibretroInputSystem::GunSecondaryInput;
+         libretro_input->SetGunSecondaryInput(
+            lost_world_loaded() ? GunSecondaryInput::Reload
+                                : GunSecondaryInput::AuxAOrReload);
+      }
+   }
    if (wrapper.NativeTimingUnavailable())
    {
       static const struct retro_message message = {
@@ -1040,7 +1431,7 @@ bool retro_load_game(const struct retro_game_info *info)
       environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
    }
    wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
-   wrapper.SetCrosshairs(g_options.crosshairs);
+   wrapper.SetCrosshairs(effective_crosshair_mask());
    wrapper.SetServiceOnSticks(g_options.service_on_sticks);
    if (wrapper.SuperModelInit(wrapper.getGame()) != 0)
    {
@@ -1076,9 +1467,10 @@ void retro_unload_game(void)
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
+   last_aspect_ratio = 0.0f;
    g_context_ready = false;
    g_nvram_game.clear();
-   update_nvram_option_visibility();
+   update_core_option_visibility();
    pgo_flush();   // RetroArch may never call retro_deinit before exiting
 }
 void retro_run(void)
@@ -1102,10 +1494,12 @@ void retro_run(void)
       return;
    }
 
-   // Check if options were changed
+   // Check if options were changed (also while the menu was open)
    bool options_updated = false;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &options_updated) && options_updated)
+   environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &options_updated);
+   if (options_updated || g_core_options_update_pending)
    {
+      g_core_options_update_pending = false;
       float old_multiplier = g_options.resolution_multiplier;
       bool old_widescreen = g_options.widescreen;
       bool old_wide_background = g_options.wide_background;
@@ -1118,6 +1512,7 @@ void retro_run(void)
       DrivingLayout old_driving_layout = g_options.driving_layout;
       Renderer3D old_renderer_3d = g_options.renderer_3d;
       bool old_legacy_multi_texture = g_options.legacy_multi_texture;
+      bool old_quad_rendering = g_options.quad_rendering;
       int old_crt_colors = g_options.crt_colors;
       int old_supersampling = g_options.supersampling;
       bool old_no_white_flash = g_options.no_white_flash;
@@ -1129,15 +1524,26 @@ void retro_run(void)
       unsigned old_network_cabinets = g_options.network_cabinets;
 
       update_core_options();
+      configure_network_topology();
       ppc_set_jit_enabled(g_options.jit_enable);
-      update_nvram_option_visibility();
+      update_core_option_visibility();
 
-      if (g_nvram_initialized && apply_configured_nvram_settings())
+      // Linked Cabinets and the NVRAM settings take effect at the next machine
+      // reset: do it now, as the standalone emulator would need a restart.
+      const bool network_changed =
+         g_options.network_board != old_network_board ||
+         (g_options.network_board &&
+          g_options.network_cabinets != old_network_cabinets);
+      const bool nvram_changed =
+         g_nvram_initialized && apply_configured_nvram_settings();
+      if ((network_changed || nvram_changed) && !g_first_run)
       {
-         static const struct retro_message message = {
-            "NVRAM settings saved. Restart content to apply them.", 180
-         };
-         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+         wrapper.Reset();
+         serialize_nvram();
+         update_star_wars_cabinet_orientation();
+         notify_frontend(network_changed
+            ? "Network settings applied; the machine was reset."
+            : "NVRAM settings applied; the machine was reset.");
       }
 
       if (g_options.widescreen != old_widescreen)
@@ -1155,6 +1561,7 @@ void retro_run(void)
       if (g_options.upscale_mode != old_upscale_mode ||
           g_options.renderer_3d != old_renderer_3d ||
           g_options.legacy_multi_texture != old_legacy_multi_texture ||
+          g_options.quad_rendering != old_quad_rendering ||
           g_options.crt_colors != old_crt_colors ||
           g_options.supersampling != old_supersampling ||
           g_options.no_white_flash != old_no_white_flash ||
@@ -1200,7 +1607,7 @@ void retro_run(void)
       }
 
       if (g_options.crosshairs != old_crosshairs)
-         wrapper.SetCrosshairs(g_options.crosshairs);
+         wrapper.SetCrosshairs(effective_crosshair_mask());
 
       if (g_options.driving_layout != old_driving_layout)
          wrapper.ApplyDrivingLayout();
@@ -1232,15 +1639,6 @@ void retro_run(void)
          // If we just disabled it, kill any active vibration immediately
          if (!g_options.force_feedback)
             libretroInput->StopAllRumble();
-      }
-
-      if (g_options.network_board != old_network_board ||
-          g_options.network_cabinets != old_network_cabinets)
-      {
-         static const struct retro_message message = {
-            "Network Board settings will apply after restarting the content.", 180
-         };
-         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
 
       // Turning it off applies immediately; turning it on needs the drive
@@ -1330,20 +1728,24 @@ void retro_run(void)
    unsigned view_w, view_h, target_w, target_h;
    get_video_dimensions(view_w, view_h, target_w, target_h);
 
-   // OPTIMIZATION: Only update screen size if it actually changed.
-   if (target_w != last_width || target_h != last_height) {
-      wrapper.UpdateScreenSize(view_w, view_h, target_w, target_h);
-      
+   // Only update the screen size and geometry when something actually changed.
+   const float target_aspect = effective_aspect_ratio();
+   if (target_w != last_width || target_h != last_height ||
+       target_aspect != last_aspect_ratio) {
+      if (target_w != last_width || target_h != last_height)
+         wrapper.UpdateScreenSize(view_w, view_h, target_w, target_h);
+
       struct retro_game_geometry geometry;
       geometry.base_width   = target_w;
       geometry.base_height  = target_h;
       get_maximum_video_dimensions(geometry.max_width, geometry.max_height);
-      geometry.aspect_ratio = g_options.widescreen ? (16.0f / 9.0f) : (4.0f / 3.0f);
+      geometry.aspect_ratio = target_aspect;
 
       environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
-      
+
       last_width  = target_w;
       last_height = target_h;
+      last_aspect_ratio = target_aspect;
    }
 
    Game game = wrapper.getGame();
@@ -1625,11 +2027,26 @@ bool retro_unserialize(const void* data, size_t size)
     write_save_state(legacyLayout, false, false);
 
     CBlockFileMemory mem(data, size);
-    const bool hasCurrentLayout = mem.ValidateLayout(currentLayout.GetLayout());
+    const auto matchesLayout = [&mem](const CBlockFileCounter &counter) {
+        auto layout = counter.GetLayout();
+        if (mem.ValidateLayout(layout))
+            return true;
+        // The wheel board's servo gain block is new; states saved before it
+        // are still complete without it.
+        const auto servo = std::find_if(layout.begin(), layout.end(),
+            [](const LibretroBlockLayout &block) {
+                return block.name == "WheelBoardServo";
+            });
+        if (servo == layout.end())
+            return false;
+        layout.erase(servo);
+        return mem.ValidateLayout(layout);
+    };
+    const bool hasCurrentLayout = matchesLayout(currentLayout);
     const bool hasStandaloneLayout = !hasCurrentLayout &&
-        mem.ValidateLayout(standaloneLayout.GetLayout());
+        matchesLayout(standaloneLayout);
     const bool hasLegacyLayout = !hasCurrentLayout && !hasStandaloneLayout &&
-        mem.ValidateLayout(legacyLayout.GetLayout());
+        matchesLayout(legacyLayout);
     if (!hasCurrentLayout && !hasStandaloneLayout && !hasLegacyLayout)
     {
         log_cb(RETRO_LOG_ERROR,
@@ -1704,6 +2121,8 @@ bool retro_unserialize(const void* data, size_t size)
         log_cb(RETRO_LOG_ERROR, "[Supermodel] Save State data ended unexpectedly while loading\n");
         return false;
     }
+    // The state carries its own NVRAM, cabinet type included.
+    update_star_wars_cabinet_orientation();
     return true;
 }
 
@@ -1783,12 +2202,23 @@ void retro_set_environment(retro_environment_t cb)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &vfs_iface_info))
       filestream_vfs_init(&vfs_iface_info);
 
-   // 2. Core options, including the generated per-game NVRAM settings
+   // 2. Core options, including the generated per-game NVRAM and network settings
    register_core_options();
+   struct retro_core_options_update_display_callback display_callback = {
+      update_display_cb
+   };
+   environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_UPDATE_DISPLAY_CALLBACK,
+              &display_callback);
+   g_visible_nvram_enabled = -1;
+   g_visible_nvram_game.clear();
+   g_visible_network_game.assign(1, '\1');
+   g_visible_network_role_managed = -1;
+   g_visible_lost_world_options = -1;
 
    // 3. Variable Update Check
    bool dummy = false;
    environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &dummy);
+   g_core_options_update_pending = false;
    
    // 4. Input Descriptors
    set_input_descriptors(g_options.service_on_sticks); 
@@ -1821,7 +2251,22 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 // --- Stubs (Unused) ---
 
-void retro_reset(void) { wrapper.Reset(); }
+void retro_reset(void)
+{
+   if (wrapper.getEmulator() == nullptr) return;
+   // Restart applies the pending option changes too, then resets once.
+   update_core_options();
+   configure_network_topology();
+   update_core_option_visibility();
+   if (g_nvram_initialized) apply_configured_nvram_settings();
+   wrapper.Reset();
+   if (g_nvram_initialized)
+   {
+      serialize_nvram();
+      update_star_wars_cabinet_orientation();
+   }
+   g_core_options_update_pending = false;
+}
 bool retro_load_game_special(unsigned, const struct retro_game_info *, size_t) { return false; }
 void retro_cheat_reset(void) {}
 void retro_cheat_set(unsigned, bool, const char *) {}

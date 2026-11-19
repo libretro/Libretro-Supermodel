@@ -96,7 +96,7 @@ namespace LibretroConfigProvider {
         #ifdef NET_BOARD
         // NetBoard: needed on every platform, the network board reads these.
         config.Set("Network", false, "Network");
-        config.Set("NetworkCabinets", 2u, "Network", 2u, 16u);
+        config.Set("NetworkCabinets", 1u, "Network", 1u, 17u);
         config.Set("SimulateNet", true, "Network");
         config.Set("PortIn", unsigned(1970), "Network");
         config.Set("PortOut", unsigned(1971), "Network");

@@ -1,0 +1,342 @@
+---
+schema_version: 1
+game:
+  set: eca
+  parent: eca
+  title: Emergency Call Ambulance
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 1
+      catalogue_position: 1
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, HARD, VERY HARD, VERY EASY, EASY
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 2
+      catalogue_position: 2
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-advertise-sound-000.png"
+        sha256: 5010e79aa2fbd88be69c822b88209cd96762aa6f9af7c82f75c57534d19c6f17
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-advertise-sound-001.png"
+        sha256: 7844178d646e235c6325517575f7758102eefc9fc5e68543f8af7d576edff73d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-advertise-sound-002.png"
+        sha256: 5010e79aa2fbd88be69c822b88209cd96762aa6f9af7c82f75c57534d19c6f17
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: mile_meter
+      label: Mile/Meter
+      native_label_raw: MILE/METER
+      position: 3
+      catalogue_position: 3
+      native_default: METER
+      implemented: false
+      values:
+      - METER
+      - MILE
+      photographed_cycle:
+      - METER
+      - MILE
+      - METER
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-mile-meter-000.png"
+        sha256: 1fd0bfcd03f8706648bb92e021646a6dd0c2180cbb0d3c895e3dd5b2681ed24b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-mile-meter-001.png"
+        sha256: 1ad529f7ebe949b18ae889edca9143862e7e89830794c2784fcd5b6b0711fbc6
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-mile-meter-002.png"
+        sha256: 1fd0bfcd03f8706648bb92e021646a6dd0c2180cbb0d3c895e3dd5b2681ed24b
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: game_over_color
+      label: Game Over Color
+      native_label_raw: GAME OVER COLOR
+      position: 4
+      catalogue_position: 4
+      native_default: RED
+      implemented: false
+      values:
+      - RED
+      - PURPLE
+      - YELLOW
+      - WHITE
+      - BLACK
+      - BLUE
+      - GREEN
+      - CYAN
+      photographed_cycle:
+      - RED
+      - PURPLE
+      - YELLOW
+      - WHITE
+      - BLACK
+      - BLUE
+      - GREEN
+      - CYAN
+      - RED
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-color-000.png"
+        sha256: 9443b33dbb33c047a738afa9d8586295a1409408f1d31535bf0ae52cc32e5c4e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-color-001.png"
+        sha256: bf4c607c1e51877fab012fd4fd393a4196c598428212a00200919eb1fc6f7e5b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-color-002.png"
+        sha256: d3546e6cf96caf321b474cae4ad8d9a40eb35e2354b5c6b99650ed1ff4920478
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-color-003.png"
+        sha256: 634006c801da2aea99eac793a09e91f8a5737622e8286c75ef057fdd8a386945
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-color-004.png"
+        sha256: ececa001d90f9c0889de3b12e6e1c2488475684c4a1e7d7cabae93cb37a89457
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-color-005.png"
+        sha256: 7bfb5706cdc6d21ef08f5930344c61719f167c0cc96a9d0ab38fb6c1f2532899
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-color-006.png"
+        sha256: f694be35f143a345d077a4dbaac2524ec889b01aa910f7f572d33d5118412867
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-color-007.png"
+        sha256: c032c437a46d297e16572154a126c7896e3a5f66c53742e944f771716f336533
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-color-008.png"
+        sha256: 9443b33dbb33c047a738afa9d8586295a1409408f1d31535bf0ae52cc32e5c4e
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: game_over_line
+      label: Game Over Line
+      native_label_raw: GAME OVER LINE
+      position: 5
+      catalogue_position: 5
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-line-000.png"
+        sha256: 4b92887a8ede2364046a9fa634cdad5192932925bcfc1a11a39b243a03bdb644
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-line-001.png"
+        sha256: 6e9fcc96df28a7db29b492a382756b10feadb26ae6a23b1b6d2df11b4bb76611
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-line-002.png"
+        sha256: 4b92887a8ede2364046a9fa634cdad5192932925bcfc1a11a39b243a03bdb644
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: game_over_sound
+      label: Game Over Sound
+      native_label_raw: GAME OVER SOUND
+      position: 6
+      catalogue_position: 6
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-sound-000.png"
+        sha256: 7324122135396eaec182a74beb1eadcbe91d9aa99e992404e7384886312f078a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-sound-001.png"
+        sha256: 8982e5506cf513fccc33f1ac37bb307711fbf598ca76834ebe199397ebec3c30
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-game-over-sound-002.png"
+        sha256: 7324122135396eaec182a74beb1eadcbe91d9aa99e992404e7384886312f078a
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: siren_volume
+      label: Siren Volume
+      native_label_raw: SIREN VOLUME
+      position: 7
+      catalogue_position: 7
+      native_default: '7'
+      implemented: false
+      values:
+      - '7'
+      - MIN
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      photographed_cycle:
+      - '7'
+      - MIN
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-siren-volume-000.png"
+        sha256: 1413b3d352ddb5034af6c3112234a2bf75fd6bf78144d273512253e1f59473dc
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-siren-volume-001.png"
+        sha256: 241fe1795e9af70b07dcb7526a893fc1f3a418d5aede0b806932788473f31f52
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-siren-volume-002.png"
+        sha256: e9bc1a63271f42b942757d6c878a6200e9d46032fd9ce0c8f5c3204f4b2e2720
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-siren-volume-003.png"
+        sha256: 65dfa536de2a9391a78a0ad99b4a5d9183969d1618c8156ac1e82c7ddb3ad134
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-siren-volume-004.png"
+        sha256: de9c1a73e21b2e5a082e7d19c606f9b867819d93e4bb35ddf3a1d172163268da
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-siren-volume-005.png"
+        sha256: b93b6e6c9afdd6681f0f11ce2e7d3633b1ea20940e2b7779ebc6232b43e735cb
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-siren-volume-006.png"
+        sha256: 8b1b858a61430e4890d6398e940884f8f0f4b05840165227fcb8a59089126a2c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-siren-volume-007.png"
+        sha256: 7a820e11d78f65d912a75f369f56942a4578c4e3cc8e165154415fb9a39cfb52
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-siren-volume-008.png"
+        sha256: 1413b3d352ddb5034af6c3112234a2bf75fd6bf78144d273512253e1f59473dc
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: steering_reaction
+      label: Steering Reaction
+      native_label_raw: STEERING REACTION
+      position: 8
+      catalogue_position: 8
+      native_default: '4'
+      implemented: false
+      values:
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      - 'OFF'
+      - '1'
+      - '2'
+      - '3'
+      photographed_cycle:
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      - 'OFF'
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-steering-reaction-000.png"
+        sha256: 6f3cd46aee5a6a17112f714e57e1dc249ae05eca64869641a1566ff9b04f96ba
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-steering-reaction-001.png"
+        sha256: aefec9ad7b7b5e7e1017e14b1f6ff50582531a13d3899b287e550592fb87ee03
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-steering-reaction-002.png"
+        sha256: bf6a32d3e65e4db423b9fc820dab84b619db0cceadf3510b0d724b9f68c3ddc8
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-steering-reaction-003.png"
+        sha256: c4561dad2e94661e111d9935081449592d84c35fcd4d7bdba87b280b86981cc2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-steering-reaction-004.png"
+        sha256: '0491b8d7acfc8d831631e04a1f3ff291c105c1feb5050bf02142b6037b443d3c'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-steering-reaction-005.png"
+        sha256: d539a6fe61cc8666ebd7fd0f4c57859bab7f14c1b0b3338da2b56891b308a0b5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-steering-reaction-006.png"
+        sha256: 78ca76354ea1ae6cf1ba2632668cb7dd241a2cc895719739ac279ae002414cc8
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-steering-reaction-007.png"
+        sha256: 92e2a02b12713fd99331deed73bb7779f04ecaf3b32de82f8e46f5948a9ae813
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-steering-reaction-008.png"
+        sha256: 6f3cd46aee5a6a17112f714e57e1dc249ae05eca64869641a1566ff9b04f96ba
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: gear_lever
+      label: Gear Lever
+      native_label_raw: GEAR LEVER
+      position: 9
+      catalogue_position: 9
+      native_default: UP/DOWN
+      implemented: false
+      values:
+      - UP/DOWN
+      - 4-SPEED
+      photographed_cycle:
+      - UP/DOWN
+      - 4-SPEED
+      - UP/DOWN
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-gear-lever-000.png"
+        sha256: cb9dcd5bf065a2e59c93f396e61e2c87101d892367b67c13342e93f311bf4977
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-gear-lever-001.png"
+        sha256: 7bee8a1934853a7aecabce2350ec0724d7a9e8f79dd9ef26316127e127b6e0ae
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-gear-lever-002.png"
+        sha256: cb9dcd5bf065a2e59c93f396e61e2c87101d892367b67c13342e93f311bf4977
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: tournament_mode
+      label: Tournament Mode
+      native_label_raw: TOURNAMENT MODE
+      position: 10
+      catalogue_position: 10
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-tournament-mode-000.png"
+        sha256: 459f58318832a669469d00a4d090d60a8ec2d6af8d630ba2a364f29225a19692
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-tournament-mode-001.png"
+        sha256: 32a63b6e8398a9c490d00ed4186d9adc47c9c9d8717185cdf454e25fca51c1a5
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/eca/screenshots/eca-20261018-cycle-tournament-mode-002.png"
+        sha256: 459f58318832a669469d00a4d090d60a8ec2d6af8d630ba2a364f29225a19692
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested

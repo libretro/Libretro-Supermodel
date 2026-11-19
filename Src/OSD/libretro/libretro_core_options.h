@@ -65,47 +65,6 @@ static struct retro_core_option_v2_definition option_defs[] = {
       },
       "disabled"
    },
-   {
-      "supermodel_network_board",
-      "Network Board",
-      NULL,
-      "Connect the Model 3 network board, equivalent to the standalone Network setting. Some games show their network settings in the Service Menu only while the board is connected. Experimental linked play through RetroArch Netplay is available for Daytona USA 2, Dirt Devils, Harley-Davidson, Le Mans 24, Scud Race, Sega Rally 2, Ski Champ, Spikeout, Spikeout Final Edition and Virtual On 2. Set each cabinet's link role in the game's Service Menu: the RetroArch host must be the Master and clients a Slave (Type 2 games may also use a Satellite role), and every cabinet needs its own car or machine number. Requires restarting the content.",
-      NULL,
-      "system",
-      {
-         { "enabled",  "Connected" },
-         { "disabled", "Disconnected" },
-         { NULL, NULL },
-      },
-      "enabled"
-   },
-   {
-      "supermodel_network_cabinets",
-      "Linked Cabinets",
-      NULL,
-      "Set the total number of Model 3 cabinets expected in the RetroArch Netplay session. The host waits for this exact number before starting the emulated cabinet link. Every instance must use the same value. Start the host before its clients. Two- and three-cabinet sessions have been tested; larger values remain experimental. Requires restarting the content.",
-      NULL,
-      "system",
-      {
-         { "2",  "2 Cabinets (Default)" },
-         { "3",  "3 Cabinets" },
-         { "4",  "4 Cabinets" },
-         { "5",  "5 Cabinets" },
-         { "6",  "6 Cabinets" },
-         { "7",  "7 Cabinets" },
-         { "8",  "8 Cabinets" },
-         { "9",  "9 Cabinets" },
-         { "10", "10 Cabinets" },
-         { "11", "11 Cabinets" },
-         { "12", "12 Cabinets" },
-         { "13", "13 Cabinets" },
-         { "14", "14 Cabinets" },
-         { "15", "15 Cabinets" },
-         { "16", "16 Cabinets" },
-         { NULL, NULL },
-      },
-      "2"
-   },
    // Video
    {
       "supermodel_resolution",
@@ -186,6 +145,22 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "disabled"
    },
 #endif
+#ifdef HAVE_QUAD_RENDERING
+   {
+      "supermodel_quad_rendering",
+      "Quad Rendering",
+      NULL,
+      "New3D only. Render the Model 3's quadrilaterals as quads, through a geometry shader, instead of splitting them into two triangles. Requires restarting the content.",
+      NULL,
+      "video",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+#endif
 #ifdef HAVE_CRT_COLOURS
    {
       "supermodel_crt_colors",
@@ -228,6 +203,21 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "1"
    },
 #endif
+   {
+      "supermodel_aspect_ratio",
+      "Aspect Ratio",
+      NULL,
+      "Auto follows the Widescreen Hack: 16:9 while it is on, 4:3 otherwise. 4:3 keeps the original image and ignores the Widescreen Hack. 16:9 with the Widescreen Hack off stretches the 4:3 image to fill a wide screen. Applies while the game runs.",
+      NULL,
+      "video",
+      {
+         { "auto", "Auto" },
+         { "4_3",  "4:3" },
+         { "16_9", "16:9" },
+         { NULL, NULL },
+      },
+      "auto"
+   },
    {
       "supermodel_wide_screen",
       "Widescreen Hack",
@@ -275,17 +265,18 @@ static struct retro_core_option_v2_definition option_defs[] = {
       "supermodel_crosshairs",
       "Show Crosshairs",
       NULL,
-      "Select which native Supermodel crosshair is displayed in light gun games.",
+      "Select which native Supermodel crosshair is displayed in light gun games. Automatic shows player 1's in The Lost World, whose gun needs an aim marker, and none in L.A. Machineguns and The Ocean Hunter, which draw their own.",
       NULL,
       "video",
       {
+         { "auto", "Automatic" },
          { "0", "Disabled" },
          { "1", "Player 1 Only" },
          { "2", "Player 2 Only" },
          { "3", "Players 1 & 2" },
          { NULL, NULL },
       },
-      "0"
+      "auto"
    },
    // Input
    {
@@ -334,6 +325,34 @@ static struct retro_core_option_v2_definition option_defs[] = {
          { NULL, NULL },
       },
       "hybrid"
+   },
+   {
+      "supermodel_offscreen_reload_shortcut",
+      "The Lost World: Off-Screen Reload Shortcut",
+      NULL,
+      "The Lost World reloads by shooting off-screen, which a real light gun does by itself. With the shortcut, the Lightgun Reload input, the right mouse button and the pad's A button (or L when the shoulders are not Test/Service) also fire an off-screen shot without aiming away. Changes take effect immediately.",
+      NULL,
+      "input",
+      {
+         { "enabled",  NULL },
+         { "disabled", NULL },
+         { NULL, NULL },
+      },
+      "enabled"
+   },
+   {
+      "supermodel_mouse_edge_offscreen_reload",
+      "The Lost World: Mouse Edge Reload",
+      NULL,
+      "A mouse shot within 5% of the screen edge counts as an off-screen reload. Changes take effect immediately.",
+      NULL,
+      "input",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
    },
    {
       "supermodel_star_wars_input",
@@ -657,14 +676,8 @@ void update_core_options(void)
       strcmp(option_get("supermodel_nvram_settings", "disabled"),
              "enabled") == 0;
 
-   g_options.network_board =
-      strcmp(option_get("supermodel_network_board", "enabled"),
-             "enabled") == 0;
-
-   g_options.network_cabinets = static_cast<unsigned>(
-      atoi(option_get("supermodel_network_cabinets", "2")));
-   if (g_options.network_cabinets < 2 || g_options.network_cabinets > 16)
-      g_options.network_cabinets = 2;
+   // network_board and network_cabinets are derived from the per-game Linked
+   // Cabinets option in libretro.cpp (configure_network_topology).
 
    const char* resolution = option_get("supermodel_resolution", "native");
    if (strcmp(resolution, "half") == 0)
@@ -681,9 +694,16 @@ void update_core_options(void)
    g_options.timing_overlay = strcmp(option_get("supermodel_timing_overlay", "disabled"), "enabled") == 0;
 
    {
+      const char *aspect = option_get("supermodel_aspect_ratio", "auto");
+      g_options.aspect_ratio = strcmp(aspect, "4_3") == 0  ? AspectRatioMode::FourThree
+                             : strcmp(aspect, "16_9") == 0 ? AspectRatioMode::SixteenNine
+                                                           : AspectRatioMode::Auto;
       const char *widescreen = option_get("supermodel_wide_screen", "disabled");
-      g_options.widescreen = strcmp(widescreen, "disabled") != 0;
-      g_options.wide_background = strcmp(widescreen, "wide_background") == 0;
+      // 4:3 overrides the hack: the 3D view is not widened for a 4:3 frame.
+      g_options.widescreen = strcmp(widescreen, "disabled") != 0 &&
+                             g_options.aspect_ratio != AspectRatioMode::FourThree;
+      g_options.wide_background = g_options.widescreen &&
+                                  strcmp(widescreen, "wide_background") == 0;
    }
 #if defined(USE_LEGACY3D)
    g_options.renderer_3d = Renderer3D::Legacy3D;
@@ -699,6 +719,12 @@ void update_core_options(void)
       strcmp(option_get("supermodel_legacy_multi_texture", "disabled"), "enabled") == 0;
 #else
    g_options.legacy_multi_texture = false;
+#endif
+#ifdef HAVE_QUAD_RENDERING
+   g_options.quad_rendering =
+      strcmp(option_get("supermodel_quad_rendering", "disabled"), "enabled") == 0;
+#else
+   g_options.quad_rendering = false;
 #endif
 #ifdef HAVE_CRT_COLOURS
    g_options.crt_colors = atoi(option_get("supermodel_crt_colors", "0"));
@@ -726,10 +752,11 @@ void update_core_options(void)
    if (g_options.upscale_mode < 0 || g_options.upscale_mode > 3)
       g_options.upscale_mode = 2;
    {
-      const char *crosshairs = option_get("supermodel_crosshairs", "0");
+      const char *crosshairs = option_get("supermodel_crosshairs", "auto");
       // Accept the values used by earlier builds so an existing .opt file
       // cannot leave the option in an undefined state.
-      g_options.crosshairs = strcmp(crosshairs, "enabled") == 0 ? 3u
+      g_options.crosshairs = strcmp(crosshairs, "auto") == 0 ? CROSSHAIRS_AUTOMATIC
+                           : strcmp(crosshairs, "enabled") == 0 ? 3u
                            : strcmp(crosshairs, "disabled") == 0 ? 0u
                            : static_cast<unsigned>(atoi(crosshairs)) & 3u;
    }
@@ -755,6 +782,10 @@ void update_core_options(void)
                           : strcmp(gun_input, "mouse_analog") == 0 ? GunInput::MouseAnalog
                           : strcmp(gun_input, "analog") == 0   ? GunInput::AnalogSticks
                           : GunInput::Hybrid;
+      g_options.offscreen_trigger_reload =
+         strcmp(option_get("supermodel_offscreen_reload_shortcut", "enabled"), "enabled") == 0;
+      g_options.mouse_edge_offscreen_reload =
+         strcmp(option_get("supermodel_mouse_edge_offscreen_reload", "disabled"), "enabled") == 0;
       const char *star_wars_input = option_get("supermodel_star_wars_input", "hybrid");
       g_options.star_wars_input = strcmp(star_wars_input, "lightgun") == 0 ? StarWarsInput::Lightgun
                                 : strcmp(star_wars_input, "mouse_analog") == 0 ? StarWarsInput::MouseAnalog

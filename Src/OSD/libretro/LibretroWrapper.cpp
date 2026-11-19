@@ -45,6 +45,7 @@
 #include "libretroCrosshair.h"
 #include "LibretroWrapper.h"
 #include "CLibretroInputSystem.h"
+void ResetLibretroAudio();   // libretroAudio.cpp
 #include "CLibretroOutputSystem.h"
 #include "libretroGui.h"
 #include "LibretroConfigProvider.h"
@@ -547,6 +548,8 @@ int LibretroWrapper::SuperModelInit(const Game &game) {
 
   totalXRes = xRes = s_runtime_config["XResolution"].ValueAs<unsigned>();
   totalYRes = yRes = s_runtime_config["YResolution"].ValueAs<unsigned>();
+  // A new content load starts with no margins from the previous wide viewport.
+  xOffset = yOffset = 0;
   snprintf(baseTitleStr, sizeof(baseTitleStr), "Supermodel - %s", game.title.c_str());
 
   SetAudioType(game.audio);
@@ -841,7 +844,14 @@ void LibretroWrapper::Reset()
     if (!Model3)
         return;
     if (!paused) Model3->PauseThreads();
+    // Drive board effects do not survive the reset; neither should the motors.
+    auto libretroInput = std::static_pointer_cast<CLibretroInputSystem>(m_inputSystem);
+    if (libretroInput) libretroInput->StopAllRumble();
     Model3->Reset();
+    // Start the audio queue afresh: the sound board restarts from silence and the
+    // frames queued before the reset would otherwise play first.
+    ResetLibretroAudio();
+    m_audioFrameRemainder = 0;
     if (!paused) Model3->ResumeThreads();
     InfoLog("Model 3 reset.");
 }
@@ -941,6 +951,8 @@ int LibretroWrapper::Emulate(const char* romPath)
         s_runtime_config.Get("New3DEngine").SetValue(g_options.renderer_3d == Renderer3D::New3D);
         s_runtime_config.Get("MultiTexture").SetValue(
             g_options.renderer_3d == Renderer3D::Legacy3D && g_options.legacy_multi_texture);
+        s_runtime_config.Get("QuadRendering").SetValue(
+            g_options.renderer_3d == Renderer3D::New3D && g_options.quad_rendering);
         s_runtime_config.Get("Supersampling").SetValue(g_options.supersampling);
         s_runtime_config.Get("NoWhiteFlash").SetValue(g_options.no_white_flash);
         // Sound emulation is fixed for the session: Model3 reads EmulateSound
@@ -1128,6 +1140,27 @@ void LibretroWrapper::SetCrosshairs(unsigned mask)
     }
     catch (const std::range_error&) {
         s_runtime_config.Add("Crosshairs").SetValue(static_cast<int>(mask));
+    }
+}
+
+void LibretroWrapper::SetNetworkBoard(bool connected)
+{
+    try {
+        s_runtime_config.Get("Network").SetValue(connected);
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("Network").SetValue(connected);
+    }
+}
+
+void LibretroWrapper::SetNetworkCabinets(unsigned cabinets)
+{
+    cabinets = std::max(1u, std::min(17u, cabinets));
+    try {
+        s_runtime_config.Get("NetworkCabinets").SetValue(cabinets);
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("NetworkCabinets").SetValue(cabinets);
     }
 }
 

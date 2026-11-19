@@ -1,0 +1,274 @@
+---
+schema_version: 1
+game:
+  set: lemans24
+  parent: lemans24
+  title: Le Mans 24
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: game_difficulty
+      label: Game Difficulty
+      native_label_raw: GAME DIFFICULTY
+      position: 1
+      catalogue_position: 1
+      native_default: barra 8 / 16
+      implemented: true
+      observed_values_raw: barre da 1 / 16 a 16 / 16
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 2
+      catalogue_position: 2
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-advertise-sound-000.png"
+        sha256: '02851f1484a2f16ba9bfaecfc7c101f6468a7c128d57892e2ff4134e007fc9b4'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-advertise-sound-001.png"
+        sha256: 15c585dbe2b5463c99cb081bcc4057dc8975d3152ef312955ec4a2e859cd9468
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-advertise-sound-002.png"
+        sha256: '02851f1484a2f16ba9bfaecfc7c101f6468a7c128d57892e2ff4134e007fc9b4'
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: cabinet_type
+      label: Cabinet Type
+      native_label_raw: CABINET TYPE
+      position: 3
+      catalogue_position: 3
+      native_default: TWIN-LEMANS
+      implemented: true
+      observed_values_raw: TWIN-LEMANS, TWIN-NORMAL
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: communication_mode
+      label: Communication Mode
+      native_label_raw: COMMUNICATION MODE
+      position: 4
+      catalogue_position: 4
+      native_default: NO LINK
+      implemented: true
+      observed_values_raw: NO LINK, MASTER, SLAVE
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: motor_drive
+      label: Motor Drive
+      native_label_raw: MOTOR DRIVE
+      position: 5
+      catalogue_position: 5
+      native_default: 80%
+      implemented: false
+      values:
+      - 80%
+      - 90%
+      - 100%
+      - 50%
+      - 60%
+      - 70%
+      photographed_cycle:
+      - 80%
+      - 90%
+      - 100%
+      - 50%
+      - 60%
+      - 70%
+      - 80%
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-motor-drive-000.png"
+        sha256: 0b1470ff0d4ed2373e1e55d4aca3a8f4823ac2e7ce11f61358dce4d47f84c4ef
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-motor-drive-001.png"
+        sha256: a4f531db5c2fd1da36a82732688470d398dc776ca82bfd1b6190512dd5c24752
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-motor-drive-002.png"
+        sha256: 4c2970a2a55b56ccd2af3de9113b13c022d899df71fd3ee2fd42225352e8ee2f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-motor-drive-003.png"
+        sha256: 39f69d20dba2570c625ddaf6177c0154a48cf2bcb98eae6dfe7016777804888c
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-motor-drive-004.png"
+        sha256: 5470e2d754bd1a04aee2161942bd3b9c148138b64b2bcac4f349059e13188b57
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-motor-drive-005.png"
+        sha256: a53080557d5581e9e89356fbbb87e29af45d14cd0b7d52c4356e6182866b5e4d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-motor-drive-006.png"
+        sha256: 0b1470ff0d4ed2373e1e55d4aca3a8f4823ac2e7ce11f61358dce4d47f84c4ef
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: special_car
+      label: Special Car
+      native_label_raw: SPECIAL CAR
+      position: 6
+      catalogue_position: 6
+      native_default: NONE
+      implemented: true
+      observed_values_raw: NONE, MCLAREN, SKYLINE, FERRARI, PORSCHE, MAZDA, ZAUBER
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: default_time
+      label: Default Time
+      native_label_raw: DEFAULT TIME
+      position: 7
+      catalogue_position: 7
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - HARD
+      - HARDEST
+      - EASY
+      photographed_cycle:
+      - NORMAL
+      - HARD
+      - HARDEST
+      - EASY
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-default-time-000.png"
+        sha256: f84abffeb277218e5277224d97a7c59f88d649a9144ebe0f3109208692b798e1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-default-time-001.png"
+        sha256: 2078d9c52a3c96bffbc9866e86adacd58dc7422783be56960a09c3214f5ab330
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-default-time-002.png"
+        sha256: 0bc059312fd223935b790b05f4c20a396fc14af558882646322e55f809b0c3ad
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-default-time-003.png"
+        sha256: efa1a84788e1cf806f3f25c34b58280c2e559101b491095fa9ceb60790c8e159
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-default-time-004.png"
+        sha256: f84abffeb277218e5277224d97a7c59f88d649a9144ebe0f3109208692b798e1
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: continue_time
+      label: Continue Time
+      native_label_raw: CONTINUE TIME
+      position: 8
+      catalogue_position: 8
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - HARD
+      - HARDEST
+      - EASY
+      photographed_cycle:
+      - NORMAL
+      - HARD
+      - HARDEST
+      - EASY
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-continue-time-000.png"
+        sha256: 1adde5add4134fda82002d65b65271e46bbcffc6f7802356c9ca32c7d6503d71
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-continue-time-001.png"
+        sha256: a756663ce0635fd6cd7b226fabc592b099113bd993c47111b393c100389ccf94
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-continue-time-002.png"
+        sha256: c787eb15676ab7a6c43b193f36b29c3576fb03328dc423352f588cabbb43044b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-continue-time-003.png"
+        sha256: ffb4b336cb13479cc340baeef6d80b7d7be445b907e73fc507d72dbdc8f46a63
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-continue-time-004.png"
+        sha256: 1adde5add4134fda82002d65b65271e46bbcffc6f7802356c9ca32c7d6503d71
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: goal_time
+      label: Goal Time
+      native_label_raw: GOAL TIME
+      position: 9
+      catalogue_position: 9
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - LONG
+      - LONGEST
+      - SHORT
+      photographed_cycle:
+      - NORMAL
+      - LONG
+      - LONGEST
+      - SHORT
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-goal-time-000.png"
+        sha256: 5cd22e45c6155cf91413bbf45964ff49857ba3f4a790a544b1d5d8323ea4859b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-goal-time-001.png"
+        sha256: 2b4d27282775ab2bf21882d684390be17bc3d21bb87c1f83efc5a761aff25e13
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-goal-time-002.png"
+        sha256: 92ea97526caccd5b847232ec9f6aff4b5ee4d9c540de490905c1b4cb6808e449
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-goal-time-003.png"
+        sha256: fc2e48f486b535229ec1fe868bb8123e801ced8fcca0cf8b8aba1e4fada554b7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/lemans24/screenshots/lemans24-20261018-cycle-goal-time-004.png"
+        sha256: 5cd22e45c6155cf91413bbf45964ff49857ba3f4a790a544b1d5d8323ea4859b
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: cabinet_number
+      label: Cabinet Number
+      native_label_raw: CABINET NUMBER
+      position: 10
+      catalogue_position: 10
+      native_default: '1'
+      implemented: true
+      observed_values_raw: 1, 2, 3, 4, SATELLITE
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 11
+      native_default: JAPAN
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      observed_values_raw: JAPAN, USA, EXPORT, AUSTRALIA
+      historical_photo_evidence: base + ciclo completo in Country Select Mode
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

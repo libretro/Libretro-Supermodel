@@ -7,6 +7,15 @@
 class CLibretroInputSystem : public CInputSystem
 {
 public:
+    // What the gun's second button means. Most gun games have a second trigger
+    // (AUX_A, with Reload as an alias). The Lost World has one trigger and reloads
+    // by shooting off-screen, so there its second button is an off-screen shot.
+    enum class GunSecondaryInput
+    {
+        Reload,
+        AuxAOrReload
+    };
+
     CLibretroInputSystem();
     virtual ~CLibretroInputSystem() override;
 
@@ -28,6 +37,7 @@ public:
     virtual const MouseDetails *GetMouseDetails(int mseNum) override;
     virtual void SetMouseVisibility(bool visible) override;
     void SetServiceOnSticks(bool enabled) { m_serviceOnSticks = enabled; }
+    void SetGunSecondaryInput(GunSecondaryInput input) { m_gunSecondaryInput = input; }
     virtual int GetNumJoysticks() const override { return 2; }
     virtual int GetJoyAxisValue(int joyNum, int axisNum) const override;
     virtual bool IsJoyPOVInDir(int joyNum, int povNum, int povDir) const override;
@@ -73,6 +83,7 @@ private:
     bool m_port2LightgunDistinct;    // port 2 light gun proved to be a separate device
 
     bool m_serviceOnSticks = false;
+    GunSecondaryInput m_gunSecondaryInput = GunSecondaryInput::AuxAOrReload;
     retro_rumble_interface m_rumbleInterface;
     bool m_ffbEnabled = false; // Guard flag
     // Gamepad rumble state per port, as in standalone Supermodel's XInput
