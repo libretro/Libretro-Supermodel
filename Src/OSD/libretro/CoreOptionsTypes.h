@@ -1,89 +1,112 @@
 #ifndef SUPERMODEL_CORE_OPTIONS_TYPES_H
 #define SUPERMODEL_CORE_OPTIONS_TYPES_H
 
-enum class GunInput {
-   Hybrid,        // RetroLightgun, RetroMouse and RetroPad share one cursor
-   Lightgun,      // RetroLightgun, absolute screen coordinates
-   Mouse,         // RetroMouse, relative movement
-   MouseAnalog,   // Hybrid variant that excludes RetroLightgun input
-   AnalogSticks   // RetroPad left stick controlling a relative cursor
+// Pad layout for driving games. L/R always shift sequentially and L2/R2 are the pedals.
+// The optional layouts only decide whether the right stick also acts as a shifter.
+enum class DrivingLayout {
+   Default,            // right stick free
+   TriggersGate,       // gears 1-4 on the right stick
+   TriggersSequential, // sequential shift on the right stick
+   TriggersHGate       // gears 1-4 on the right stick diagonals (H-pattern)
 };
 
-enum class StarWarsInput {
-   Hybrid,        // RetroLightgun, RetroMouse or absolute RetroPad stick
-   Lightgun,      // RetroLightgun absolute screen coordinates
-   Mouse,         // RetroMouse relative movement
-   MouseAnalog,   // Hybrid variant that excludes RetroLightgun input
-   AnalogSticks   // RetroPad left stick as an absolute arcade yoke
-};
-
-enum class WidescreenMode {
-   Disabled,
-   Widescreen,
-   WidescreenWideBackground
-};
-
-enum class AVTimingMode {
-   Default60Hz,
-   Native57524Hz
-};
+// Renderer capabilities behind the 3D Renderer, CRT Colour and Supersampling options.
+// HAVE_LEGACY3D comes from the Makefile (Legacy3D sources in the build). The SuperAA
+// pass (CRT colour, supersampling) is only validated on desktop OpenGL.
+// New3D's native quad path is a geometry shader written for desktop OpenGL 4.1.
+#if !defined(ANDROID) && !defined(CORE_GLES) && !defined(HAVE_OPENGLES)
+#define HAVE_CRT_COLOURS
+#define HAVE_SUPERSAMPLING
+#define HAVE_QUAD_RENDERING
+#endif
 
 enum class Renderer3D {
    New3D,
    Legacy3D
 };
 
-enum class SteeringResponse {
-   Linear,
-   Progressive,
-   FBNeoLogarithmic
+// Displayed aspect ratio. Auto follows the Widescreen Hack: 16:9 when it is on, 4:3
+// otherwise. 4:3 also disables the widescreen expansion; 16:9 with the hack off
+// stretches the 4:3 image.
+enum class AspectRatioMode {
+   Auto,
+   FourThree,
+   SixteenNine
 };
 
+// Crosshairs value meaning "decide per game": The Lost World gets player 1's.
+constexpr unsigned CROSSHAIRS_AUTOMATIC = 4u;
+
+// Source of the per-player virtual gun cursors (Supermodel MOUSE5/MOUSE6).
+enum class GunInput {
+   Hybrid,        // RetroLightgun, RetroMouse or left stick; the last one moved wins
+   Lightgun,      // RetroLightgun, absolute screen coordinates
+   MouseAnalog,   // RetroMouse or left stick (Hybrid without RetroLightgun)
+   Mouse,         // RetroMouse, relative movement
+   AnalogSticks   // RetroPad left stick moving a relative cursor
+};
+
+// Video cadence reported to the frontend (restart-dependent).
+enum class AVTimingMode {
+   Default60Hz,      // 60 Hz, as standalone Supermodel's default RefreshRate
+   Native57524Hz     // the real Model 3 refresh rate (standalone -true-hz)
+};
+
+// Source of the Star Wars Trilogy yoke (Supermodel MOUSE7).
+enum class StarWarsInput {
+   Hybrid,        // light gun, mouse or absolute RetroPad stick, last moved wins
+   Lightgun,      // RetroLightgun absolute coordinates (mouse as fallback)
+   MouseAnalog,   // mouse or absolute RetroPad stick (Hybrid without light gun)
+   Mouse,         // RetroMouse relative movement
+   AnalogSticks   // RetroPad left stick as an absolute arcade yoke
+};
+
+// Supermodel MultiThreaded / GPUMultiThreaded (read when the content starts).
 enum class EmulationThreading {
    SingleThread,
-   MultiThreaded,
-   MultiThreadedGPU
-};
-
-enum class FourSpeedShifter {
-   Standard,  // each right-stick half-axis selects one gear directly
-   HGate      // right-stick diagonals reproduce a four-position H-pattern
+   MultiThreaded,      // sound and drive boards on worker threads
+   MultiThreadedGPU    // also overlaps PowerPC emulation with rendering
 };
 
 struct CoreOptions {
    bool initial_nvram_setup;
-   bool network_board;
-   unsigned network_cabinets;
-   bool nvram_settings_enabled;
+   bool nvram_settings_enabled;   // per-game NVRAM Settings options are applied at start
    float resolution_multiplier;
-   Renderer3D renderer_3d;
-   bool legacy_multi_texture;
-   bool quad_rendering;
-   int crt_colors;
-   int supersampling;
-   int upscale_mode;
-   WidescreenMode widescreen_mode;
-   bool no_white_flash;
+   AspectRatioMode aspect_ratio;
+   bool widescreen;
+   bool wide_background;     // stretch the lower 2D layer too (needs widescreen)
+   int upscale_mode;         // Supermodel UpscaleMode: 0=Nearest 1=Biquintic 2=Bilinear 3=Bicubic
+   bool no_white_flash;      // Supermodel NoWhiteFlash: no white screen while 3D is disabled
    AVTimingMode av_timing_mode;
-   unsigned crosshairs;      // native Supermodel mask: 0=off, 1=P1, 2=P2, 3=both
+   unsigned crosshairs;      // Supermodel mask 0=off, 1=P1, 2=P2, 3=both, or CROSSHAIRS_AUTOMATIC
    bool force_feedback;
-   SteeringResponse steering_response;
-   int steering_output_range;
+   bool steering_progressive;             // driving: quadratic fine-center steering curve
+   int steering_output_range;             // driving: percent, 50..150
    int accelerator_output_range_per_mille;
    int brake_output_range_per_mille;
    int sound_volume;
    int music_volume;
-   bool legacy_sound_dsp;
+   bool legacy_sound_dsp;    // SCSP DSP: false = MAME (default), true = Legacy ElSemi
+   bool service_on_sticks;
    int ppc_frequency;
    int frameskip;
    EmulationThreading emulation_threading;
    bool sound_enable;
    bool jit_enable;
    bool timing_overlay;      // draw the ImGui frame-timing overlay (costs a draw pass every frame)
+   DrivingLayout driving_layout;
    GunInput gun_input;
+   bool offscreen_trigger_reload;     // The Lost World: Reload/right button/A force an off-screen shot
+   bool mouse_edge_offscreen_reload;  // The Lost World: a mouse shot at the screen edge reloads
    StarWarsInput star_wars_input;
    bool star_wars_upright_x_inversion;
-   FourSpeedShifter four_speed_shifter;
+   Renderer3D renderer_3d;
+   bool legacy_multi_texture; // Supermodel MultiTexture (Legacy3D only)
+   bool quad_rendering;      // Supermodel QuadRendering: New3D's geometry-shader quad path
+   int crt_colors;           // Supermodel CRTcolors: 0 = none, 1-5 = monitor profiles
+   int supersampling;        // Supermodel Supersampling: 1 = off, 2-8 = N x N samples
+   bool network_board;       // Supermodel Network: connect the Model 3 network board
+   unsigned network_cabinets; // Supermodel NetworkCabinets: 1-17 linked cabinets (1 = none)
 };
 
 extern CoreOptions g_options;

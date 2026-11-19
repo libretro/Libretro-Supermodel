@@ -1,5 +1,4 @@
 #include <compat/msvc.h>
-#include <algorithm>
 #include <math.h>
 #include <chrono>
 #include <rthreads/rthreads.h>
@@ -7,6 +6,8 @@
 #include <file/file_path.h>
 #include <string/stdstring.h>
 #include <vector>
+#include <algorithm>
+#include <cstdlib>
 #include <stdarg.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -15,14 +16,13 @@
 #include <zlib.h>
 #include <Inputs/Inputs.h>
 #include "libretro_cbs.h"
-#include "LibretroTiming.h"
 #include "Game.h"
 #include "LibretroBlockFileMemory.h"
 #include "InitialNvramTemplates.h"
-#include "LibretroInputProfiles.h"
-#include "LibretroNetBoard.h"
 #include "LibretroNvramSettings.h"
 #include "LibretroWrapper.h"
+#include "LibretroTiming.h"
+#include "LibretroNetBoard.h"
 #include <GL/glew.h>
 #include "../../Graphics/SuperAA.h"
 #include "libretro_core_options.h"
@@ -44,18 +44,41 @@ struct retro_hw_render_callback hw_render;
 struct retro_rumble_interface rumble;
 struct retro_vfs_interface *g_vfs_interface = nullptr;
 static LibretroWrapper wrapper = LibretroWrapper();
-void set_input_descriptors(const Game *game);
-void set_controller_info(const Game &game);
-
-static constexpr unsigned kNoCabinetControlsDevice =
-   RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0);
-bool g_cabinet_controls_enabled[2] = { true, true };
+// Star Wars Trilogy Upright cabinets wire the yoke's horizontal axis the
+// opposite way to Deluxe. Set from the game's NVRAM on the first frame.
 bool g_star_wars_invert_x = false;
-static Game g_active_input_game;
-static bool g_has_active_input_game = false;
-static GunInput g_active_gun_input = GunInput::Hybrid;
-static StarWarsInput g_active_star_wars_input = StarWarsInput::Hybrid;
-static WidescreenMode g_active_widescreen_mode = WidescreenMode::Disabled;
+// Ports whose device is not "None" (retro_set_controller_port_device).
+bool g_joypad_enabled[2] = { true, true };
+// Whether the drive board was started with force feedback for this content.
+static bool g_ffb_drive_board_enabled = false;
+// RetroArch clears its options-updated flag when it is read. The options display
+// callback reads options while the menu is open, so it records the flag here for
+// the next retro_run().
+static bool g_core_options_update_pending = false;
+void set_input_descriptors(bool service_on_sticks);
+
+// On-screen notification through the message interface when the frontend has
+// it (RetroArch 1.9+), otherwise the classic message.
+static void notify_frontend(const char *text, unsigned frames = 180)
+{
+   if (!environ_cb) return;
+   unsigned version = 0;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION, &version) &&
+       version >= 1)
+   {
+      struct retro_message_ext message = {
+         text, frames * 1000 / 60, 1, RETRO_LOG_INFO,
+         RETRO_MESSAGE_TARGET_OSD, RETRO_MESSAGE_TYPE_NOTIFICATION, -1
+      };
+      if (environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE_EXT, &message)) return;
+   }
+   struct retro_message message = { text, frames };
+   environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &message);
+}
+
+// Game-aware NVRAM settings: one hidden core option per supported ROM set and
+// setting, generated from LibretroNvramSettings.h and shown only for the loaded
+// game while "NVRAM Settings" is enabled.
 static constexpr unsigned kNvramSettingCount =
    static_cast<unsigned>(LibretroNvramSettings::Setting::Count);
 struct NvramCoreOptionSet
@@ -69,13 +92,9 @@ static std::vector<struct retro_core_option_v2_definition>
 static std::vector<std::vector<char>> g_nvram_option_key_storage;
 static std::vector<std::vector<char>> g_nvram_default_label_storage;
 static std::vector<NvramCoreOptionSet> g_nvram_option_sets;
+static std::string g_nvram_game;            // loaded ROM set, empty when none
 static std::string g_visible_nvram_game;
 static int g_visible_nvram_enabled = -1;
-static int g_network_board_option_visible = -1;
-static int g_network_cabinets_option_visible = -1;
-#if defined(HAVE_LEGACY3D) && !defined(USE_LEGACY3D)
-static int g_legacy_multi_texture_option_visible = -1;
-#endif
 
 static void append_nvram_core_options(void)
 {
@@ -144,6 +163,139 @@ static void append_nvram_core_options(void)
    }
 }
 
+// Linked Cabinets and Auto Network Role Settings: one pair of hidden options per
+// game with a network board, shown for the loaded game. Linked Cabinets sets the
+// total of the RetroArch Netplay session (1 = board disconnected). The role option
+// writes the game's link mode and cabinet identity into NVRAM through the NVRAM
+// settings tables, so a session needs no trip through the Service Menu.
+struct LinkedCabinetOptionSpec
+{
+   const char *game_name;
+   unsigned max_cabinets;
+};
+
+static constexpr LinkedCabinetOptionSpec kLinkedCabinetOptionSpecs[] = {
+   { "daytona2", 17 }, { "dayto2pe", 17 },
+   { "dirtdvls", 5 }, { "dirtdvlsu", 5 }, { "dirtdvlsau", 5 },
+   { "dirtdvlsj", 5 }, { "dirtdvlsg", 5 },
+   { "harley", 4 }, { "harleya", 4 },
+   { "lemans24", 5 },
+   { "scud", 8 }, { "scudau", 8 }, { "scudplus", 8 },
+   { "scudplusa", 8 },
+   { "skichamp", 4 },
+   { "spikeout", 4 }, { "spikeofe", 4 },
+   { "srally2", 5 },
+   { "von2", 5 }, { "von254g", 5 }, { "von2a", 5 }, { "von2o", 5 },
+};
+static constexpr size_t kLinkedCabinetSpecCount =
+   sizeof(kLinkedCabinetOptionSpecs) / sizeof(kLinkedCabinetOptionSpecs[0]);
+
+struct LinkedCabinetOptionSet
+{
+   const char *game_name;
+   unsigned max_cabinets;
+   size_t definition_index;
+   size_t automatic_definition_index = std::numeric_limits<size_t>::max();
+};
+
+static std::vector<LinkedCabinetOptionSet> g_linked_option_sets;
+static std::vector<std::vector<char>> g_network_label_storage;
+static std::string g_visible_network_game(1, '\1');   // never equal to a game name
+static int g_visible_network_role_managed = -1;
+static int g_visible_lost_world_options = -1;
+
+static const char *network_string(const std::string &text)
+{
+   g_network_label_storage.emplace_back(text.begin(), text.end());
+   g_network_label_storage.back().push_back('\0');
+   return g_network_label_storage.back().data();
+}
+
+static void append_linked_cabinet_core_options(void)
+{
+   static constexpr const char *kInfo =
+      "Total number of cabinets in the RetroArch Netplay session, including a relay or satellite where the game has one. 1 Cabinet / Disabled disconnects the network board. The host waits for this exact number before starting the emulated link; every instance must use the same value and the host starts first. Two- and three-cabinet sessions have been tested. Changing it resets the machine.";
+   static constexpr const char *kRoleInfo =
+      "Write this cabinet's link role and number into the game's NVRAM, whatever NVRAM Settings says, so no Service Menu visit is needed: the RetroArch host is the Master, clients are Slaves with their own number. Disabled leaves the NVRAM alone. Changing it resets the machine.";
+   // One visible pair also exists for games without a network board.
+   for (bool role : { false, true })
+   {
+      retro_core_option_v2_definition d = {};
+      d.key = role ? "supermodel_automatic_network_unsupported"
+                   : "supermodel_network_cabinets_unsupported";
+      d.desc = role ? "Auto Network Role Settings" : "Linked Cabinets";
+      d.info = "This game has no network board.";
+      d.category_key = "system";
+      d.values[0] = { "-1", "Not Supported" };
+      d.default_value = "-1";
+      g_registered_option_definitions.push_back(d);
+   }
+   for (const auto &spec : kLinkedCabinetOptionSpecs)
+   {
+      retro_core_option_v2_definition definition = {};
+      definition.key = network_string(std::string("supermodel_network_cabinets_") + spec.game_name);
+      definition.desc = "Linked Cabinets";
+      definition.info = kInfo;
+      definition.category_key = "system";
+      definition.values[0] = { "-1", "1 Cabinet / Disabled" };
+      definition.values[1] = { "0", "1 Cabinet / Disabled" };
+      definition.values[2] = { "1", "1 Cabinet / Disabled" };
+      for (unsigned i = 2; i <= spec.max_cabinets; ++i)
+         definition.values[i + 1] = {
+            network_string(std::to_string(i)),
+            network_string(std::to_string(i) + " Cabinets") };
+      definition.default_value = "-1";
+      g_linked_option_sets.push_back({ spec.game_name, spec.max_cabinets,
+                                       g_registered_option_definitions.size() });
+      g_registered_option_definitions.push_back(definition);
+
+      Game game;
+      game.name = spec.game_name;
+      size_t count = 0;
+      const auto *games = LibretroNvramSettings::GetSupportedGames(count);
+      for (size_t i = 0; i < count; ++i)
+         if (game.name == games[i].name && games[i].parent)
+            game.parent = games[i].parent;
+      using namespace LibretroNvramSettings;
+      const unsigned cabinets = AutomaticNetworkCabinets(&game);
+      definition = {};
+      definition.key = network_string(std::string("supermodel_automatic_network_") + spec.game_name);
+      definition.desc = "Auto Network Role Settings";
+      definition.info = cabinets ? kRoleInfo
+         : "No link role settings are known for this game.";
+      definition.category_key = "system";
+      definition.values[0] = { "-1", cabinets ? "Disabled" : "Not Supported" };
+      definition.default_value = cabinets ? "0" : "-1";
+      if (cabinets)
+      {
+         const auto *mode = GetSettingInfo(&game, Setting::LinkMode);
+         const auto *identity = GetSettingInfo(&game, Setting::LinkId);
+         const char *offline = GetDefaultValue(&game, Setting::LinkMode);
+         for (size_t v = 0; mode && v < mode->valueCount; ++v)
+            if (strcmp(mode->values[v].key, offline) == 0)
+               definition.values[1] = { "0", mode->values[v].label };
+         for (unsigned i = 1; i <= cabinets; ++i)
+         {
+            std::string label = i == 1 ? "Master" : "Slave";
+            if (identity && i - 1 < identity->valueCount)
+               label = std::string(identity->values[i - 1].label) + " (" + label + ")";
+            else if (game.name == "srally2")
+               label = "Car " + std::to_string(i) + " (" + label + ")";
+            definition.values[i + 1] = { network_string(std::to_string(i)), network_string(label) };
+         }
+         if (AutomaticNetworkRelay(&game))
+         {
+            const char *label = game.name == "daytona2" || game.name == "dayto2pe"
+               ? "Live" : game.name == "srally2" ? "Relay" : "Satellite";
+            definition.values[cabinets + 2] = { "r", label };
+         }
+      }
+      g_linked_option_sets.back().automatic_definition_index =
+         g_registered_option_definitions.size();
+      g_registered_option_definitions.push_back(definition);
+   }
+}
+
 static void build_core_option_definitions(void)
 {
    if (!g_registered_option_definitions.empty())
@@ -171,7 +323,8 @@ static void build_core_option_definitions(void)
       if (definition.key)
          ++base_option_count;
    g_registered_option_definitions.reserve(
-      base_option_count + nvram_option_count + 1);
+      base_option_count + nvram_option_count + 2 * kLinkedCabinetSpecCount + 3);
+   g_linked_option_sets.reserve(kLinkedCabinetSpecCount);
    g_nvram_option_key_storage.reserve(nvram_option_count);
    g_nvram_default_label_storage.reserve(nvram_option_count);
    g_nvram_option_sets.reserve(game_count);
@@ -181,6 +334,8 @@ static void build_core_option_definitions(void)
       if (!definition.key)
          break;
       g_registered_option_definitions.push_back(definition);
+      if (strcmp(definition.key, "supermodel_initial_nvram_setup") == 0)
+         append_linked_cabinet_core_options();
       if (strcmp(definition.key, "supermodel_nvram_settings") == 0)
          append_nvram_core_options();
    }
@@ -189,10 +344,10 @@ static void build_core_option_definitions(void)
 
 static const NvramCoreOptionSet *active_nvram_option_set(void)
 {
-   if (!g_has_active_input_game)
+   if (g_nvram_game.empty())
       return nullptr;
    for (const auto &option_set : g_nvram_option_sets)
-      if (g_active_input_game.name == option_set.game_name)
+      if (g_nvram_game == option_set.game_name)
          return &option_set;
    return nullptr;
 }
@@ -212,83 +367,200 @@ static const char *active_nvram_option_key(
 static void register_core_options(void)
 {
    build_core_option_definitions();
-   struct retro_core_options_v2 options_v2 = {
-      option_cats, g_registered_option_definitions.data()
-   };
-   environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, &options_v2);
+   unsigned version = 0;
+   environ_cb(RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION, &version);
+   if (version >= 2)
+   {
+      struct retro_core_options_v2 options_v2 = {
+         option_cats, g_registered_option_definitions.data()
+      };
+      environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, &options_v2);
+   }
+   else if (version == 1)
+   {
+      // Older frontends: the same options without categories.
+      static std::vector<retro_core_option_definition> definitions;
+      definitions.clear();
+      for (const auto &source : g_registered_option_definitions)
+      {
+         retro_core_option_definition target = {};
+         target.key = source.key;
+         target.desc = source.desc;
+         target.info = source.info;
+         std::copy(std::begin(source.values), std::end(source.values),
+                   std::begin(target.values));
+         target.default_value = source.default_value;
+         definitions.push_back(target);
+      }
+      environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS, definitions.data());
+   }
+   else
+   {
+      // Oldest frontends: "label; default|value|value" strings.
+      static std::vector<std::string> strings;
+      static std::vector<retro_variable> variables;
+      strings.clear();
+      variables.clear();
+      strings.reserve(g_registered_option_definitions.size());
+      for (const auto &source : g_registered_option_definitions)
+      {
+         if (!source.key) break;
+         std::string text = std::string(source.desc) + "; " + source.default_value;
+         for (const auto &value : source.values)
+         {
+            if (!value.value) break;
+            if (strcmp(value.value, source.default_value) != 0)
+               text += std::string("|") + value.value;
+         }
+         strings.push_back(std::move(text));
+         variables.push_back({ source.key, strings.back().c_str() });
+      }
+      variables.push_back({ nullptr, nullptr });
+      environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables.data());
+   }
 }
 
-static bool update_core_option_visibility(void)
+static const LinkedCabinetOptionSet *active_linked_cabinet_option_set(void)
 {
-   bool changed = false;
-   const bool network_board_visible =
-      g_has_active_input_game && g_active_input_game.netboard_present;
-   if (g_network_board_option_visible != static_cast<int>(network_board_visible))
+   if (g_nvram_game.empty())
+      return nullptr;
+   for (const auto &option_set : g_linked_option_sets)
+      if (g_nvram_game == option_set.game_name)
+         return &option_set;
+   return nullptr;
+}
+
+// The saved value of a generated network option, or its default when the saved
+// value is not one of its choices (an .opt file from another build).
+static std::string configured_network_value(size_t index)
+{
+   const auto &definition = g_registered_option_definitions[index];
+   const std::string value = option_get(definition.key, definition.default_value);
+   for (const auto &choice : definition.values)
    {
-      struct retro_core_option_display display = {
-         "supermodel_network_board", network_board_visible
-      };
-      environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
-      g_network_board_option_visible = network_board_visible;
-      changed = true;
+      if (!choice.value) break;
+      if (value == choice.value) return value;
    }
-   if (g_network_cabinets_option_visible !=
-       static_cast<int>(network_board_visible))
+   return definition.default_value;
+}
+
+static unsigned configured_network_cabinets(void)
+{
+   const auto *set = active_linked_cabinet_option_set();
+   if (!set) return 1;
+   const std::string value = configured_network_value(set->definition_index);
+   const int cabinets = atoi(value.c_str());
+   return cabinets < 2 ? 1u : static_cast<unsigned>(cabinets);
+}
+
+// "-1" when the role is not managed, otherwise the preset for ApplyAutomaticNetwork.
+static std::string configured_network_role(void)
+{
+   const auto *set = active_linked_cabinet_option_set();
+   return set ? configured_network_value(set->automatic_definition_index) : "-1";
+}
+
+// The network board is connected exactly when the session has more than one
+// cabinet. The role is a separate, NVRAM-side choice.
+static void configure_network_topology(void)
+{
+   g_options.network_cabinets = configured_network_cabinets();
+   g_options.network_board = g_options.network_cabinets >= 2;
+   wrapper.SetNetworkBoard(g_options.network_board);
+   wrapper.SetNetworkCabinets(g_options.network_cabinets);
+}
+
+static bool lost_world_loaded(void)
+{
+   if (wrapper.getEmulator() == nullptr) return false;
+   const Game &game = wrapper.getGame();
+   return game.name == "lostwsga" || game.parent == "lostwsga";
+}
+
+// Shows the loaded game's generated options (NVRAM settings, Linked Cabinets, the
+// network role) and The Lost World's reload options; hides everything else.
+static void update_core_option_visibility(void)
+{
+   struct retro_core_option_display display = { nullptr, false };
+
+   const auto *linked_set = active_linked_cabinet_option_set();
+   const std::string linked_game = linked_set ? linked_set->game_name : "";
+   const bool managed = configured_network_role() != "-1";
+   const bool network_changed = g_visible_network_game != linked_game ||
+      g_visible_network_role_managed != static_cast<int>(managed);
+   if (network_changed)
    {
-      struct retro_core_option_display display = {
-         "supermodel_network_cabinets", network_board_visible
-      };
-      environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
-      g_network_cabinets_option_visible = network_board_visible;
-      changed = true;
+      for (const auto &option_set : g_linked_option_sets)
+         for (size_t index : { option_set.definition_index,
+                               option_set.automatic_definition_index })
+         {
+            display.key = g_registered_option_definitions[index].key;
+            display.visible = linked_game == option_set.game_name;
+            environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
+         }
+      for (const char *key : { "supermodel_network_cabinets_unsupported",
+                               "supermodel_automatic_network_unsupported" })
+      {
+         display = { key, linked_game.empty() };
+         environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
+      }
+      g_visible_network_game = linked_game;
+      g_visible_network_role_managed = managed;
    }
 
-#if defined(HAVE_LEGACY3D) && !defined(USE_LEGACY3D)
-   const bool legacy_multi_texture_visible =
-      strcmp(option_get("supermodel_renderer_3d", "new3d"),
-             "legacy3d") == 0;
-   if (g_legacy_multi_texture_option_visible !=
-       static_cast<int>(legacy_multi_texture_visible))
+   const bool lost_world = lost_world_loaded();
+   if (g_visible_lost_world_options != static_cast<int>(lost_world))
    {
-      struct retro_core_option_display display = {
-         "supermodel_legacy_multi_texture", legacy_multi_texture_visible
-      };
-      environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
-      g_legacy_multi_texture_option_visible = legacy_multi_texture_visible;
-      changed = true;
+      for (const char *key : { "supermodel_offscreen_reload_shortcut",
+                               "supermodel_mouse_edge_offscreen_reload" })
+      {
+         display = { key, lost_world };
+         environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
+      }
+      g_visible_lost_world_options = lost_world;
    }
-#endif
 
    const bool enabled =
       strcmp(option_get("supermodel_nvram_settings", "disabled"),
              "enabled") == 0;
    const auto *active_set = active_nvram_option_set();
    const std::string active_game = active_set ? active_set->game_name : "";
-   if (g_visible_nvram_enabled != static_cast<int>(enabled) ||
-       g_visible_nvram_game != active_game)
-   {
-      struct retro_core_option_display display = { nullptr, false };
-      for (const auto &option_set : g_nvram_option_sets)
-      {
-         const bool game_visible =
-            enabled && option_set.game_name == active_game;
-         for (unsigned i = 0; i < kNvramSettingCount; ++i)
-         {
-            const size_t index = option_set.definition_indices[i];
-            if (index == std::numeric_limits<size_t>::max())
-               continue;
-            display.key = g_registered_option_definitions[index].key;
-            display.visible = game_visible;
-            environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
-         }
-      }
+   if (g_visible_nvram_enabled == static_cast<int>(enabled) &&
+       g_visible_nvram_game == active_game && !network_changed)
+      return;
 
-      g_visible_nvram_enabled = enabled;
-      g_visible_nvram_game = active_game;
-      changed = true;
+   for (const auto &option_set : g_nvram_option_sets)
+   {
+      const bool game_visible =
+         enabled && option_set.game_name == active_game;
+      for (unsigned i = 0; i < kNvramSettingCount; ++i)
+      {
+         const size_t index = option_set.definition_indices[i];
+         if (index == std::numeric_limits<size_t>::max())
+            continue;
+         // The managed link fields are written by the role option.
+         const bool link_field =
+            i == static_cast<unsigned>(LibretroNvramSettings::Setting::LinkMode) ||
+            i == static_cast<unsigned>(LibretroNvramSettings::Setting::LinkId);
+         display.key = g_registered_option_definitions[index].key;
+         display.visible = game_visible && !(managed && link_field);
+         environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &display);
+      }
    }
 
-   return changed;
+   g_visible_nvram_enabled = enabled;
+   g_visible_nvram_game = active_game;
+}
+
+// Called by RetroArch while its menu is open. Reading the options here would
+// clear the frontend's updated flag before retro_run() sees it, so keep it.
+static bool update_display_cb(void)
+{
+   bool updated = false;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+      g_core_options_update_pending = true;
+   update_core_option_visibility();
+   return true;
 }
 
 // GPU timer queries (double-buffered: write slot N, read slot N-1)
@@ -299,54 +571,30 @@ static int    s_gpuSlot      = 0;
 static float  s_gpuMs        = 0.0f;
 static bool   s_gpuQueryOK   = false;
 
-// Rolling frontend-side timings. CModel3's FrameTimings stop before the final
-// blit, shader chain, frontend presentation and VSync wait.
-static LibretroFrontendTimings s_frontendTimings;
-static float s_accRun = 0.0f;
-static float s_accCoreAndBlit = 0.0f;
-static float s_accPresent = 0.0f;
-static float s_accEngine = 0.0f;
-static float s_accAudioSubmit = 0.0f;
-static float s_accOverlay = 0.0f;
-static float s_accBlit = 0.0f;
-static float s_maxRun = 0.0f;
-static float s_accFrameInterval = 0.0f;
-static std::chrono::steady_clock::time_point s_previousFrameStart;
-static bool s_havePreviousFrameStart = false;
-static unsigned s_accPpc = 0;
-static unsigned s_accRender = 0;
-static unsigned s_renderedFrames = 0;
-static unsigned s_timingFrames = 0;
-static unsigned s_frameIntervals = 0;
-
 // Path buffers
 char retro_save_directory[4096];
 char retro_base_directory[4096];
 
 CoreOptions g_options = {
    /* initial_nvram_setup */ true,
-   /* network_board       */ true,
-   /* network_cabinets    */ 2,
    /* nvram_settings_enabled */ false,
    /* resolution_multiplier */ 1,
-   /* renderer_3d          */ Renderer3D::New3D,
-   /* legacy_multi_texture */ false,
-   /* quad_rendering       */ false,
-   /* crt_colors           */ 0,
-   /* supersampling        */ 1,
-   /* upscale_mode          */ 2,
-   /* widescreen_mode      */ WidescreenMode::Disabled,
+   /* aspect_ratio         */ AspectRatioMode::Auto,
+   /* widescreen           */ false,
+   /* wide_background      */ false,
+   /* upscale_mode         */ 2,
    /* no_white_flash       */ false,
    /* av_timing_mode       */ AVTimingMode::Default60Hz,
-   /* crosshairs           */ 0,
+   /* crosshairs           */ CROSSHAIRS_AUTOMATIC,
    /* force_feedback       */ true,
-   /* steering_response    */ SteeringResponse::Linear,
+   /* steering_progressive */ false,
    /* steering_output_range */ 100,
    /* accelerator_output_range_per_mille */ 1000,
    /* brake_output_range_per_mille */ 1000,
    /* sound_volume         */ 100,
    /* music_volume         */ 100,
    /* legacy_sound_dsp     */ false,
+   /* service_on_sticks    */ true,
    /* ppc_frequency        */ 0,
    /* frameskip            */ 0,
    /* emulation_threading  */ EmulationThreading::MultiThreadedGPU,
@@ -358,23 +606,22 @@ CoreOptions g_options = {
                               false,
 #endif
    /* timing_overlay      */ false,
+   /* driving_layout      */ DrivingLayout::TriggersHGate,
    /* gun_input           */ GunInput::Hybrid,
+   /* offscreen_trigger_reload */ true,
+   /* mouse_edge_offscreen_reload */ false,
    /* star_wars_input     */ StarWarsInput::Hybrid,
    /* star_wars_upright_x_inversion */ true,
-   /* four_speed_shifter  */ FourSpeedShifter::HGate,
+   /* renderer_3d         */ Renderer3D::New3D,
+   /* legacy_multi_texture */ false,
+   /* quad_rendering      */ false,
+   /* crt_colors          */ 0,
+   /* supersampling       */ 1,
+   /* network_board       */ false,
+   /* network_cabinets    */ 1,
 };
 
-static bool widescreen_enabled()
-{
-   return g_active_widescreen_mode != WidescreenMode::Disabled;
-}
-
-static bool wide_background_enabled()
-{
-   return g_active_widescreen_mode ==
-          WidescreenMode::WidescreenWideBackground;
-}
-
+// Optimization: Cache last known resolution to avoid redundant updates
 static unsigned scaled_native_dimension(unsigned value)
 {
    const float multiplier = g_options.resolution_multiplier > 0.0f
@@ -384,30 +631,54 @@ static unsigned scaled_native_dimension(unsigned value)
 
 static unsigned widescreen_width(unsigned height)
 {
-   // Nearest integer to height * 16 / 9 without introducing a second scale
-   // factor. Native 384-line output therefore becomes 683x384.
+   // Nearest integer to height * 16 / 9: native 384-line output becomes 683x384.
    return std::max(1u, (height * 16u + 4u) / 9u);
 }
 
-static void get_video_dimensions(unsigned &view_width,
-                                 unsigned &view_height,
-                                 unsigned &output_width,
-                                 unsigned &output_height)
+// view: the 4:3 Model 3 screen; output: the frame handed to the frontend. In widescreen
+// the output is a real 16:9 frame with the 4:3 view centred in it, as in standalone
+// Supermodel, instead of a 4:3 frame the frontend stretches to 16:9.
+static void get_video_dimensions(unsigned &view_width, unsigned &view_height,
+                                 unsigned &output_width, unsigned &output_height)
 {
    view_width = scaled_native_dimension(496);
    view_height = scaled_native_dimension(384);
    output_height = view_height;
-   output_width = widescreen_enabled()
-      ? widescreen_width(output_height) : view_width;
+   output_width = g_options.widescreen ? widescreen_width(output_height) : view_width;
 }
 
-static constexpr unsigned kMaximumVideoHeight = 384u * 4u;
-static constexpr unsigned kMaximumVideoWidth =
-   (kMaximumVideoHeight * 16u + 4u) / 9u;
+// Large enough for the current multiplier in either aspect, so toggling widescreen
+// needs only SET_GEOMETRY. A multiplier change still sends SET_SYSTEM_AV_INFO.
+static void get_maximum_video_dimensions(unsigned &max_width, unsigned &max_height)
+{
+   max_height = scaled_native_dimension(384);
+   max_width = std::max(scaled_native_dimension(496), widescreen_width(max_height));
+}
 
-// Optimization: Cache last known resolution to avoid redundant updates
+// The aspect ratio reported to the frontend: 16:9 for a wide frame (Widescreen
+// Hack) or when the 4:3 frame is to be stretched (Aspect Ratio 16:9).
+static float effective_aspect_ratio(void)
+{
+   return g_options.aspect_ratio == AspectRatioMode::SixteenNine || g_options.widescreen
+      ? (16.0f / 9.0f) : (4.0f / 3.0f);
+}
+
+// The Show Crosshairs mask for the loaded game. Automatic: player 1's in The Lost
+// World, whose gun needs an aim marker; none in L.A. Machineguns and The Ocean
+// Hunter, which draw their own.
+static unsigned effective_crosshair_mask(void)
+{
+   if (g_options.crosshairs != CROSSHAIRS_AUTOMATIC)
+      return g_options.crosshairs & 3u;
+   if (wrapper.getEmulator() == nullptr)
+      return 0u;
+   const Game &game = wrapper.getGame();
+   return game.name == "lostwsga" || game.parent == "lostwsga" ? 1u : 0u;
+}
+
 static unsigned last_width = 0;
 static unsigned last_height = 0;
+static float last_aspect_ratio = 0.0f;
 #define NVRAM_BUFFER_SIZE (0x20000 + 2048) 
 static uint8_t g_nvram_buffer[NVRAM_BUFFER_SIZE];
 static constexpr int32_t NVRAM_FILE_VERSION = 0;
@@ -423,32 +694,25 @@ static bool g_nvram_initialized = false;
 static int g_skip_counter = 0;
 static bool g_context_ready = false;
 
-// Exact curve incorporated by the Rad Mobile/Rad Rally MAME work. It is the
-// System 32 FBNeo response retained there as the strongest fine-center preset.
-static constexpr uint8_t kFBNeoLogarithmicSteeringCurve[0x100] = {
-   0x00, 0x01, 0x13, 0x1d, 0x25, 0x2b, 0x2f, 0x33, 0x37, 0x3a, 0x3d, 0x3f, 0x41, 0x44, 0x46, 0x47,
-   0x49, 0x4b, 0x4c, 0x4d, 0x4f, 0x50, 0x51, 0x52, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x59, 0x5a,
-   0x5b, 0x5c, 0x5d, 0x5d, 0x5e, 0x5f, 0x60, 0x60, 0x61, 0x62, 0x62, 0x63, 0x63, 0x64, 0x65, 0x65,
-   0x66, 0x66, 0x67, 0x67, 0x68, 0x68, 0x69, 0x69, 0x6a, 0x6a, 0x6b, 0x6b, 0x6c, 0x6c, 0x6c, 0x6d,
-   0x6d, 0x6e, 0x6e, 0x6e, 0x6f, 0x6f, 0x70, 0x70, 0x70, 0x71, 0x71, 0x71, 0x72, 0x72, 0x72, 0x73,
-   0x73, 0x73, 0x74, 0x74, 0x74, 0x75, 0x75, 0x75, 0x76, 0x76, 0x76, 0x76, 0x77, 0x77, 0x77, 0x78,
-   0x78, 0x78, 0x78, 0x79, 0x79, 0x79, 0x79, 0x7a, 0x7a, 0x7a, 0x7a, 0x7b, 0x7b, 0x7b, 0x7b, 0x7c,
-   0x7c, 0x7c, 0x7c, 0x7d, 0x7d, 0x7d, 0x7d, 0x7d, 0x7e, 0x7e, 0x7e, 0x7e, 0x7f, 0x7f, 0x7f, 0x80,
-   0x80, 0x81, 0x81, 0x81, 0x82, 0x82, 0x82, 0x82, 0x83, 0x83, 0x83, 0x83, 0x83, 0x84, 0x84, 0x84,
-   0x84, 0x85, 0x85, 0x85, 0x85, 0x86, 0x86, 0x86, 0x86, 0x87, 0x87, 0x87, 0x87, 0x88, 0x88, 0x88,
-   0x88, 0x89, 0x89, 0x89, 0x8a, 0x8a, 0x8a, 0x8a, 0x8b, 0x8b, 0x8b, 0x8c, 0x8c, 0x8c, 0x8d, 0x8d,
-   0x8d, 0x8e, 0x8e, 0x8e, 0x8f, 0x8f, 0x8f, 0x90, 0x90, 0x90, 0x91, 0x91, 0x92, 0x92, 0x92, 0x93,
-   0x93, 0x94, 0x94, 0x94, 0x95, 0x95, 0x96, 0x96, 0x97, 0x97, 0x98, 0x98, 0x99, 0x99, 0x9a, 0x9a,
-   0x9b, 0x9b, 0x9c, 0x9d, 0x9d, 0x9e, 0x9e, 0x9f, 0xa0, 0xa0, 0xa1, 0xa2, 0xa3, 0xa3, 0xa4, 0xa5,
-   0xa6, 0xa7, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xae, 0xaf, 0xb0, 0xb1, 0xb3, 0xb4, 0xb5, 0xb7,
-   0xb9, 0xba, 0xbc, 0xbf, 0xc1, 0xc3, 0xc6, 0xc9, 0xcd, 0xd1, 0xd5, 0xdb, 0xe3, 0xed, 0xff, 0xff,
-};
+// Rolling frontend-side timings. CModel3's FrameTimings stop before the final
+// blit, shader chain, frontend presentation and VSync wait.
+static LibretroFrontendTimings s_frontendTimings;
+static std::chrono::steady_clock::time_point s_previousFrameStart;
+static bool  s_havePreviousFrameStart = false;
+static float s_accFrameInterval = 0.0f;
+static unsigned s_frameIntervals = 0;
 
-static bool is_driving_profile(const Game &game)
+// --- Driving analog output ranges ---
+// The emulated game reads the scaled values, but Supermodel's digital
+// (keyboard/D-pad) sources are incremental: each poll moves the previous
+// value. Keep the unscaled values and restore them before every poll so the
+// scaling never compounds from frame to frame.
+static bool   s_driving_raw_valid = false;
+static UINT16 s_raw_steering = 0, s_raw_accelerator = 0, s_raw_brake = 0;
+
+static bool is_driving_game(const Game &game)
 {
-   const LibretroInputProfiles::Profile *profile =
-      LibretroInputProfiles::Find(game.inputs);
-   return profile && profile->family == LibretroInputProfiles::Family::Driving;
+   return (game.inputs & Game::INPUT_VEHICLE) != 0;
 }
 
 static int scale_driving_pedal(UINT16 value, int output_range_per_mille)
@@ -458,31 +722,36 @@ static int scale_driving_pedal(UINT16 value, int output_range_per_mille)
    return std::clamp((input * output_range + 500) / 1000, 0, 0xff);
 }
 
+static void restore_driving_raw_inputs(const Game &game)
+{
+   if (!s_driving_raw_valid || !is_driving_game(game) || !wrapper.Inputs)
+      return;
+   if (wrapper.Inputs->steering)    wrapper.Inputs->steering->value = s_raw_steering;
+   if (wrapper.Inputs->accelerator) wrapper.Inputs->accelerator->value = s_raw_accelerator;
+   if (wrapper.Inputs->brake)       wrapper.Inputs->brake->value = s_raw_brake;
+}
+
 static void apply_driving_analog_ranges(const Game &game)
 {
-   if (!is_driving_profile(game) || !wrapper.Inputs)
+   if (!is_driving_game(game) || !wrapper.Inputs)
       return;
+
+   if (wrapper.Inputs->steering)    s_raw_steering = wrapper.Inputs->steering->value;
+   if (wrapper.Inputs->accelerator) s_raw_accelerator = wrapper.Inputs->accelerator->value;
+   if (wrapper.Inputs->brake)       s_raw_brake = wrapper.Inputs->brake->value;
+   s_driving_raw_valid = true;
 
    if (wrapper.Inputs->steering)
    {
       int target = std::clamp(static_cast<int>(wrapper.Inputs->steering->value), 0, 0xff);
 
-      switch (g_options.steering_response)
-      {
-      case SteeringResponse::Progressive:
+      if (g_options.steering_progressive)
       {
          const int offset = target - 0x80;
          const int magnitude = std::abs(offset);
          const int side_range = offset < 0 ? 0x80 : 0x7f;
          const int curved = (magnitude * magnitude + side_range / 2) / side_range;
          target = 0x80 + (offset < 0 ? -curved : curved);
-         break;
-      }
-      case SteeringResponse::FBNeoLogarithmic:
-         target = kFBNeoLogarithmicSteeringCurve[target];
-         break;
-      case SteeringResponse::Linear:
-         break;
       }
 
       // Below 100% this limits the emulated wheel range. Above 100% it acts as
@@ -560,9 +829,9 @@ enum class NvramPatchResult
 static NvramPatchResult apply_nvram_selection(
       const LibretroNvramSettings::Selection &selection, const char *source)
 {
-   if (!selection.HasAny() || !g_has_active_input_game ||
-       wrapper.getEmulator() == nullptr)
+   if (!selection.HasAny() || wrapper.getEmulator() == nullptr)
       return NvramPatchResult::NotApplicable;
+   const Game &game = wrapper.getGame();
 
    // Use Supermodel's public NVRAM block interface so backup RAM and all
    // EEPROM device state remain intact. The patcher changes only controlled
@@ -588,16 +857,15 @@ static NvramPatchResult apply_nvram_selection(
    }
 
    const LibretroNvramSettings::ApplyResult result =
-      LibretroNvramSettings::Apply(g_active_input_game, words,
-                                   backup_ram.data(), backup_ram.size(),
-                                   selection);
+      LibretroNvramSettings::Apply(game, words, backup_ram.data(),
+                                   backup_ram.size(), selection);
    if (result == LibretroNvramSettings::ApplyResult::Unsupported)
       return NvramPatchResult::NotApplicable;
    if (result == LibretroNvramSettings::ApplyResult::InvalidLayout)
    {
       log_cb(RETRO_LOG_WARN,
              "[Supermodel] %s skipped: unexpected NVRAM layout for %s\n",
-             source, g_active_input_game.name.c_str());
+             source, game.name.c_str());
       return NvramPatchResult::Error;
    }
    if (result == LibretroNvramSettings::ApplyResult::Unchanged)
@@ -614,25 +882,32 @@ static NvramPatchResult apply_nvram_selection(
    {
       log_cb(RETRO_LOG_ERROR,
              "[Supermodel] Unable to apply %s for %s\n",
-             source, g_active_input_game.name.c_str());
+             source, game.name.c_str());
       return NvramPatchResult::Error;
    }
    return NvramPatchResult::Changed;
 }
 
+// First-boot settings for a seeded EEPROM: the single-cabinet link mode and the
+// Star Wars Trilogy Upright cabinet.
 static NvramPatchResult apply_initial_nvram_settings(void)
 {
-   if (!g_has_active_input_game || wrapper.getEmulator() == nullptr)
+   if (wrapper.getEmulator() == nullptr)
       return NvramPatchResult::NotApplicable;
+   const Game &game = wrapper.getGame();
 
    LibretroNvramSettings::Selection selection;
-   const auto link_mode = LibretroNvramSettings::Setting::LinkMode;
-   if (LibretroNvramSettings::GetSettingInfo(&g_active_input_game, link_mode))
-      selection.values[static_cast<unsigned>(link_mode)] =
-         LibretroNvramSettings::GetDefaultValue(&g_active_input_game,
-                                                link_mode);
+   const auto country = LibretroNvramSettings::Setting::Country;
+   if (LibretroNvramSettings::GetSettingInfo(&game, country))
+      selection.values[static_cast<unsigned>(country)] =
+         LibretroNvramSettings::GetDefaultValue(&game, country);
 
-   const std::string &name = g_active_input_game.name;
+   const auto link_mode = LibretroNvramSettings::Setting::LinkMode;
+   if (LibretroNvramSettings::GetSettingInfo(&game, link_mode))
+      selection.values[static_cast<unsigned>(link_mode)] =
+         LibretroNvramSettings::GetDefaultValue(&game, link_mode);
+
+   const std::string &name = game.name;
    if (name == "lamachin" || name == "lostwsga" ||
        name == "oceanhun" || name == "oceanhuna" ||
        name == "swtrilgy" || name == "swtrilgya")
@@ -654,38 +929,9 @@ static NvramPatchResult apply_initial_nvram_settings(void)
    {
       log_cb(RETRO_LOG_INFO,
              "[Supermodel] Applied automatic initial NVRAM setup for %s\n",
-             g_active_input_game.name.c_str());
+             game.name.c_str());
    }
    return result;
-}
-
-static void update_star_wars_cabinet_orientation(void)
-{
-   g_star_wars_invert_x = false;
-   const auto cabinet = LibretroNvramSettings::Setting::Cabinet;
-   if (!g_has_active_input_game || wrapper.getEmulator() == nullptr ||
-       !LibretroNvramSettings::IsValueSupported(
-          &g_active_input_game, cabinet, "upright"))
-      return;
-
-   serialize_nvram();
-   CBlockFileMemory reader(g_nvram_buffer, NVRAM_BUFFER_SIZE);
-   uint16_t words[64];
-   if (reader.FindBlock("93C46") != Result::OKAY ||
-       reader.Read(words, sizeof(words)) != sizeof(words))
-   {
-      log_cb(RETRO_LOG_WARN,
-             "[Supermodel] Unable to read Star Wars cabinet orientation\n");
-      return;
-   }
-
-   g_star_wars_invert_x =
-      LibretroNvramSettings::IsStarWarsUpright(&g_active_input_game, words);
-   log_cb(RETRO_LOG_INFO,
-          "[Supermodel] Star Wars cabinet: %s; analog X %s\n",
-          g_star_wars_invert_x ? "Upright" : "Deluxe",
-          g_star_wars_invert_x && g_options.star_wars_upright_x_inversion
-             ? "inverted" : "normal");
 }
 
 static void initialize_new_nvram(void)
@@ -697,21 +943,21 @@ static void initialize_new_nvram(void)
    if (!g_options.initial_nvram_setup)
       return;
 
-   const auto *initial =
-      LibretroInitialNvram::Find(g_active_input_game.name);
+   const Game &game = wrapper.getGame();
+   const auto *initial = LibretroInitialNvram::Find(game.name);
    if (!initial)
       return;
 
    // A blank EEPROM has no game-owned structure for the field-level patcher
    // to validate. Seed only the 64 EEPROM words from this exact ROM set's
-   // smoke-test NVRAM; retain the emulator's empty Backup RAM and controller
-   // state, then apply the requested fields through the normal patch engine.
+   // template; retain the emulator's empty Backup RAM and controller state,
+   // then apply the requested fields through the normal patch engine.
    CBlockFileMemory writer(g_nvram_buffer, NVRAM_BUFFER_SIZE);
    if (writer.FindBlock("93C46") != Result::OKAY)
    {
       log_cb(RETRO_LOG_WARN,
              "[Supermodel] Unable to seed initial EEPROM for %s\n",
-             g_active_input_game.name.c_str());
+             game.name.c_str());
       return;
    }
    writer.Write(initial->eeprom.data(),
@@ -721,7 +967,7 @@ static void initialize_new_nvram(void)
    {
       log_cb(RETRO_LOG_WARN,
              "[Supermodel] Unable to load initial EEPROM seed for %s\n",
-             g_active_input_game.name.c_str());
+             game.name.c_str());
       return;
    }
 
@@ -729,28 +975,44 @@ static void initialize_new_nvram(void)
    if (result == NvramPatchResult::Error)
       log_cb(RETRO_LOG_WARN,
              "[Supermodel] Automatic initial NVRAM setup failed for %s\n",
-             g_active_input_game.name.c_str());
+             game.name.c_str());
 }
 
+// Writes the values of the visible NVRAM Settings options, and the link role
+// chosen with Auto Network Role Settings, into the loaded game's NVRAM.
+// Returns true when something changed.
 static bool apply_configured_nvram_settings(void)
 {
-   if (!g_options.nvram_settings_enabled || !g_has_active_input_game ||
-       wrapper.getEmulator() == nullptr)
+   if (wrapper.getEmulator() == nullptr)
       return false;
+   const Game &game = wrapper.getGame();
 
    LibretroNvramSettings::Selection selection;
-   for (unsigned i = 0;
-        i < static_cast<unsigned>(LibretroNvramSettings::Setting::Count); ++i)
+   if (g_options.nvram_settings_enabled)
    {
-      const auto setting = static_cast<LibretroNvramSettings::Setting>(i);
-      const char *key = active_nvram_option_key(setting);
-      const char *default_value =
-         LibretroNvramSettings::GetDefaultValue(&g_active_input_game, setting);
-      const char *selected = key && default_value
-         ? option_get(key, default_value) : nullptr;
-      selection.values[i] = LibretroNvramSettings::IsValueSupported(
-            &g_active_input_game, setting, selected)
-         ? selected : default_value;
+      for (unsigned i = 0; i < kNvramSettingCount; ++i)
+      {
+         const auto setting = static_cast<LibretroNvramSettings::Setting>(i);
+         const char *key = active_nvram_option_key(setting);
+         const char *default_value =
+            LibretroNvramSettings::GetDefaultValue(&game, setting);
+         const char *selected = key && default_value
+            ? option_get(key, default_value) : nullptr;
+         selection.values[i] = LibretroNvramSettings::IsValueSupported(
+               &game, setting, selected)
+            ? selected : default_value;
+      }
+   }
+   // The role option owns the link fields while it is not Disabled, with or
+   // without NVRAM Settings.
+   const std::string preset = configured_network_role();
+   LibretroNvramSettings::Selection requested;
+   if (LibretroNvramSettings::ApplyAutomaticNetwork(&game, preset.c_str(), requested))
+   {
+      for (auto setting : { LibretroNvramSettings::Setting::LinkMode,
+                            LibretroNvramSettings::Setting::LinkId })
+         if (requested.Get(setting))
+            selection.values[static_cast<unsigned>(setting)] = requested.Get(setting);
    }
    if (!selection.HasAny())
       return false;
@@ -760,25 +1022,73 @@ static bool apply_configured_nvram_settings(void)
    if (result == NvramPatchResult::Changed)
       log_cb(RETRO_LOG_INFO,
              "[Supermodel] Applied configured NVRAM settings for %s\n",
-             g_active_input_game.name.c_str());
+             game.name.c_str());
    return result == NvramPatchResult::Changed;
 }
 
-static void build_native_nvram_path(char* path, size_t path_size)
+static void update_star_wars_cabinet_orientation(void)
 {
-   char filename[1024];
-   snprintf(filename, sizeof(filename), "%s.nv", wrapper.getGame().name.c_str());
-   fill_pathname_join(path, retro_save_directory, filename, path_size);
+   g_star_wars_invert_x = false;
+   const Game &game = wrapper.getGame();
+   if (wrapper.getEmulator() == nullptr ||
+       (game.name != "swtrilgy" && game.parent != "swtrilgy"))
+      return;
+
+   // The cabinet type is stored in the 93C46 EEPROM: Genibus header
+   // "M3 SEGA SWTA", word 12 bit 0x400 set for Deluxe, clear for Upright.
+   serialize_nvram();
+   CBlockFileMemory reader(g_nvram_buffer, NVRAM_BUFFER_SIZE);
+   uint16_t words[64];
+   if (reader.FindBlock("93C46") != Result::OKAY ||
+       reader.Read(words, sizeof(words)) != sizeof(words) ||
+       words[0] != 0x4d33 || words[1] != 0x5345 || words[2] != 0x4741 ||
+       words[3] != 0x5357 || words[4] != 0x5441)
+   {
+      log_cb(RETRO_LOG_WARN,
+             "[Supermodel] Unable to read Star Wars cabinet type\n");
+      return;
+   }
+
+   g_star_wars_invert_x = (words[12] & 0x0400) == 0;
+   log_cb(RETRO_LOG_INFO,
+          "[Supermodel] Star Wars cabinet: %s; analog X %s\n",
+          g_star_wars_invert_x ? "Upright" : "Deluxe",
+          g_star_wars_invert_x && g_options.star_wars_upright_x_inversion
+             ? "inverted" : "normal");
 }
 
-static bool native_nvram_exists(char* path, size_t path_size)
+static bool file_readable(const char* path)
 {
-   build_native_nvram_path(path, path_size);
    RFILE* file = filestream_open(path, RETRO_VFS_FILE_ACCESS_READ, 0);
    if (!file)
       return false;
    filestream_close(file);
    return true;
+}
+
+// A standalone <game>.nv is imported from the frontend save directory. Earlier
+// builds of this core looked in <save>/supermodel/Saves, which is still read.
+static bool native_nvram_exists(char* path, size_t path_size)
+{
+   char filename[1024];
+   snprintf(filename, sizeof(filename), "%s.nv", wrapper.getGame().name.c_str());
+   fill_pathname_join(path, retro_save_directory, filename, path_size);
+   if (file_readable(path))
+      return true;
+
+   char legacy_dir[4096];
+   fill_pathname_join(legacy_dir, retro_save_directory, "supermodel/Saves", sizeof(legacy_dir));
+   char legacy_path[4096];
+   fill_pathname_join(legacy_path, legacy_dir, filename, sizeof(legacy_path));
+   if (file_readable(legacy_path))
+   {
+      strlcpy(path, legacy_path, path_size);
+      return true;
+   }
+
+   // Report the preferred location when nothing was found.
+   fill_pathname_join(path, retro_save_directory, filename, path_size);
+   return false;
 }
 
 static bool import_native_nvram(const char* path)
@@ -851,8 +1161,9 @@ void retro_init(void)
 
    const char *dir = NULL;
 
-   // 1. Setup the core-specific system directory. Games.xml and other engine
-   // assets live here; user preferences are provided by Libretro core options.
+   // 1. The core-specific system directory, [System]/supermodel, as other
+   // Libretro cores use. Games.xml, Supermodel.ini and Music.xml live here;
+   // the older [System]/supermodel/Config layout is still read as a fallback.
    if (environ_cb(RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY, &dir) && dir)
    {
       snprintf(retro_base_directory, sizeof(retro_base_directory), "%s/supermodel", dir);
@@ -862,9 +1173,9 @@ void retro_init(void)
       snprintf(retro_base_directory, sizeof(retro_base_directory), "supermodel");
    }
 
-   // 2. RetroArch may already return a core- or content-specific save path.
-   // Do not append another Supermodel directory. SRAM is exposed through the
-   // Libretro memory API and the frontend owns the actual .srm file.
+   // 2. The frontend save directory. RetroArch may already return a core- or
+   // content-specific path, so do not append another directory: the frontend
+   // owns the .srm file, and a standalone .nv to import is placed here.
    if (environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &dir) && dir)
    {
       snprintf(retro_save_directory, sizeof(retro_save_directory), "%s", dir);
@@ -908,34 +1219,22 @@ unsigned retro_api_version(void)
 
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
+   log_cb(RETRO_LOG_INFO, "Plugging device %u into port %u\n", device, port);
    if (port >= 2)
       return;
-
-   bool enabled;
-   if (device == RETRO_DEVICE_JOYPAD)
-      enabled = true;
-   else if (device == kNoCabinetControlsDevice)
-      enabled = false;
-   else
+   // The core declares no device types, so the frontend offers RetroPad and
+   // None. Earlier builds declared a RetroPad subclass; accept it as a RetroPad.
+   if (device != RETRO_DEVICE_NONE &&
+       (device & RETRO_DEVICE_MASK) != RETRO_DEVICE_JOYPAD)
       return;
-   if (g_cabinet_controls_enabled[port] == enabled)
-      return;
-
-   g_cabinet_controls_enabled[port] = enabled;
-   if (log_cb)
-      log_cb(RETRO_LOG_INFO,
-             "[Supermodel] Cabinet Test/Service slots %s on port %u\n",
-             enabled ? "enabled" : "disabled", port + 1);
-
-   if (g_has_active_input_game)
-      set_input_descriptors(&g_active_input_game);
+   g_joypad_enabled[port] = device != RETRO_DEVICE_NONE;
 }
 
 void retro_get_system_info(struct retro_system_info *info)
 {
    memset(info, 0, sizeof(*info));
    info->library_name     = "Supermodel";
-   info->library_version  = "v0.3a-libretro";
+   info->library_version  = "v0.3a";   // must match display_version in supermodel_libretro.info
    info->need_fullpath    = true;
    // GameLoader currently opens MAME-style ZIP sets. Do not advertise CHD or
    // 7z until the content path can actually consume those formats.
@@ -949,10 +1248,8 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    get_video_dimensions(view_width, view_height, output_width, output_height);
    info->geometry.base_width   = output_width;
    info->geometry.base_height  = output_height;
-   info->geometry.max_width    = kMaximumVideoWidth;
-   info->geometry.max_height   = kMaximumVideoHeight;
-   info->geometry.aspect_ratio = widescreen_enabled()
-      ? (16.0f / 9.0f) : (4.0f / 3.0f);
+   get_maximum_video_dimensions(info->geometry.max_width, info->geometry.max_height);
+   info->geometry.aspect_ratio = effective_aspect_ratio();
 
    info->timing.fps         = wrapper.GetFramesPerSecond();
    info->timing.sample_rate = LibretroTiming::kAudioSampleRate;
@@ -1006,6 +1303,9 @@ void context_reset(void)
 void context_destroy(void)
 {
     g_context_ready = false;
+    // The context is still current here: release the renderers' GL objects now, not
+    // from context_reset, where their names may already belong to the frontend.
+    wrapper.DestroyGLScreen();
 #if defined(CORE_GLES)
     if (s_gpuQuery[0] && glDeleteQueriesEXT) { glDeleteQueriesEXT(2, s_gpuQuery); s_gpuQuery[0] = s_gpuQuery[1] = 0; }
 #endif
@@ -1015,6 +1315,7 @@ void context_destroy(void)
 // --- Game Loading ---
 bool retro_load_game(const struct retro_game_info *info)
 {
+   s_driving_raw_valid = false;
    if (!info || !info->path || !info->path[0])
    {
       log_cb(RETRO_LOG_ERROR, "[Supermodel] A full content path is required.\n");
@@ -1028,20 +1329,16 @@ bool retro_load_game(const struct retro_game_info *info)
    g_cached_serialize_size = 0;
    g_first_run = true;
    g_nvram_initialized = false;
+   g_star_wars_invert_x = false;
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
+   last_aspect_ratio = 0.0f;
    g_context_ready = false;
-   s_frontendTimings = {};
-   s_accRun = s_accCoreAndBlit = s_accPresent = s_maxRun = 0.0f;
-   s_accEngine = s_accAudioSubmit = s_accOverlay = s_accBlit = 0.0f;
-   s_accFrameInterval = 0.0f;
-   s_havePreviousFrameStart = false;
-   s_accPpc = s_accRender = s_renderedFrames = s_timingFrames = 0;
-   s_frameIntervals = 0;
+   g_core_options_update_pending = false;
 
-   // The selected renderer determines which OpenGL profile the frontend must
-   // create, so options have to be read before SET_HW_RENDER is negotiated.
+   // The selected renderer decides which OpenGL context to ask for, so the options
+   // have to be read before SET_HW_RENDER.
    update_core_options();
 
    hw_render.context_reset   = context_reset;
@@ -1055,35 +1352,28 @@ bool retro_load_game(const struct retro_game_info *info)
    hw_render.version_major = 3;
    hw_render.version_minor = 0;
 #else
-   // Legacy3D uses fixed-function compatibility entry points. New3D uses a
-   // core profile, raised from 4.1 to 4.5 when geometry-shader-based native
-   // quad rendering is requested.
-   const bool active_quad_rendering =
-      g_options.renderer_3d == Renderer3D::New3D &&
-      g_options.quad_rendering;
-#ifdef HAVE_LEGACY3D
    if (g_options.renderer_3d == Renderer3D::Legacy3D)
    {
+      // Legacy3D uses fixed-function entry points that a core profile removes.
       hw_render.context_type = RETRO_HW_CONTEXT_OPENGL;
       hw_render.version_major = 0;
       hw_render.version_minor = 0;
    }
    else
-#endif
    {
+      // The New3D renderer requires a desktop OpenGL 4.1 core profile.
+      // RETRO_HW_CONTEXT_OPENGL requests a legacy compatibility context
+      // (2.1 on macOS), which cannot compile its shaders.
       hw_render.context_type = RETRO_HW_CONTEXT_OPENGL_CORE;
       hw_render.version_major = 4;
-      hw_render.version_minor = active_quad_rendering ? 5 : 1;
+      hw_render.version_minor = 1;
    }
 #endif
-   log_cb(RETRO_LOG_INFO,
-          "[Supermodel] Renderer context: %s, OpenGL %u.%u%s\n",
-          g_options.renderer_3d == Renderer3D::Legacy3D ?
-             "Legacy3D compatibility" : "New3D core",
+   log_cb(RETRO_LOG_INFO, "[Supermodel] 3D renderer: %s, OpenGL context %u.%u%s\n",
+          g_options.renderer_3d == Renderer3D::Legacy3D ? "Legacy3D" : "New3D",
           hw_render.version_major, hw_render.version_minor,
-          g_options.renderer_3d == Renderer3D::New3D &&
-             g_options.quad_rendering ?
-                ", Quad Rendering enabled" : "");
+          g_options.renderer_3d == Renderer3D::New3D && g_options.quad_rendering
+             ? ", Quad Rendering" : "");
    if (!environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render)) {
        log_cb(RETRO_LOG_ERROR, "[Supermodel] HW Render Context negotiation failed.\n");
        return false;
@@ -1105,10 +1395,6 @@ bool retro_load_game(const struct retro_game_info *info)
         // Optional: Log that rumble is not supported by this frontend/controller
    }
 
-   
-   g_active_widescreen_mode = g_options.widescreen_mode;
-   g_active_gun_input = g_options.gun_input;
-   g_active_star_wars_input = g_options.star_wars_input;
    ppc_set_jit_enabled(g_options.jit_enable);
    wrapper.InitializePaths(retro_base_directory);
    wrapper.setHwRender(hw_render); 
@@ -1119,21 +1405,41 @@ bool retro_load_game(const struct retro_game_info *info)
 
    log_cb(RETRO_LOG_INFO, "[Supermodel] Loading ROM: %s\n", info->path);
       
+   g_ffb_drive_board_enabled = g_options.force_feedback;
    int emulation = wrapper.Emulate(info->path);
    if (emulation != 0) return false;
-   const Game loaded_game = wrapper.getGame();
-   g_active_input_game = loaded_game;
-   g_has_active_input_game = true;
+   g_nvram_game = wrapper.getGame().name;
+   // Known only now that the game is loaded, before the machine is built.
+   configure_network_topology();
    update_core_option_visibility();
-   set_input_descriptors(&loaded_game);
-   set_controller_info(loaded_game);
-   wrapper.SetWidescreen(widescreen_enabled(), wide_background_enabled());
+   {
+      auto libretro_input =
+         std::static_pointer_cast<CLibretroInputSystem>(wrapper.getInputSystem());
+      if (libretro_input)
+      {
+         using GunSecondaryInput = CLibretroInputSystem::GunSecondaryInput;
+         libretro_input->SetGunSecondaryInput(
+            lost_world_loaded() ? GunSecondaryInput::Reload
+                                : GunSecondaryInput::AuxAOrReload);
+      }
+   }
+   if (wrapper.NativeTimingUnavailable())
+   {
+      static const struct retro_message message = {
+         "Native Model 3 timing needs a multi-threaded Emulation Threading mode; using 60 Hz.", 300
+      };
+      environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+   }
+   wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
+   wrapper.SetCrosshairs(effective_crosshair_mask());
+   wrapper.SetServiceOnSticks(g_options.service_on_sticks);
    if (wrapper.SuperModelInit(wrapper.getGame()) != 0)
    {
       log_cb(RETRO_LOG_ERROR, "[Supermodel] Emulator initialization failed.\n");
       wrapper.ShutDownSupermodel();
       return false;
    }
+
    // Re-apply FFB state after full DriveBoard initialization
    auto libretroInput2 = std::static_pointer_cast<CLibretroInputSystem>(wrapper.getInputSystem());
    if (libretroInput2 && g_options.force_feedback) {
@@ -1157,14 +1463,14 @@ void retro_unload_game(void)
    g_cached_serialize_size = 0;
    g_first_run = true;
    g_nvram_initialized = false;
+   g_star_wars_invert_x = false;
    g_skip_counter = 0;
    last_width = 0;
    last_height = 0;
+   last_aspect_ratio = 0.0f;
    g_context_ready = false;
-   g_has_active_input_game = false;
-   g_star_wars_invert_x = false;
+   g_nvram_game.clear();
    update_core_option_visibility();
-   set_input_descriptors(nullptr);
    pgo_flush();   // RetroArch may never call retro_deinit before exiting
 }
 void retro_run(void)
@@ -1188,92 +1494,77 @@ void retro_run(void)
       return;
    }
 
-   // Check if options were changed
+   // Check if options were changed (also while the menu was open)
    bool options_updated = false;
-   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &options_updated) && options_updated)
+   environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &options_updated);
+   if (options_updated || g_core_options_update_pending)
    {
+      g_core_options_update_pending = false;
       float old_multiplier = g_options.resolution_multiplier;
-      bool old_network_board = g_options.network_board;
-      unsigned old_network_cabinets = g_options.network_cabinets;
+      bool old_widescreen = g_options.widescreen;
+      bool old_wide_background = g_options.wide_background;
+      int old_upscale_mode = g_options.upscale_mode;
+      bool old_legacy_sound_dsp = g_options.legacy_sound_dsp;
+      bool old_service_on_sticks = g_options.service_on_sticks;
+      bool old_sound_enable = g_options.sound_enable;
+      EmulationThreading old_emulation_threading = g_options.emulation_threading;
+      unsigned old_crosshairs = g_options.crosshairs;
+      DrivingLayout old_driving_layout = g_options.driving_layout;
       Renderer3D old_renderer_3d = g_options.renderer_3d;
       bool old_legacy_multi_texture = g_options.legacy_multi_texture;
       bool old_quad_rendering = g_options.quad_rendering;
       int old_crt_colors = g_options.crt_colors;
       int old_supersampling = g_options.supersampling;
-      WidescreenMode old_widescreen_mode = g_options.widescreen_mode;
       bool old_no_white_flash = g_options.no_white_flash;
       AVTimingMode old_av_timing_mode = g_options.av_timing_mode;
-      int old_upscale_mode = g_options.upscale_mode;
-      bool old_sound_enable = g_options.sound_enable;
-      bool old_legacy_sound_dsp = g_options.legacy_sound_dsp;
-      unsigned old_crosshairs = g_options.crosshairs;
-      GunInput old_gun_input = g_options.gun_input;
-      StarWarsInput old_star_wars_input = g_options.star_wars_input;
       bool old_star_wars_upright_x_inversion =
          g_options.star_wars_upright_x_inversion;
-      FourSpeedShifter old_four_speed_shifter =
-         g_options.four_speed_shifter;
-      EmulationThreading old_emulation_threading =
-         g_options.emulation_threading;
+      bool old_force_feedback = g_options.force_feedback;
+      bool old_network_board = g_options.network_board;
+      unsigned old_network_cabinets = g_options.network_cabinets;
+
       update_core_options();
+      configure_network_topology();
       ppc_set_jit_enabled(g_options.jit_enable);
       update_core_option_visibility();
 
-      if (g_nvram_initialized && apply_configured_nvram_settings())
+      // Linked Cabinets and the NVRAM settings take effect at the next machine
+      // reset: do it now, as the standalone emulator would need a restart.
+      const bool network_changed =
+         g_options.network_board != old_network_board ||
+         (g_options.network_board &&
+          g_options.network_cabinets != old_network_cabinets);
+      const bool nvram_changed =
+         g_nvram_initialized && apply_configured_nvram_settings();
+      if ((network_changed || nvram_changed) && !g_first_run)
       {
-         static const struct retro_message message = {
-            "NVRAM settings saved. Restart content to apply them.", 180
-         };
-         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+         wrapper.Reset();
+         serialize_nvram();
+         update_star_wars_cabinet_orientation();
+         notify_frontend(network_changed
+            ? "Network settings applied; the machine was reset."
+            : "NVRAM settings applied; the machine was reset.");
       }
 
-      if (g_options.renderer_3d != old_renderer_3d ||
+      if (g_options.widescreen != old_widescreen)
+      {
+         // The output width changes too: retro_run() below resizes the renderers and
+         // sends the new geometry (frame size and aspect ratio) to the frontend.
+         wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
+      }
+      else if (g_options.wide_background != old_wide_background)
+      {
+         // Render2D reads WideBackground every frame: no reinit needed.
+         wrapper.SetWidescreen(g_options.widescreen, g_options.wide_background);
+      }
+
+      if (g_options.upscale_mode != old_upscale_mode ||
+          g_options.renderer_3d != old_renderer_3d ||
           g_options.legacy_multi_texture != old_legacy_multi_texture ||
           g_options.quad_rendering != old_quad_rendering ||
           g_options.crt_colors != old_crt_colors ||
           g_options.supersampling != old_supersampling ||
-          g_options.no_white_flash != old_no_white_flash)
-      {
-         static const struct retro_message message = {
-            "Renderer and supersampling changes require restarting the content.", 240
-         };
-         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
-      }
-
-      if (g_options.emulation_threading != old_emulation_threading)
-      {
-         static const struct retro_message message = {
-            "Emulation Threading will apply after restarting the content.", 180
-         };
-         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
-      }
-
-      if (g_options.network_board != old_network_board ||
-          g_options.network_cabinets != old_network_cabinets)
-      {
-         static const struct retro_message message = {
-            "Network Board settings will apply after restarting the content.", 180
-         };
-         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
-      }
-
-      if (g_options.widescreen_mode != old_widescreen_mode)
-      {
-         static const struct retro_message message = {
-            "Widescreen Mode will apply after restarting the content.", 180
-         };
-         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
-      }
-
-      if (g_options.av_timing_mode != old_av_timing_mode)
-      {
-         static const struct retro_message message = {
-            "Model 3 Timing Mode will apply after restarting the content.", 180
-         };
-         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
-      }
-
-      if (g_options.upscale_mode != old_upscale_mode ||
+          g_options.no_white_flash != old_no_white_flash ||
           g_options.legacy_sound_dsp != old_legacy_sound_dsp)
       {
          static const struct retro_message message = {
@@ -1282,10 +1573,19 @@ void retro_run(void)
          environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
 
-      if (g_options.sound_enable != old_sound_enable)
+      if (g_options.star_wars_upright_x_inversion !=
+          old_star_wars_upright_x_inversion && log_cb)
+      {
+         log_cb(RETRO_LOG_INFO,
+                "[Supermodel] Star Wars Upright X-axis inversion %s.\n",
+                g_options.star_wars_upright_x_inversion
+                   ? "enabled" : "disabled");
+      }
+
+      if (g_options.av_timing_mode != old_av_timing_mode)
       {
          static const struct retro_message message = {
-            "Sound Enable will apply after restarting the content.", 180
+            "Model 3 Timing Mode will apply after restarting the content.", 180
          };
          environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
@@ -1300,52 +1600,33 @@ void retro_run(void)
          environ_cb(RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO, &av_info);
       }
 
-      if (g_options.gun_input != old_gun_input)
+      if (g_options.service_on_sticks != old_service_on_sticks)
       {
-         g_active_gun_input = g_options.gun_input;
-         if (g_has_active_input_game)
-         {
-            set_input_descriptors(&g_active_input_game);
-            set_controller_info(g_active_input_game);
-         }
-         if (log_cb)
-            log_cb(RETRO_LOG_INFO,
-                   "[Supermodel] Gun Input applied immediately.\n");
-      }
-
-      if (g_options.star_wars_input != old_star_wars_input)
-      {
-         g_active_star_wars_input = g_options.star_wars_input;
-         if (g_has_active_input_game)
-         {
-            set_input_descriptors(&g_active_input_game);
-            set_controller_info(g_active_input_game);
-         }
-         if (log_cb)
-            log_cb(RETRO_LOG_INFO,
-                   "[Supermodel] Star Wars Trilogy Input applied immediately.\n");
-      }
-
-      if (g_options.star_wars_upright_x_inversion !=
-          old_star_wars_upright_x_inversion && log_cb)
-      {
-         log_cb(RETRO_LOG_INFO,
-                "[Supermodel] Star Wars Upright X-axis inversion %s.\n",
-                g_options.star_wars_upright_x_inversion
-                   ? "enabled" : "disabled");
-      }
-
-      if (g_options.four_speed_shifter != old_four_speed_shifter)
-      {
-         if (g_has_active_input_game)
-            set_input_descriptors(&g_active_input_game);
-         if (log_cb)
-            log_cb(RETRO_LOG_INFO,
-                   "[Supermodel] 4-Speed Shifter applied immediately.\n");
+         wrapper.SetServiceOnSticks(g_options.service_on_sticks);
+         set_input_descriptors(g_options.service_on_sticks);
       }
 
       if (g_options.crosshairs != old_crosshairs)
-         wrapper.SetCrosshairs(g_options.crosshairs);
+         wrapper.SetCrosshairs(effective_crosshair_mask());
+
+      if (g_options.driving_layout != old_driving_layout)
+         wrapper.ApplyDrivingLayout();
+
+      if (g_options.sound_enable != old_sound_enable)
+      {
+         static const struct retro_message message = {
+            "Sound Enable will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+      }
+
+      if (g_options.emulation_threading != old_emulation_threading)
+      {
+         static const struct retro_message message = {
+            "Emulation Threading will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
+      }
 
       wrapper.SetSoundVolume(g_options.sound_volume);
       wrapper.SetMusicVolume(g_options.music_volume);
@@ -1354,10 +1635,21 @@ void retro_run(void)
       auto libretroInput = std::static_pointer_cast<CLibretroInputSystem>(wrapper.getInputSystem());
       if (libretroInput) {
          libretroInput->SetFFBEnabled(g_options.force_feedback);
-
+         
          // If we just disabled it, kill any active vibration immediately
          if (!g_options.force_feedback)
             libretroInput->StopAllRumble();
+      }
+
+      // Turning it off applies immediately; turning it on needs the drive
+      // board restarted with ForceFeedback set.
+      if (g_options.force_feedback && !old_force_feedback &&
+          !g_ffb_drive_board_enabled)
+      {
+         static const struct retro_message message = {
+            "Force Feedback will apply after restarting the content.", 180
+         };
+         environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, (void *)&message);
       }
    }
 
@@ -1432,30 +1724,34 @@ void retro_run(void)
       skipRender = (g_skip_counter != 0);  // Render only when counter == 0
    }
 
+   // target: the whole output frame; view: the 4:3 game area centred in it.
    unsigned view_w, view_h, target_w, target_h;
    get_video_dimensions(view_w, view_h, target_w, target_h);
 
-   // OPTIMIZATION: Only update screen size if it actually changed.
-   if (target_w != last_width || target_h != last_height) {
-      wrapper.UpdateScreenSize(view_w, view_h, target_w, target_h);
-      
+   // Only update the screen size and geometry when something actually changed.
+   const float target_aspect = effective_aspect_ratio();
+   if (target_w != last_width || target_h != last_height ||
+       target_aspect != last_aspect_ratio) {
+      if (target_w != last_width || target_h != last_height)
+         wrapper.UpdateScreenSize(view_w, view_h, target_w, target_h);
+
       struct retro_game_geometry geometry;
       geometry.base_width   = target_w;
       geometry.base_height  = target_h;
-      geometry.max_width    = kMaximumVideoWidth;
-      geometry.max_height   = kMaximumVideoHeight;
-      geometry.aspect_ratio = widescreen_enabled()
-         ? (16.0f / 9.0f) : (4.0f / 3.0f);
+      get_maximum_video_dimensions(geometry.max_width, geometry.max_height);
+      geometry.aspect_ratio = target_aspect;
 
       environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &geometry);
-      
+
       last_width  = target_w;
       last_height = target_h;
+      last_aspect_ratio = target_aspect;
    }
 
    Game game = wrapper.getGame();
-   wrapper.Inputs->Poll(&game, wrapper.getXOffset(), wrapper.getYOffset(),
-                        view_w, view_h);
+   restore_driving_raw_inputs(game);
+   // Absolute pointers (mouse, light gun) map onto the 4:3 game area.
+   wrapper.Inputs->Poll(&game, wrapper.getXOffset(), wrapper.getYOffset(), view_w, view_h);
    apply_driving_analog_ranges(game);
 
    GLuint sm_fbo = wrapper.getSuperModelFBO();
@@ -1482,13 +1778,12 @@ void retro_run(void)
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
       glViewport(0, 0, target_w, target_h);
-      // Render2D re-enables the scissor test after clearing its target. The
-      // box is global GL state and must describe the supersampled render FBO,
-      // exactly as standalone scales its scissor by aaValue. Leaving this at
-      // base resolution clips a 2x source to its lower-left quarter before
-      // SuperAA resolves it.
-      const unsigned render_scale = static_cast<unsigned>(
-         std::max(1, wrapper.getAaValue()));
+      // Render2D re-enables the scissor test after clearing its target. The box is
+      // global GL state and must cover the supersampled render FBO, as standalone
+      // scales its scissor by the supersampling factor. At base size a 2x source
+      // would be clipped to its lower-left quarter before SuperAA resolves it.
+      const unsigned render_scale =
+         static_cast<unsigned>(std::max(1, wrapper.getAaValue()));
       glScissor(0, 0, target_w * render_scale, target_h * render_scale);
 
       glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1525,6 +1820,8 @@ void retro_run(void)
       // Draw diagnostics into Supermodel's own target. Drawing into the
       // frontend FBO after the blit is not portable: some hardware frontends
       // replace or resolve that target inside video_cb().
+      // The overlay is an ImGui NewFrame + Render + a draw call, so it only
+      // runs when enabled.
       const FrameTimings t = wrapper.GetTimings();
       const auto t_overlay_start = std::chrono::steady_clock::now();
       if (g_options.timing_overlay)
@@ -1574,71 +1871,59 @@ void retro_run(void)
       // with N always lands on the same phase of the cycle and lies to you.
       // renderTicks is also stale on skipped frames (Model3 only writes it when it
       // actually renders), so it is averaged over rendered frames only.
+      static float    acc_run = 0.0f, acc_emu = 0.0f, acc_present = 0.0f, max_run = 0.0f;
+      static float    acc_engine = 0.0f, acc_audio = 0.0f, acc_overlay = 0.0f, acc_blit = 0.0f;
+      static unsigned acc_ppc = 0, acc_render = 0, rendered = 0, log_frames = 0;
+
       const float emu     = ms(t_frame_start, t_post);
       const float present = ms(t_post, t_end);
 
-      s_accCoreAndBlit += emu;
-      s_accPresent += present;
-      s_accEngine += wrapper.GetLastEngineMs();
-      s_accAudioSubmit += wrapper.GetLastAudioSubmitMs();
-      s_accOverlay += ms(t_overlay_start, t_overlay_end);
-      s_accBlit += ms(t_blit_start, t_blit_end);
-      s_accRun += emu + present;
-      if (emu + present > s_maxRun) s_maxRun = emu + present;
-      s_accPpc += t.ppcTicks;
-      if (!skipRender) { s_accRender += t.renderTicks; s_renderedFrames++; }
+      acc_emu     += emu;
+      acc_present += present;
+      acc_run     += emu + present;
+      acc_engine  += wrapper.GetLastEngineMs();
+      acc_audio   += wrapper.GetLastAudioSubmitMs();
+      acc_overlay += ms(t_overlay_start, t_overlay_end);
+      acc_blit    += ms(t_blit_start, t_blit_end);
+      if (emu + present > max_run) max_run = emu + present;
+      acc_ppc += t.ppcTicks;
+      if (!skipRender) { acc_render += t.renderTicks; rendered++; }
 
-      if (++s_timingFrames >= 61) {   // 61: coprime with every frameskip cycle (1..4)
-         const float n = (float)s_timingFrames;
-         s_frontendTimings.engineMs = s_accEngine / n;
-         s_frontendTimings.audioSubmitMs = s_accAudioSubmit / n;
-         s_frontendTimings.overlayMs = s_accOverlay / n;
-         s_frontendTimings.blitMs = s_accBlit / n;
-         s_frontendTimings.coreAndBlitMs = s_accCoreAndBlit / n;
-         s_frontendTimings.otherMs = std::max(
-             0.0f, s_frontendTimings.coreAndBlitMs
-                 - s_frontendTimings.engineMs
-                 - s_frontendTimings.audioSubmitMs
-                 - s_frontendTimings.overlayMs
-                 - s_frontendTimings.blitMs);
-         s_frontendTimings.presentMs = s_accPresent / n;
-         s_frontendTimings.retroRunMs = s_accRun / n;
-         s_frontendTimings.worstRetroRunMs = s_maxRun;
-         s_frontendTimings.actualFps =
-             s_frameIntervals && s_accFrameInterval > 0.0f
-                 ? 1000.0f / (s_accFrameInterval /
-                              static_cast<float>(s_frameIntervals))
-                 : 0.0f;
+      if (++log_frames >= 61) {   // 61: coprime with every frameskip cycle (1..4)
+         const float n = (float)log_frames;
+         LibretroFrontendTimings &ft = s_frontendTimings;
+         ft.engineMs        = acc_engine / n;
+         ft.audioSubmitMs   = acc_audio / n;
+         ft.overlayMs       = acc_overlay / n;
+         ft.blitMs          = acc_blit / n;
+         ft.coreAndBlitMs   = acc_emu / n;
+         ft.otherMs         = std::max(0.0f, ft.coreAndBlitMs - ft.engineMs
+                                             - ft.audioSubmitMs - ft.overlayMs
+                                             - ft.blitMs);
+         ft.presentMs       = acc_present / n;
+         ft.retroRunMs      = acc_run / n;
+         ft.worstRetroRunMs = max_run;
+         ft.actualFps       = s_frameIntervals && s_accFrameInterval > 0.0f
+                                 ? 1000.0f / (s_accFrameInterval / (float)s_frameIntervals)
+                                 : 0.0f;
+         s_accFrameInterval = 0.0f;
+         s_frameIntervals = 0;
          if (g_options.timing_overlay)
             log_cb(RETRO_LOG_INFO,
                    "[Timing] avg over %u frames | PPC:%4.1f  Render:%4.1f (%u drawn)  "
                    "engine:%5.1f  audio:%4.1f  overlay:%4.1f  blit:%4.1f  other:%4.1f  "
                    "core+blit:%5.1f  present:%5.1f  retro_run:%5.1f  worst:%5.1f ms  "
-                   "actual:%5.1f FPS  engine-cap:%5.1f FPS  callback-cap:%5.1f FPS\n",
-                   s_timingFrames,
-                   s_accPpc / n,
-                   s_renderedFrames ? s_accRender / (float)s_renderedFrames : 0.0f,
-                   s_renderedFrames,
-                   s_frontendTimings.engineMs,
-                   s_frontendTimings.audioSubmitMs,
-                   s_frontendTimings.overlayMs,
-                   s_frontendTimings.blitMs,
-                   s_frontendTimings.otherMs,
-                   s_frontendTimings.coreAndBlitMs,
-                   s_frontendTimings.presentMs,
-                   s_frontendTimings.retroRunMs,
-                   s_frontendTimings.worstRetroRunMs,
-                   s_frontendTimings.actualFps,
-                   s_frontendTimings.engineMs > 0.0f
-                       ? 1000.0f / s_frontendTimings.engineMs : 0.0f,
-                   s_frontendTimings.retroRunMs > 0.0f
-                       ? 1000.0f / s_frontendTimings.retroRunMs : 0.0f);
-         s_timingFrames = s_renderedFrames = 0;
-         s_accRun = s_accCoreAndBlit = s_accPresent = s_maxRun = 0.0f;
-         s_accEngine = s_accAudioSubmit = s_accOverlay = s_accBlit = 0.0f;
-         s_accFrameInterval = 0.0f;
-         s_accPpc = s_accRender = 0;
-         s_frameIntervals = 0;
+                   "actual:%5.1f FPS\n",
+                   log_frames,
+                   acc_ppc / n,
+                   rendered ? acc_render / (float)rendered : 0.0f, rendered,
+                   ft.engineMs, ft.audioSubmitMs, ft.overlayMs, ft.blitMs, ft.otherMs,
+                   ft.coreAndBlitMs, ft.presentMs, ft.retroRunMs, ft.worstRetroRunMs,
+                   ft.actualFps);
+         log_frames = 0; rendered = 0;
+         acc_run = acc_emu = acc_present = max_run = 0.0f;
+         acc_engine = acc_audio = acc_overlay = acc_blit = 0.0f;
+         acc_ppc = acc_render = 0;
       }
    }
 }
@@ -1742,11 +2027,26 @@ bool retro_unserialize(const void* data, size_t size)
     write_save_state(legacyLayout, false, false);
 
     CBlockFileMemory mem(data, size);
-    const bool hasCurrentLayout = mem.ValidateLayout(currentLayout.GetLayout());
+    const auto matchesLayout = [&mem](const CBlockFileCounter &counter) {
+        auto layout = counter.GetLayout();
+        if (mem.ValidateLayout(layout))
+            return true;
+        // The wheel board's servo gain block is new; states saved before it
+        // are still complete without it.
+        const auto servo = std::find_if(layout.begin(), layout.end(),
+            [](const LibretroBlockLayout &block) {
+                return block.name == "WheelBoardServo";
+            });
+        if (servo == layout.end())
+            return false;
+        layout.erase(servo);
+        return mem.ValidateLayout(layout);
+    };
+    const bool hasCurrentLayout = matchesLayout(currentLayout);
     const bool hasStandaloneLayout = !hasCurrentLayout &&
-        mem.ValidateLayout(standaloneLayout.GetLayout());
+        matchesLayout(standaloneLayout);
     const bool hasLegacyLayout = !hasCurrentLayout && !hasStandaloneLayout &&
-        mem.ValidateLayout(legacyLayout.GetLayout());
+        matchesLayout(legacyLayout);
     if (!hasCurrentLayout && !hasStandaloneLayout && !hasLegacyLayout)
     {
         log_cb(RETRO_LOG_ERROR,
@@ -1821,475 +2121,74 @@ bool retro_unserialize(const void* data, size_t size)
         log_cb(RETRO_LOG_ERROR, "[Supermodel] Save State data ended unexpectedly while loading\n");
         return false;
     }
+    // The state carries its own NVRAM, cabinet type included.
+    update_star_wars_cabinet_orientation();
     return true;
 }
 
 // --- Input Descriptors & Callbacks ---
-void set_controller_info(const Game &game)
+void set_input_descriptors(bool service_on_sticks)
 {
-   static retro_controller_description descriptions[4];
-   static retro_controller_info ports[3];
-   static char cabinet_device_names[2][192];
+   struct retro_input_descriptor desc[] = {
+      // Player 1 - D-Pad
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "D-Pad Left / View 3" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "D-Pad Up / View 1 / View Change" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "D-Pad Right / View 4" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "D-Pad Down / View 2" },
 
-   const LibretroInputProfiles::Profile *profile =
-      LibretroInputProfiles::Find(game.inputs);
-   const char *device_name = profile ? profile->name : "RetroPad (generic fallback)";
-   if (profile && profile->family == LibretroInputProfiles::Family::Gun)
-   {
-      switch (g_active_gun_input)
-      {
-      case GunInput::Hybrid:
-         device_name = "Gun";
-         break;
-      case GunInput::Lightgun:
-         device_name = "Gun (Lightgun)";
-         break;
-      case GunInput::Mouse:
-         device_name = "Gun (Mouse)";
-         break;
-      case GunInput::MouseAnalog:
-         device_name = "Gun (Mouse + Analog Stick)";
-         break;
-      case GunInput::AnalogSticks:
-         device_name = "Gun (Analog Sticks)";
-         break;
-      }
-   }
-   for (unsigned port = 0; port < 2; ++port)
-   {
-      const bool gameplay_port = !profile || port < profile->players;
-      const char *base_name = gameplay_port ? device_name : "Common Controls B";
-      snprintf(cabinet_device_names[port], sizeof(cabinet_device_names[port]),
-               "%s + Test/Service slots", base_name);
+      // Player 1 - Face buttons
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "Punch / Handbrake / Rear Brake" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "Kick / Music Select" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Guard / Neutral Gear" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "Escape" },
 
-      retro_controller_description *types = &descriptions[port * 2];
-      // The base RetroPad is RetroArch's default device. Give it the complete
-      // profile, including remappable Test/Service slots; the reduced profile
-      // remains available as an explicit device subclass.
-      types[0] = { cabinet_device_names[port], RETRO_DEVICE_JOYPAD };
-      types[1] = { base_name, kNoCabinetControlsDevice };
-      ports[port] = { types, 2 };
-   }
-   ports[2] = { nullptr, 0 };
+      // Player 1 - Start / Coin
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Start" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Coin" },
 
-   environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, ports);
-}
+      // Player 1 - Shoulder buttons (role depends on mapping option)
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,
+            service_on_sticks ? "Gear Shift Down" : "Test (Test Menu)" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,
+            service_on_sticks ? "Gear Shift Up" : "Service" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,
+            service_on_sticks ? "Brake" : "Test 2" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,
+            service_on_sticks ? "Accelerator" : "Service 2" },
 
-void set_input_descriptors(const Game *game)
-{
-   std::vector<retro_input_descriptor> desc;
-   desc.reserve(40);
+      // Player 1 - Stick clicks (role depends on mapping option)
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,
+            service_on_sticks ? "Test (Test Menu)" : "L3" },
+      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,
+            service_on_sticks ? "Service" : "R3" },
 
-   const auto add = [&desc](unsigned port, unsigned device, unsigned index,
-                           unsigned id, const char *description)
-   {
-      desc.push_back({ port, device, index, id, description });
+      // Player 1 - Analog
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_X, "Steering / Move X" },
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_Y, "Move Y" },
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X, "Right Stick X / Gear Gate" },
+      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y, "Right Stick Y / Gear Shift" },
+
+      // Player 2 - D-Pad
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "P2 D-Pad Left" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "P2 D-Pad Up" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "P2 D-Pad Right" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "P2 D-Pad Down" },
+
+      // Player 2 - Face buttons
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "P2 Punch" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "P2 Kick" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "P2 Guard" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,      "P2 Escape" },
+
+      // Player 2 - Start / Coin
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "P2 Start" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "P2 Coin" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,     "P2 Test" },
+      { 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,     "P2 Service" },
+
+      { 0, 0, 0, 0, NULL },
    };
-
-   const auto add_common = [&add](unsigned port, const char *start_description = "Start")
-   {
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, start_description);
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Coin");
-      if (g_cabinet_controls_enabled[port])
-      {
-         add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,
-             port == 0 ? "Test A" : "Test B");
-         add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,
-             port == 0 ? "Service A" : "Service B");
-      }
-   };
-
-   const auto add_standard_directions = [&add](unsigned port)
-   {
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "Joystick Left");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Joystick Up");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Joystick Right");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "Joystick Down");
-      add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-          RETRO_DEVICE_ID_ANALOG_X, "Joystick X");
-      add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-          RETRO_DEVICE_ID_ANALOG_Y, "Joystick Y");
-   };
-
-   const auto add_generic = [&add, &add_common, &add_standard_directions](unsigned port)
-   {
-      add_standard_directions(port);
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Button 1");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Button 2");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "Button 3");
-      add(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Button 4");
-      add_common(port);
-   };
-
-   const LibretroInputProfiles::Profile *profile =
-      game ? LibretroInputProfiles::Find(game->inputs) : nullptr;
-
-   if (!profile)
-   {
-      add_generic(0);
-      add_generic(1);
-      if (game && log_cb)
-      {
-         log_cb(RETRO_LOG_WARN,
-                "[Supermodel] Unknown control signature 0x%08X; using generic RetroPad descriptors.\n",
-                LibretroInputProfiles::NormalizeInputs(game->inputs));
-      }
-   }
-   else
-   {
-      // The Model 3 common input bank always contains A/B Start, Coin,
-      // Test and Service lines, independently of the game's player controls.
-      for (unsigned port = 0; port < 2; ++port)
-      {
-         const bool ski_player_one =
-            profile->family == LibretroInputProfiles::Family::Ski && port == 0;
-         const bool fishing_player_one =
-            profile->family == LibretroInputProfiles::Family::Fishing && port == 0;
-         add_common(port,
-                    ski_player_one ? "Select 2 / Center (Red)" :
-                    fishing_player_one ? "Cast (Red)" : "Start");
-      }
-
-      switch (profile->family)
-      {
-      case LibretroInputProfiles::Family::Gun:
-         for (unsigned port = 0; port < 2; ++port)
-         {
-            switch (g_active_gun_input)
-            {
-            case GunInput::Hybrid:
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X, "Gun Yaw (Lightgun)");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y, "Gun Pitch (Lightgun)");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_X, "Gun Yaw (Analog Cursor)");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_Y, "Gun Pitch (Analog Cursor)");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_B, "Left Shot (Analog)");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_A, "Right Shot (Analog)");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_TRIGGER, "Left Shot (Lightgun)");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_RELOAD, "Right Shot (Lightgun)");
-               break;
-
-            case GunInput::Lightgun:
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X, "Gun Yaw");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y, "Gun Pitch");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_TRIGGER, "Left Shot");
-               add(port, RETRO_DEVICE_LIGHTGUN, 0,
-                   RETRO_DEVICE_ID_LIGHTGUN_RELOAD, "Right Shot");
-               break;
-
-            case GunInput::Mouse:
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_X, "Gun Yaw");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_Y, "Gun Pitch");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_LEFT, "Left Shot");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_RIGHT, "Right Shot");
-               break;
-
-            case GunInput::MouseAnalog:
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_X, "Gun Yaw (Mouse)");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_Y, "Gun Pitch (Mouse)");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_LEFT, "Left Shot (Mouse)");
-               add(port, RETRO_DEVICE_MOUSE, 0,
-                   RETRO_DEVICE_ID_MOUSE_RIGHT, "Right Shot (Mouse)");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_X, "Gun Yaw (Analog Cursor)");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_Y, "Gun Pitch (Analog Cursor)");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_B, "Left Shot (Analog)");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_A, "Right Shot (Analog)");
-               break;
-
-            case GunInput::AnalogSticks:
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_X, "Gun Yaw");
-               add(port, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                   RETRO_DEVICE_ID_ANALOG_Y, "Gun Pitch");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_B, "Left Shot");
-               add(port, RETRO_DEVICE_JOYPAD, 0,
-                   RETRO_DEVICE_ID_JOYPAD_A, "Right Shot");
-               break;
-            }
-         }
-         break;
-
-      case LibretroInputProfiles::Family::AnalogJoystick:
-      {
-         const auto add_star_wars_lightgun = [&add](bool identify_source)
-         {
-            add(0, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X,
-                identify_source ? "Analog Joystick X (Lightgun)" :
-                                  "Analog Joystick X");
-            add(0, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y,
-                identify_source ? "Analog Joystick Y (Lightgun)" :
-                                  "Analog Joystick Y");
-            add(0, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_TRIGGER,
-                identify_source ? "Trigger 1 (Lightgun)" : "Trigger 1");
-            add(0, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_AUX_A,
-                identify_source ? "Event 1 (Lightgun)" : "Event 1");
-            add(1, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_TRIGGER,
-                identify_source ? "Trigger 2 (Lightgun)" : "Trigger 2");
-            add(1, RETRO_DEVICE_LIGHTGUN, 0,
-                RETRO_DEVICE_ID_LIGHTGUN_AUX_A,
-                identify_source ? "Event 2 (Lightgun)" : "Event 2");
-         };
-         const auto add_star_wars_mouse = [&add](bool identify_source)
-         {
-            add(0, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_X,
-                identify_source ? "Analog Joystick X (Mouse)" :
-                                  "Analog Joystick X");
-            add(0, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_Y,
-                identify_source ? "Analog Joystick Y (Mouse)" :
-                                  "Analog Joystick Y");
-            add(0, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_LEFT,
-                identify_source ? "Trigger 1 (Mouse)" : "Trigger 1");
-            add(0, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_RIGHT,
-                identify_source ? "Event 1 (Mouse)" : "Event 1");
-            add(1, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_LEFT,
-                identify_source ? "Trigger 2 (Mouse)" : "Trigger 2");
-            add(1, RETRO_DEVICE_MOUSE, 0,
-                RETRO_DEVICE_ID_MOUSE_RIGHT,
-                identify_source ? "Event 2 (Mouse)" : "Event 2");
-         };
-         const auto add_star_wars_analog = [&add](bool identify_source)
-         {
-            add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                RETRO_DEVICE_ID_ANALOG_X,
-                identify_source ? "Analog Joystick X (Analog Stick)" :
-                                  "Analog Joystick X");
-            add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-                RETRO_DEVICE_ID_ANALOG_Y,
-                identify_source ? "Analog Joystick Y (Analog Stick)" :
-                                  "Analog Joystick Y");
-            add(0, RETRO_DEVICE_JOYPAD, 0,
-                RETRO_DEVICE_ID_JOYPAD_B,
-                identify_source ? "Trigger 1 (Analog)" : "Trigger 1");
-            add(0, RETRO_DEVICE_JOYPAD, 0,
-                RETRO_DEVICE_ID_JOYPAD_A,
-                identify_source ? "Event 1 (Analog)" : "Event 1");
-            add(0, RETRO_DEVICE_JOYPAD, 0,
-                RETRO_DEVICE_ID_JOYPAD_Y,
-                identify_source ? "Trigger 2 (Analog)" : "Trigger 2");
-            add(0, RETRO_DEVICE_JOYPAD, 0,
-                RETRO_DEVICE_ID_JOYPAD_X,
-                identify_source ? "Event 2 (Analog)" : "Event 2");
-         };
-
-         switch (g_active_star_wars_input)
-         {
-         case StarWarsInput::Hybrid:
-            add_star_wars_lightgun(true);
-            add_star_wars_mouse(true);
-            add_star_wars_analog(true);
-            break;
-         case StarWarsInput::Lightgun:
-            add_star_wars_lightgun(false);
-            break;
-         case StarWarsInput::MouseAnalog:
-            add_star_wars_mouse(true);
-            add_star_wars_analog(true);
-            break;
-         case StarWarsInput::Mouse:
-            add_star_wars_mouse(false);
-            break;
-         case StarWarsInput::AnalogSticks:
-            add_star_wars_analog(false);
-            break;
-         }
-         break;
-      }
-
-      case LibretroInputProfiles::Family::Fishing:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_X, "Rod X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Rod Y");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-             RETRO_DEVICE_ID_ANALOG_X, "Stick X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Stick Y");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2, "Reel");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2, "Tension");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Cast (Red)");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Select (Yellow)");
-         break;
-
-      case LibretroInputProfiles::Family::JoystickStandard:
-      {
-         const char *actions[4] = { nullptr, nullptr, nullptr, nullptr };
-         unsigned action_count = 0;
-         if (profile->inputs & Game::INPUT_FIGHTING)
-         {
-            actions[0] = "Punch";
-            actions[1] = "Kick";
-            actions[2] = "Guard";
-            actions[3] = "Escape";
-            action_count = 4;
-         }
-         else if (profile->inputs & Game::INPUT_SOCCER)
-         {
-            actions[0] = "Short Pass";
-            actions[1] = "Long Pass";
-            actions[2] = "Shoot";
-            action_count = 3;
-         }
-         else
-         {
-            actions[0] = "Shift";
-            actions[1] = "Beat";
-            actions[2] = "Charge";
-            actions[3] = "Jump";
-            action_count = 4;
-         }
-
-         static constexpr unsigned action_ids[4] = {
-            RETRO_DEVICE_ID_JOYPAD_B,
-            RETRO_DEVICE_ID_JOYPAD_A,
-            RETRO_DEVICE_ID_JOYPAD_Y,
-            RETRO_DEVICE_ID_JOYPAD_X,
-         };
-         for (unsigned port = 0; port < profile->players; ++port)
-         {
-            add_standard_directions(port);
-            for (unsigned i = 0; i < action_count; ++i)
-               add(port, RETRO_DEVICE_JOYPAD, 0, action_ids[i], actions[i]);
-         }
-         break;
-      }
-
-      case LibretroInputProfiles::Family::MagicalTruck:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Player 1 Lever");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,
-             "Player 1 Foot Pedal");
-         add(1, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Player 2 Lever");
-         add(1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,
-             "Player 2 Foot Pedal");
-         break;
-
-      case LibretroInputProfiles::Family::Ski:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_X, "Ski X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Ski Y");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Pole Left");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Pole Right");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,
-             "Select 1 / Left (Blue)");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,
-             "Select 2 / Center (Red)");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,
-             "Select 3 / Right (Green)");
-         break;
-
-      case LibretroInputProfiles::Family::JoystickTwin:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_X, "Left Joystick X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Left Joystick Y");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-             RETRO_DEVICE_ID_ANALOG_X, "Right Joystick X");
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-             RETRO_DEVICE_ID_ANALOG_Y, "Right Joystick Y");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,
-             "Left Shot Trigger");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,
-             "Right Shot Trigger");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Left Turbo");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Right Turbo");
-         break;
-
-      case LibretroInputProfiles::Family::Driving:
-         add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-             RETRO_DEVICE_ID_ANALOG_X, "Steering");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2, "Brake");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2, "Accelerator");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Shift Down");
-         add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Shift Up");
-
-         if (profile->inputs & Game::INPUT_SHIFT4)
-         {
-            if (g_options.four_speed_shifter == FourSpeedShifter::HGate)
-            {
-               add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-                   RETRO_DEVICE_ID_ANALOG_X, "H-Gate: Left / Right");
-               add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-                   RETRO_DEVICE_ID_ANALOG_Y, "H-Gate: Up / Down");
-            }
-            else
-            {
-               add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-                   RETRO_DEVICE_ID_ANALOG_X,
-                   "4-Speed: Gear 3 (Left) / Gear 4 (Right)");
-               add(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-                   RETRO_DEVICE_ID_ANALOG_Y,
-                   "4-Speed: Gear 1 (Up) / Gear 2 (Down)");
-            }
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,
-                "4-Speed: Neutral");
-         }
-         if (profile->inputs & Game::INPUT_VR4)
-         {
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,
-                "VR1 (Red)");
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,
-                "VR2 (Blue)");
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,
-                "VR3 (Yellow)");
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,
-                "VR4 (Green)");
-         }
-         else if (profile->inputs & Game::INPUT_VIEWCHANGE)
-         {
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "VR1");
-         }
-         if (profile->inputs & Game::INPUT_HANDBRAKE)
-         {
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Handbrake");
-         }
-         if (profile->inputs & Game::INPUT_HARLEY)
-         {
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Rear Brake");
-            add(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Music Select");
-         }
-         break;
-      }
-
-      if (log_cb)
-         log_cb(RETRO_LOG_INFO, "[Supermodel] Control profile: %s\n", profile->name);
-   }
-
-   desc.push_back({ 0, 0, 0, 0, nullptr });
-   environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc.data());
+   environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc);
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -2303,27 +2202,26 @@ void retro_set_environment(retro_environment_t cb)
    if (environ_cb(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &vfs_iface_info))
       filestream_vfs_init(&vfs_iface_info);
 
+   // 2. Core options, including the generated per-game NVRAM and network settings
    register_core_options();
-
-   struct retro_core_options_update_display_callback update_display_cb;
-   update_display_cb.callback = update_core_option_visibility;
+   struct retro_core_options_update_display_callback display_callback = {
+      update_display_cb
+   };
    environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_UPDATE_DISPLAY_CALLBACK,
-              &update_display_cb);
+              &display_callback);
    g_visible_nvram_enabled = -1;
    g_visible_nvram_game.clear();
-   g_network_board_option_visible = -1;
-   g_network_cabinets_option_visible = -1;
-#if defined(HAVE_LEGACY3D) && !defined(USE_LEGACY3D)
-   g_legacy_multi_texture_option_visible = -1;
-#endif
-   update_core_option_visibility();
+   g_visible_network_game.assign(1, '\1');
+   g_visible_network_role_managed = -1;
+   g_visible_lost_world_options = -1;
 
    // 3. Variable Update Check
    bool dummy = false;
    environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &dummy);
+   g_core_options_update_pending = false;
    
    // 4. Input Descriptors
-   set_input_descriptors(nullptr);
+   set_input_descriptors(g_options.service_on_sticks); 
 }
 
 void retro_set_audio_sample(retro_audio_sample_t cb)
@@ -2353,7 +2251,22 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 // --- Stubs (Unused) ---
 
-void retro_reset(void) { wrapper.Reset(); }
+void retro_reset(void)
+{
+   if (wrapper.getEmulator() == nullptr) return;
+   // Restart applies the pending option changes too, then resets once.
+   update_core_options();
+   configure_network_topology();
+   update_core_option_visibility();
+   if (g_nvram_initialized) apply_configured_nvram_settings();
+   wrapper.Reset();
+   if (g_nvram_initialized)
+   {
+      serialize_nvram();
+      update_star_wars_cabinet_orientation();
+   }
+   g_core_options_update_pending = false;
+}
 bool retro_load_game_special(unsigned, const struct retro_game_info *, size_t) { return false; }
 void retro_cheat_reset(void) {}
 void retro_cheat_set(unsigned, bool, const char *) {}

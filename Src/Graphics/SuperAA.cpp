@@ -212,6 +212,7 @@ void SuperAA::Draw()
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_SCISSOR_TEST);
 		glDisable(GL_BLEND);
+
 		glBindTexture(GL_TEXTURE_2D, m_fbo.GetTextureID());
 		glBindVertexArray(m_vao);
 		glViewport(0, 0, m_width, m_height);

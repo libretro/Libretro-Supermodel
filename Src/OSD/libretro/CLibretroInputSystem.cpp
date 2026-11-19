@@ -1,3 +1,4 @@
+#include <cctype>
 #include <cstring>
 #include <libretro.h>
 #include "CLibretroInputSystem.h"
@@ -9,8 +10,8 @@
 extern retro_input_poll_t input_poll_cb;
 extern retro_input_state_t input_state_cb;
 extern retro_log_printf_t log_cb;  // defined in libretro.cpp
-extern bool g_cabinet_controls_enabled[2];
-extern bool g_star_wars_invert_x;
+extern bool g_star_wars_invert_x; // defined in libretro.cpp
+extern bool g_joypad_enabled[2];   // defined in libretro.cpp: port device is not None
 
 CLibretroInputSystem::CLibretroInputSystem()
     : CInputSystem("Libretro")
@@ -18,7 +19,6 @@ CLibretroInputSystem::CLibretroInputSystem()
     memset(m_joyButtons, 0, sizeof(m_joyButtons));
     memset(m_joyAxes,    0, sizeof(m_joyAxes));
     memset(m_joyPOV,     0, sizeof(m_joyPOV));
-    m_hGatePosition = 0;
     memset(m_keyState,   0, sizeof(m_keyState));
     memset(m_mouseAxes,  0, sizeof(m_mouseAxes));
     memset(m_mouseButtons, 0, sizeof(m_mouseButtons));
@@ -38,6 +38,8 @@ CLibretroInputSystem::CLibretroInputSystem()
     m_analogJoystickCursorY = 0;
     m_analogJoystickCursorInitialized = false;
     m_analogJoystickSource = 0;
+    m_port2MouseDistinct = false;
+    m_port2LightgunDistinct = false;
     memset(&m_rumbleInterface, 0, sizeof(m_rumbleInterface));
 }
 
@@ -50,9 +52,19 @@ bool CLibretroInputSystem::Poll()
 
     input_poll_cb();
 
+    // A port whose device the user set to None contributes nothing, apart from the
+    // keyboard, which RetroArch reports on port 0 whatever the pad setting.
+    const auto readInput = [](unsigned port, unsigned device,
+                              unsigned index, unsigned id) -> int16_t
+    {
+        if (port < 2 && !g_joypad_enabled[port] && device != RETRO_DEVICE_KEYBOARD)
+            return 0;
+        return input_state_cb(port, device, index, id);
+    };
+
     // ----- Keyboard -----
     for (int k = 0; k < 512; k++)
-        m_keyState[k] = input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, k);
+        m_keyState[k] = readInput(0, RETRO_DEVICE_KEYBOARD, 0, k);
 
     // Ensure we have some display dimensions
     if (m_dispW == 0) { m_dispW = 496; m_dispH = 384; }
@@ -66,6 +78,7 @@ bool CLibretroInputSystem::Poll()
     bool lightgunPositionMoved[2] = {};
     bool lightgunTrigger[2] = {};
     bool lightgunAuxA[2] = {};
+    bool lightgunReload[2] = {};
 
     // ----- RetroMouse ports (Supermodel MOUSE and MOUSE2) -----
     for (int port = 0; port < 2; ++port)
@@ -77,9 +90,9 @@ bool CLibretroInputSystem::Poll()
             m_mousePositionInitialized[port] = true;
         }
 
-        mouseDeltaX[port] = input_state_cb(
+        mouseDeltaX[port] = readInput(
             port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
-        mouseDeltaY[port] = input_state_cb(
+        mouseDeltaY[port] = readInput(
             port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
         m_mouseX[port] += mouseDeltaX[port];
         m_mouseY[port] += mouseDeltaY[port];
@@ -94,23 +107,29 @@ bool CLibretroInputSystem::Poll()
         m_mouseAxes[port][AXIS_X] = m_mouseX[port];
         m_mouseAxes[port][AXIS_Y] = m_mouseY[port];
         m_mouseWheelDir[port] = 0;
-        if (input_state_cb(port, RETRO_DEVICE_MOUSE, 0,
+        if (readInput(port, RETRO_DEVICE_MOUSE, 0,
                            RETRO_DEVICE_ID_MOUSE_WHEELUP))
+        {
+            m_mouseAxes[port][AXIS_Z] += 5;
             m_mouseWheelDir[port] = 1;
-        else if (input_state_cb(port, RETRO_DEVICE_MOUSE, 0,
+        }
+        else if (readInput(port, RETRO_DEVICE_MOUSE, 0,
                                 RETRO_DEVICE_ID_MOUSE_WHEELDOWN))
+        {
+            m_mouseAxes[port][AXIS_Z] -= 5;
             m_mouseWheelDir[port] = -1;
+        }
 
         // CInputSystem mouse button order is Left, Middle, Right, X1, X2.
-        m_mouseButtons[port][0] = input_state_cb(
+        m_mouseButtons[port][0] = readInput(
             port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
-        m_mouseButtons[port][1] = input_state_cb(
+        m_mouseButtons[port][1] = readInput(
             port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
-        m_mouseButtons[port][2] = input_state_cb(
+        m_mouseButtons[port][2] = readInput(
             port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
-        m_mouseButtons[port][3] = input_state_cb(
+        m_mouseButtons[port][3] = readInput(
             port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_4);
-        m_mouseButtons[port][4] = input_state_cb(
+        m_mouseButtons[port][4] = readInput(
             port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_BUTTON_5);
         m_mouseIsAbsolute[port] = false;
     }
@@ -120,11 +139,11 @@ bool CLibretroInputSystem::Poll()
     {
         const int dev = port + 2;
         // Use SCREEN_X/Y for absolute position (-32768 to 32767)
-        lightgunX[port] = input_state_cb(
+        lightgunX[port] = readInput(
             port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X);
-        lightgunY[port] = input_state_cb(
+        lightgunY[port] = readInput(
             port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y);
-        lightgunOffscreen[port] = input_state_cb(
+        lightgunOffscreen[port] = readInput(
             port, RETRO_DEVICE_LIGHTGUN, 0,
             RETRO_DEVICE_ID_LIGHTGUN_IS_OFFSCREEN);
         
@@ -138,34 +157,45 @@ bool CLibretroInputSystem::Poll()
         m_mouseAxes[dev][AXIS_Z] = 0;
         m_mouseWheelDir[dev] = 0;
 
-        lightgunTrigger[port] = input_state_cb(
+        lightgunTrigger[port] = readInput(
             port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_TRIGGER);
+        lightgunAuxA[port] = readInput(
+            port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_AUX_A);
+        lightgunReload[port] = readInput(
+            port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_RELOAD);
         m_mouseButtons[dev][0] = lightgunTrigger[port];
         m_mouseButtons[dev][1] = 0;
-        // Ocean Hunter has two independent shot triggers. AUX_A is the
-        // natural second trigger; Reload is also accepted because RetroArch
-        // binds it to the second mouse button by default. IS_OFFSCREEN is a
-        // position state, not a button: treating it as one leaves Shot 2 stuck.
-        lightgunAuxA[port] = input_state_cb(
-            port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_AUX_A);
-        m_mouseButtons[dev][2] = lightgunAuxA[port] ||
-            input_state_cb(
-                port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_RELOAD);
-        m_mouseButtons[dev][3] = input_state_cb(
+        switch (m_gunSecondaryInput)
+        {
+        case GunSecondaryInput::Reload:
+            // The Lost World: the gun has one trigger and reloads with an off-screen
+            // shot, which the gun cursors below derive from these buttons.
+            m_mouseButtons[dev][2] = lightgunReload[port];
+            break;
+        case GunSecondaryInput::AuxAOrReload:
+            // Ocean Hunter has two independent shot triggers. AUX_A is the natural
+            // second trigger; Reload is also accepted because RetroArch binds it to
+            // the second mouse button by default, except while the gun points
+            // off-screen, where it is a real reload shot and must not fire the
+            // second weapon. IS_OFFSCREEN is a position state, not a button:
+            // treating it as one leaves Shot 2 stuck.
+            m_mouseButtons[dev][2] = lightgunAuxA[port] ||
+                (lightgunReload[port] && !lightgunOffscreen[port]);
+            break;
+        }
+        m_mouseButtons[dev][3] = readInput(
             port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_START);
-        m_mouseButtons[dev][4] = input_state_cb(
+        m_mouseButtons[dev][4] = readInput(
             port, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SELECT);
         m_mouseIsAbsolute[dev] = true;
     }
 
-    // Evaluate the raw absolute coordinates once, before any virtual cursor
-    // updates the previous-position snapshot. Gun and Star Wars profiles can
-    // then share the same validity and movement decision independently of
-    // their selected input modes.
+    // Evaluate the raw absolute coordinates once, before the gun cursors
+    // update the previous-position snapshot, so the gun cursors and the
+    // Star Wars yoke share the same validity and movement decision.
     for (int port = 0; port < 2; ++port)
     {
-        lightgunPositionValid[port] =
-            !lightgunOffscreen[port] &&
+        lightgunPositionValid[port] = !lightgunOffscreen[port] &&
             lightgunX[port] != INT16_MIN && lightgunY[port] != INT16_MIN;
         lightgunPositionMoved[port] = lightgunPositionValid[port] &&
             (!m_lightgunPositionInitialized[port] ||
@@ -184,11 +214,11 @@ bool CLibretroInputSystem::Poll()
         }
 
         // ----- Axes -----
-        int16_t x = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+        int16_t x = readInput(joy, RETRO_DEVICE_ANALOG,
                                    RETRO_DEVICE_INDEX_ANALOG_LEFT,
                                    RETRO_DEVICE_ID_ANALOG_X);
 
-        int16_t y = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+        int16_t y = readInput(joy, RETRO_DEVICE_ANALOG,
                                    RETRO_DEVICE_INDEX_ANALOG_LEFT,
                                    RETRO_DEVICE_ID_ANALOG_Y);
 
@@ -197,36 +227,45 @@ bool CLibretroInputSystem::Poll()
 
         // Right stick -> RX/RY, which the analog driving layout uses as a gate shifter
         // (JOY1_RYAXIS_NEG/POS = gears 1/2, JOY1_RXAXIS_NEG/POS = gears 3/4).
-        m_joyAxes[joy][AXIS_RX] = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+        m_joyAxes[joy][AXIS_RX] = readInput(joy, RETRO_DEVICE_ANALOG,
                                                  RETRO_DEVICE_INDEX_ANALOG_RIGHT,
                                                  RETRO_DEVICE_ID_ANALOG_X);
-        m_joyAxes[joy][AXIS_RY] = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+        m_joyAxes[joy][AXIS_RY] = readInput(joy, RETRO_DEVICE_ANALOG,
                                                  RETRO_DEVICE_INDEX_ANALOG_RIGHT,
                                                  RETRO_DEVICE_ID_ANALOG_Y);
 
         // Triggers as analog axes (0..32767). Frontends with only digital L2/R2 report 0 or
         // 32767 here, so this is safe either way. L2 -> ZAXIS, R2 -> RZAXIS, matching how
         // Supermodel names trigger axes elsewhere.
-        m_joyAxes[joy][AXIS_Z]  = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+        m_joyAxes[joy][AXIS_Z]  = readInput(joy, RETRO_DEVICE_ANALOG,
                                                  RETRO_DEVICE_INDEX_ANALOG_BUTTON,
                                                  RETRO_DEVICE_ID_JOYPAD_L2);
-        m_joyAxes[joy][AXIS_RZ] = input_state_cb(joy, RETRO_DEVICE_ANALOG,
+        m_joyAxes[joy][AXIS_RZ] = readInput(joy, RETRO_DEVICE_ANALOG,
                                                  RETRO_DEVICE_INDEX_ANALOG_BUTTON,
                                                  RETRO_DEVICE_ID_JOYPAD_R2);
 
+        // Touch overlays (and some pads) press L2/R2 only digitally and report 0 on the
+        // analog channel, which would leave the pedals dead. Treat that as full travel.
+        if (m_joyAxes[joy][AXIS_Z] == 0 &&
+            readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2))
+            m_joyAxes[joy][AXIS_Z] = 0x7FFF;
+        if (m_joyAxes[joy][AXIS_RZ] == 0 &&
+            readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2))
+            m_joyAxes[joy][AXIS_RZ] = 0x7FFF;
+
         // ----- D-Pad -----
-        bool d_up    = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
-        bool d_down  = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
-        bool d_left  = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
-        bool d_right = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+        bool d_up    = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
+        bool d_down  = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
+        bool d_left  = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
+        bool d_right = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
 
         // CInputSystem POV directions are ordered Up, Down, Left, Right.
         // Keep this array in the same order: IsJoyPOVInDir() indexes it with
         // the POV_* constants declared by Supermodel.
-        m_joyPOV[joy][0] = d_up;    // Up
-        m_joyPOV[joy][1] = d_down;  // Down
-        m_joyPOV[joy][2] = d_left;  // Left
-        m_joyPOV[joy][3] = d_right; // Right
+        m_joyPOV[joy][0] = (y < -THRESHOLD) || d_up;    // Up
+        m_joyPOV[joy][1] = (y >  THRESHOLD) || d_down;  // Down
+        m_joyPOV[joy][2] = (x < -THRESHOLD) || d_left;  // Left
+        m_joyPOV[joy][3] = (x >  THRESHOLD) || d_right; // Right
 
         // ----- Buttons -----
         // Standard game buttons (0-3: B, A, Y, X)
@@ -241,30 +280,20 @@ bool CLibretroInputSystem::Poll()
         for (int b = 0; b < 4; b++)
         {
             m_joyButtons[joy][b] =
-                input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, game_buttons[b]);
+                readInput(joy, RETRO_DEVICE_JOYPAD, 0, game_buttons[b]);
         }
 
-        // Shoulder/trigger buttons (4-7: L, R, L2, R2)
-        m_joyButtons[joy][4] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
-        m_joyButtons[joy][5] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
-        m_joyButtons[joy][6] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2);
-        m_joyButtons[joy][7] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2);
+        // Gear shift / shoulder buttons (4-7: L, R, L2, R2)
+        m_joyButtons[joy][4] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
+        m_joyButtons[joy][5] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
+        m_joyButtons[joy][6] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2);
+        m_joyButtons[joy][7] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2);
 
         // Coin/Start buttons (8-9)
         // Button 8: START button -> maps to InputStart1/InputStart2
         // Button 9: SELECT button -> maps to InputCoin1/InputCoin2
-        m_joyButtons[joy][8] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START);
-        m_joyButtons[joy][9] = input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
-
-        // L3/R3 are reserved as remappable cabinet slots, but stay completely
-        // inactive in the default detected profile. The user must explicitly
-        // select the "+ Test/Service slots" device type for this port.
-        m_joyButtons[joy][14] = g_cabinet_controls_enabled[joy]
-            ? input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3)
-            : 0;
-        m_joyButtons[joy][15] = g_cabinet_controls_enabled[joy]
-            ? input_state_cb(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3)
-            : 0;
+        m_joyButtons[joy][8] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START);
+        m_joyButtons[joy][9] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT);
         
         // **FIX: Map D-Pad AND Analog Stick to buttons 10-13**
         // This makes both the analog stick and D-Pad work for movement!
@@ -273,59 +302,57 @@ bool CLibretroInputSystem::Poll()
         m_joyButtons[joy][12] = (x < -THRESHOLD) || d_left;    // Left - ANALOG + DIGITAL
         m_joyButtons[joy][13] = (x >  THRESHOLD) || d_right;   // Right - ANALOG + DIGITAL
 
+        // D-Pad alone (24-27, BUTTON25-28): the driving view buttons, which must
+        // not follow the left stick the way POV and buttons 10-13 do, since the
+        // left stick steers.
+        m_joyButtons[joy][24] = d_up;
+        m_joyButtons[joy][25] = d_down;
+        m_joyButtons[joy][26] = d_left;
+        m_joyButtons[joy][27] = d_right;
+
+        // Service/Test buttons (20-23) - BUTTON21-24 in Supermodel numbering.
+        // Player 1 follows the Service / Test Button Mapping option; player 2
+        // always uses its own stick clicks, since its shoulders are game controls.
+        if (m_serviceOnSticks || joy == 1)
+        {
+            m_joyButtons[joy][20] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3);
+            m_joyButtons[joy][21] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3);
+            m_joyButtons[joy][22] = 0; // no 3rd/4th stick button on standard pads
+            m_joyButtons[joy][23] = 0;
+        }
+        else
+        {
+            m_joyButtons[joy][20] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
+            m_joyButtons[joy][21] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R);
+            m_joyButtons[joy][22] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2);
+            m_joyButtons[joy][23] = readInput(joy, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2);
+        }
     }
 
-    // The four logical gear inputs are deliberately kept behind virtual
-    // joystick buttons. RetroArch always exposes the same four remappable
-    // right-stick half-axes; this decoder alone decides whether they select
-    // gears directly or describe an H-gate position.
-    constexpr unsigned kGearButtonFirst = 16; // JOY1_BUTTON17 -> array index 16
-    constexpr int kStandardThreshold = 21845; // approximately 2/3 axis travel
-    constexpr int kHGateEnterThreshold = 16000;
-    constexpr int kHGateReleaseThreshold = 12000;
-    const int rightX = m_joyAxes[0][AXIS_RX];
-    const int rightY = m_joyAxes[0][AXIS_RY];
-
-    if (g_options.four_speed_shifter == FourSpeedShifter::Standard)
+    // ----- H-pattern gearbox (JOY1_BUTTON17-20) -----
+    // In the H-pattern driving layout the right stick diagonals select gears 1-4 like a
+    // real 4-speed lever: up-left 1, down-left 2, up-right 3, down-right 4. A diagonal
+    // needs both axes past about half travel (about 69% of the stick radius at 45
+    // degrees). Supermodel latches the last gear selected, so releasing the stick keeps
+    // the gear engaged.
     {
-        m_hGatePosition = 0;
-        m_joyButtons[0][kGearButtonFirst + 0] = rightY < -kStandardThreshold;
-        m_joyButtons[0][kGearButtonFirst + 1] = rightY >  kStandardThreshold;
-        m_joyButtons[0][kGearButtonFirst + 2] = rightX < -kStandardThreshold;
-        m_joyButtons[0][kGearButtonFirst + 3] = rightX >  kStandardThreshold;
-    }
-    else
-    {
-        unsigned candidate = 0;
-        if (rightX < -kHGateEnterThreshold)
+        constexpr unsigned kGearButtonFirst = 16;   // JOY1_BUTTON17 -> array index 16
+        constexpr int kHGateThreshold = 16000;
+        int gear = 0;
+        if (g_options.driving_layout == DrivingLayout::TriggersHGate)
         {
-            if (rightY < -kHGateEnterThreshold) candidate = 1;
-            else if (rightY > kHGateEnterThreshold) candidate = 2;
+            const int rx = m_joyAxes[0][AXIS_RX];
+            const int ry = m_joyAxes[0][AXIS_RY];
+            const bool left = rx < -kHGateThreshold, right = rx > kHGateThreshold;
+            const bool up = ry < -kHGateThreshold, down = ry > kHGateThreshold;
+            gear = left  && up   ? 1
+                 : left  && down ? 2
+                 : right && up   ? 3
+                 : right && down ? 4
+                 : 0;
         }
-        else if (rightX > kHGateEnterThreshold)
-        {
-            if (rightY < -kHGateEnterThreshold) candidate = 3;
-            else if (rightY > kHGateEnterThreshold) candidate = 4;
-        }
-
-        if (candidate == 0 && m_hGatePosition != 0)
-        {
-            const bool left = rightX < -kHGateReleaseThreshold;
-            const bool right = rightX > kHGateReleaseThreshold;
-            const bool up = rightY < -kHGateReleaseThreshold;
-            const bool down = rightY > kHGateReleaseThreshold;
-            const bool stillInPosition =
-                (m_hGatePosition == 1 && left && up) ||
-                (m_hGatePosition == 2 && left && down) ||
-                (m_hGatePosition == 3 && right && up) ||
-                (m_hGatePosition == 4 && right && down);
-            if (stillInPosition)
-                candidate = m_hGatePosition;
-        }
-        m_hGatePosition = candidate;
-        for (unsigned gear = 1; gear <= 4; ++gear)
-            m_joyButtons[0][kGearButtonFirst + gear - 1] =
-                m_hGatePosition == gear;
+        for (int g = 1; g <= 4; g++)
+            m_joyButtons[0][kGearButtonFirst + g - 1] = (gear == g);
     }
 
     // ----- Virtual gun cursors (Supermodel MOUSE5 and MOUSE6) -----
@@ -351,18 +378,47 @@ bool CLibretroInputSystem::Poll()
         return axis < 0 ? -speed : speed;
     };
 
+    // Many frontend input drivers (RetroArch on Wayland and X11, for example) have a
+    // single system pointer and report that same mouse and light gun on every port.
+    // Player 2 would then mirror player 1's aim and shots. Port 2's mouse and light
+    // gun are therefore ignored until they have reported something port 1 did not:
+    // a different movement, position or button. Drivers with real per-port devices
+    // (udev, raw input) unlock on the first such difference, for the rest of the session.
+    if (!m_port2MouseDistinct)
+    {
+        const bool moved = mouseDeltaX[1] != 0 || mouseDeltaY[1] != 0;
+        const bool movedDifferently = mouseDeltaX[1] != mouseDeltaX[0] ||
+                                      mouseDeltaY[1] != mouseDeltaY[0];
+        const bool buttonDiffers = (m_mouseButtons[1][0] && !m_mouseButtons[0][0]) ||
+                                   (m_mouseButtons[1][2] && !m_mouseButtons[0][2]);
+        if ((moved && movedDifferently) || buttonDiffers)
+            m_port2MouseDistinct = true;
+    }
+    if (!m_port2LightgunDistinct)
+    {
+        const bool valid = !lightgunOffscreen[1] &&
+            lightgunX[1] != INT16_MIN && lightgunY[1] != INT16_MIN;
+        const bool positionDiffers = lightgunX[1] != lightgunX[0] ||
+                                     lightgunY[1] != lightgunY[0];
+        const bool triggerDiffers = m_mouseButtons[3][0] && !m_mouseButtons[2][0];
+        if ((valid && positionDiffers) || triggerDiffers)
+            m_port2LightgunDistinct = true;
+    }
+
     for (int port = 0; port < 2; ++port)
     {
         const int lightgunDev = port + 2;
         const int cursorDev = port + 4;
-        const bool allowLightgun =
-            g_options.gun_input == GunInput::Hybrid ||
-            g_options.gun_input == GunInput::Lightgun;
-        const bool allowMouse =
-            g_options.gun_input == GunInput::Hybrid ||
-            g_options.gun_input == GunInput::Lightgun ||
-            g_options.gun_input == GunInput::MouseAnalog ||
-            g_options.gun_input == GunInput::Mouse;
+        const bool lightgunUsable = port == 0 || m_port2LightgunDistinct;
+        const bool mouseUsable = port == 0 || m_port2MouseDistinct;
+        const bool allowLightgun = lightgunUsable &&
+            (g_options.gun_input == GunInput::Hybrid ||
+             g_options.gun_input == GunInput::Lightgun);
+        const bool allowMouse = mouseUsable &&
+            (g_options.gun_input == GunInput::Hybrid ||
+             g_options.gun_input == GunInput::Lightgun ||
+             g_options.gun_input == GunInput::MouseAnalog ||
+             g_options.gun_input == GunInput::Mouse);
         const bool allowAnalog =
             g_options.gun_input == GunInput::Hybrid ||
             g_options.gun_input == GunInput::MouseAnalog ||
@@ -378,38 +434,23 @@ bool CLibretroInputSystem::Poll()
             allowLightgun && lightgunPositionValid[port];
         const bool lightgunMoved =
             allowLightgun && lightgunPositionMoved[port];
-        const bool lightgunAction = allowLightgun && lightgunValid &&
-            (m_mouseButtons[lightgunDev][0] ||
-             m_mouseButtons[lightgunDev][2] ||
-             m_mouseButtons[lightgunDev][3] ||
-             m_mouseButtons[lightgunDev][4]);
+        // A trigger, reload or second-trigger press counts as light gun activity even
+        // off-screen (The Lost World reloads that way); the cursor itself only follows
+        // a valid position. IS_OFFSCREEN alone does not: some frontends report it
+        // continuously for a gun that is not in use.
+        const bool lightgunAction = allowLightgun &&
+            (lightgunTrigger[port] || lightgunReload[port] || lightgunAuxA[port]);
+        const bool useLightgun =
+            g_options.gun_input == GunInput::Lightgun ||
+            (g_options.gun_input == GunInput::Hybrid && (lightgunMoved || lightgunAction));
         const bool rawMouseMoved = allowMouse &&
             (mouseDeltaX[port] != 0 || mouseDeltaY[port] != 0);
         const int stickX = stickDelta(m_joyAxes[port][AXIS_X]);
         const int stickY = stickDelta(m_joyAxes[port][AXIS_Y]);
 
-        if (g_options.gun_input == GunInput::Mouse)
-        {
-            if (rawMouseMoved)
-            {
-                m_gunCursorX[port] += mouseDeltaX[port];
-                m_gunCursorY[port] += mouseDeltaY[port];
-            }
-        }
-        else if (g_options.gun_input == GunInput::Lightgun)
-        {
-            if (lightgunValid)
-            {
-                m_gunCursorX[port] = m_mouseAxes[lightgunDev][AXIS_X];
-                m_gunCursorY[port] = m_mouseAxes[lightgunDev][AXIS_Y];
-            }
-            else if (rawMouseMoved)
-            {
-                m_gunCursorX[port] += mouseDeltaX[port];
-                m_gunCursorY[port] += mouseDeltaY[port];
-            }
-        }
-        else if (lightgunMoved || lightgunAction)
+        // Lightgun Only still follows the mouse while the gun reports no valid
+        // position, and the Hybrid modes let the last source that moved own the cursor.
+        if (useLightgun && lightgunValid)
         {
             m_gunCursorX[port] = m_mouseAxes[lightgunDev][AXIS_X];
             m_gunCursorY[port] = m_mouseAxes[lightgunDev][AXIS_Y];
@@ -419,13 +460,10 @@ bool CLibretroInputSystem::Poll()
             m_gunCursorX[port] += mouseDeltaX[port];
             m_gunCursorY[port] += mouseDeltaY[port];
         }
-        else
+        else if (allowAnalog)
         {
-            if (allowAnalog)
-            {
-                m_gunCursorX[port] += stickX;
-                m_gunCursorY[port] += stickY;
-            }
+            m_gunCursorX[port] += stickX;
+            m_gunCursorY[port] += stickY;
         }
 
         m_gunCursorX[port] = std::clamp(m_gunCursorX[port], minX, maxX);
@@ -436,15 +474,58 @@ bool CLibretroInputSystem::Poll()
         m_mouseWheelDir[cursorDev] = 0;
         m_mouseIsAbsolute[cursorDev] = true;
 
-        m_mouseButtons[cursorDev][0] =
-            (allowLightgun && m_mouseButtons[lightgunDev][0]) ||
-            (allowMouse && m_mouseButtons[port][0]) ||
-            (allowAnalog && m_joyButtons[port][0]);
-        m_mouseButtons[cursorDev][1] = false;
-        m_mouseButtons[cursorDev][2] =
+        // Pad: B shoots, A is the second trigger; R and L double them when the
+        // shoulders are not Test/Service (player 2's never are).
+        const bool shouldersFree = m_serviceOnSticks || port == 1;
+        const bool lightgunPrimary = allowLightgun && lightgunTrigger[port];
+        const bool mousePrimary = allowMouse && m_mouseButtons[port][0];
+        const bool analogPrimary = allowAnalog &&
+            (m_joyButtons[port][0] || (shouldersFree && m_joyButtons[port][5]));
+        bool primary = lightgunPrimary || mousePrimary || analogPrimary;
+        bool secondary =
             (allowLightgun && m_mouseButtons[lightgunDev][2]) ||
             (allowMouse && m_mouseButtons[port][2]) ||
             (allowAnalog && m_joyButtons[port][1]);
+
+        if (m_gunSecondaryInput == GunSecondaryInput::Reload)
+        {
+            // The Lost World reloads with a shot off-screen. A real light gun does
+            // that by itself (trigger while off-screen). The shortcut inputs force
+            // an off-screen shot without aiming away: Reload, the right mouse
+            // button, A, or L when the shoulders are free. Optionally a mouse shot
+            // at the edge of the screen also reloads.
+            constexpr float kMouseEdge = 0.05f;
+            const float normalizedX = maxX > minX
+                ? static_cast<float>(m_gunCursorX[port] - minX) /
+                  static_cast<float>(maxX - minX)
+                : 0.5f;
+            const float normalizedY = maxY > minY
+                ? static_cast<float>(m_gunCursorY[port] - minY) /
+                  static_cast<float>(maxY - minY)
+                : 0.5f;
+            const bool cursorAtEdge =
+                normalizedX <= kMouseEdge || normalizedX >= 1.0f - kMouseEdge ||
+                normalizedY <= kMouseEdge || normalizedY >= 1.0f - kMouseEdge;
+            const bool physicalOffscreenReload =
+                allowLightgun && lightgunOffscreen[port] && lightgunTrigger[port];
+            const bool shortcutReload = g_options.offscreen_trigger_reload &&
+                ((allowLightgun && lightgunReload[port]) ||
+                 (allowMouse && m_mouseButtons[port][2]) ||
+                 (allowAnalog && (m_joyButtons[port][1] ||
+                                  (shouldersFree && m_joyButtons[port][4]))));
+            const bool mouseEdgeReload =
+                g_options.mouse_edge_offscreen_reload && allowMouse &&
+                m_mouseButtons[port][0] && !(useLightgun && lightgunValid) &&
+                cursorAtEdge;
+
+            primary = (lightgunPrimary && !physicalOffscreenReload) ||
+                      (mousePrimary && !mouseEdgeReload) || analogPrimary;
+            secondary = physicalOffscreenReload || shortcutReload || mouseEdgeReload;
+        }
+
+        m_mouseButtons[cursorDev][0] = primary;
+        m_mouseButtons[cursorDev][1] = false;
+        m_mouseButtons[cursorDev][2] = secondary;
         m_mouseButtons[cursorDev][3] =
             (allowLightgun && m_mouseButtons[lightgunDev][3]) ||
             (allowMouse && m_mouseButtons[port][3]);
@@ -465,17 +546,16 @@ bool CLibretroInputSystem::Poll()
     // to neutral and makes the game's calibration centre unstable.
     //
     // Present one absolute virtual axis to Supermodel instead. Star Wars
-    // Trilogy Input Mode exposes the same source matrix as Gun Input Mode,
-    // while retaining the cabinet yoke's absolute RetroPad semantics. In
-    // Standard mode, the last source actually moved owns the cursor. Lightgun
-    // coordinates are absolute, mouse movement is accumulated, and moving the
-    // stick switches back to its absolute position (including stable centre).
-    // Mouse + Analog Stick excludes only RetroLightgun. No source values are
-    // mixed.
+    // Trilogy Input Mode offers the same source choices as Gun Input Mode. In
+    // the Hybrid modes the last source actually moved owns the axis: light
+    // gun coordinates are absolute, mouse movement adjusts the current
+    // position, and moving the stick switches back to its absolute position,
+    // including its stable centre when released. No values are mixed.
     // The original cabinet duplicates Trigger and Event for the rider's other
     // hand. Keep the primary pair on port 1 and source the mirror pair from
-    // port 2 for both RetroMouse and RetroLightgun. This leaves each pointing
-    // device's extra controls available for the common Start and Coin inputs.
+    // the RetroMouse or RetroLightgun on port 2, once that port has proved to
+    // be a separate device. This leaves each port-1 pointing device's extra
+    // buttons free for Start and Coin.
     constexpr int analogJoystickDev = 6;
     constexpr int analogSource = 0;
     constexpr int mouseSource = 1;
@@ -492,28 +572,23 @@ bool CLibretroInputSystem::Poll()
     const bool analogStickMoved =
         std::abs(static_cast<int>(m_joyAxes[0][AXIS_X])) > analogSwitchDeadZone ||
         std::abs(static_cast<int>(m_joyAxes[0][AXIS_Y])) > analogSwitchDeadZone;
+    const StarWarsInput swInput = g_options.star_wars_input;
     const bool analogAllowLightgun =
-        g_options.star_wars_input == StarWarsInput::Hybrid ||
-        g_options.star_wars_input == StarWarsInput::Lightgun;
-    // Match Gun Input Mode: Lightgun Only still accepts raw RetroMouse when
-    // the frontend exposes no valid absolute Lightgun coordinates.
-    const bool analogAllowMouse =
-        g_options.star_wars_input == StarWarsInput::Hybrid ||
-        g_options.star_wars_input == StarWarsInput::Lightgun ||
-        g_options.star_wars_input == StarWarsInput::MouseAnalog ||
-        g_options.star_wars_input == StarWarsInput::Mouse;
+        swInput == StarWarsInput::Hybrid || swInput == StarWarsInput::Lightgun;
+    // As in Gun Input Mode, Lightgun Only still accepts RetroMouse movement
+    // when the frontend reports no valid light gun coordinates.
+    const bool analogAllowMouse = swInput != StarWarsInput::AnalogSticks;
     const bool analogAllowStick =
-        g_options.star_wars_input == StarWarsInput::Hybrid ||
-        g_options.star_wars_input == StarWarsInput::MouseAnalog ||
-        g_options.star_wars_input == StarWarsInput::AnalogSticks;
+        swInput == StarWarsInput::Hybrid ||
+        swInput == StarWarsInput::MouseAnalog ||
+        swInput == StarWarsInput::AnalogSticks;
     const bool analogLightgunValid =
         analogAllowLightgun && lightgunPositionValid[0];
     const bool analogLightgunMoved =
         analogAllowLightgun && lightgunPositionMoved[0];
-    const bool analogLightgunAction = analogAllowLightgun &&
-        (lightgunTrigger[0] || lightgunAuxA[0] ||
-         lightgunTrigger[1] || lightgunAuxA[1]);
-    switch (g_options.star_wars_input)
+    const bool analogLightgunAction = analogLightgunValid &&
+        (m_mouseButtons[2][0] || m_mouseButtons[2][2]);
+    switch (swInput)
     {
     case StarWarsInput::AnalogSticks:
         m_analogJoystickSource = analogSource;
@@ -522,8 +597,8 @@ bool CLibretroInputSystem::Poll()
         m_analogJoystickSource = mouseSource;
         break;
     case StarWarsInput::Lightgun:
-        m_analogJoystickSource = analogLightgunValid
-            ? lightgunSource : mouseSource;
+        m_analogJoystickSource =
+            analogLightgunValid ? lightgunSource : mouseSource;
         break;
     case StarWarsInput::MouseAnalog:
         if (analogMouseMoved)
@@ -563,8 +638,7 @@ bool CLibretroInputSystem::Poll()
         m_analogJoystickCursorX += mouseDeltaX[0];
         m_analogJoystickCursorY += mouseDeltaY[0];
     }
-    else if (m_analogJoystickSource == lightgunSource &&
-             analogLightgunValid)
+    else if (m_analogJoystickSource == lightgunSource && analogLightgunValid)
     {
         m_analogJoystickCursorX = m_mouseAxes[2][AXIS_X];
         m_analogJoystickCursorY = m_mouseAxes[2][AXIS_Y];
@@ -584,23 +658,29 @@ bool CLibretroInputSystem::Poll()
     m_mouseAxes[analogJoystickDev][AXIS_Z] = 0;
     m_mouseWheelDir[analogJoystickDev] = 0;
     m_mouseIsAbsolute[analogJoystickDev] = true;
+    // Pad: Index/Thumb triggers on B/Y, Event buttons on A/X; when the shoulders are
+    // not Test/Service, L/R double the triggers and L2/R2 the Event buttons, as on
+    // the cabinet's two-handed yoke.
+    const bool swShouldersFree = m_serviceOnSticks;
     m_mouseButtons[analogJoystickDev][0] =
-        (analogAllowLightgun && lightgunTrigger[0]) ||
+        (analogAllowLightgun && m_mouseButtons[2][0]) ||
         (analogAllowMouse && m_mouseButtons[0][0]) ||
-        (analogAllowStick && m_joyButtons[0][0]);
+        (analogAllowStick && (m_joyButtons[0][0] || (swShouldersFree && m_joyButtons[0][4])));
     m_mouseButtons[analogJoystickDev][1] = false;
     m_mouseButtons[analogJoystickDev][2] =
-        (analogAllowLightgun && lightgunAuxA[0]) ||
+        (analogAllowLightgun && m_mouseButtons[2][2]) ||
         (analogAllowMouse && m_mouseButtons[0][2]) ||
-        (analogAllowStick && m_joyButtons[0][1]);
+        (analogAllowStick && (m_joyButtons[0][1] || (swShouldersFree && m_joyButtons[0][6])));
+    const bool secondMouse = analogAllowMouse && m_port2MouseDistinct;
+    const bool secondLightgun = analogAllowLightgun && m_port2LightgunDistinct;
     m_mouseButtons[analogJoystickDev][3] =
-        (analogAllowLightgun && lightgunTrigger[1]) ||
-        (analogAllowMouse && m_mouseButtons[1][0]) ||
-        (analogAllowStick && m_joyButtons[0][2]);
+        (secondLightgun && m_mouseButtons[3][0]) ||
+        (secondMouse && m_mouseButtons[1][0]) ||
+        (analogAllowStick && (m_joyButtons[0][2] || (swShouldersFree && m_joyButtons[0][5])));
     m_mouseButtons[analogJoystickDev][4] =
-        (analogAllowLightgun && lightgunAuxA[1]) ||
-        (analogAllowMouse && m_mouseButtons[1][2]) ||
-        (analogAllowStick && m_joyButtons[0][3]);
+        (secondLightgun && m_mouseButtons[3][2]) ||
+        (secondMouse && m_mouseButtons[1][2]) ||
+        (analogAllowStick && (m_joyButtons[0][3] || (swShouldersFree && m_joyButtons[0][7])));
 
     return true;
 }
@@ -630,38 +710,174 @@ bool CLibretroInputSystem::IsJoyPOVInDir(int joyNum, int /*povNum*/, int povDir)
 }
 
 
+// Supermodel key names (CInputSystem::s_validKeyNames, without the KEY_ prefix,
+// which CInputSystem strips before calling GetKeyIndex) to libretro key codes.
+// The generic SHIFT, CTRL and ALT names have no single libretro key and are
+// not mapped, as in the SDL build.
+struct KeyMapEntry
+{
+    const char *name;
+    int code;
+};
+
+static const KeyMapEntry s_keyMap[] = {
+    { "BACKSPACE",      RETROK_BACKSPACE },
+    { "TAB",            RETROK_TAB },
+    { "CLEAR",          RETROK_CLEAR },
+    { "RETURN",         RETROK_RETURN },
+    { "PAUSE",          RETROK_PAUSE },
+    { "ESCAPE",         RETROK_ESCAPE },
+    { "SPACE",          RETROK_SPACE },
+    { "EXCLAIM",        RETROK_EXCLAIM },
+    { "DBLQUOTE",       RETROK_QUOTEDBL },
+    { "HASH",           RETROK_HASH },
+    { "DOLLAR",         RETROK_DOLLAR },
+    { "AMPERSAND",      RETROK_AMPERSAND },
+    { "QUOTE",          RETROK_QUOTE },
+    { "LEFTPAREN",      RETROK_LEFTPAREN },
+    { "RIGHTPAREN",     RETROK_RIGHTPAREN },
+    { "ASTERISK",       RETROK_ASTERISK },
+    { "PLUS",           RETROK_PLUS },
+    { "COMMA",          RETROK_COMMA },
+    { "MINUS",          RETROK_MINUS },
+    { "PERIOD",         RETROK_PERIOD },
+    { "SLASH",          RETROK_SLASH },
+    { "0",              RETROK_0 },
+    { "1",              RETROK_1 },
+    { "2",              RETROK_2 },
+    { "3",              RETROK_3 },
+    { "4",              RETROK_4 },
+    { "5",              RETROK_5 },
+    { "6",              RETROK_6 },
+    { "7",              RETROK_7 },
+    { "8",              RETROK_8 },
+    { "9",              RETROK_9 },
+    { "COLON",          RETROK_COLON },
+    { "SEMICOLON",      RETROK_SEMICOLON },
+    { "LESS",           RETROK_LESS },
+    { "EQUALS",         RETROK_EQUALS },
+    { "GREATER",        RETROK_GREATER },
+    { "QUESTION",       RETROK_QUESTION },
+    { "AT",             RETROK_AT },
+    { "LEFTBRACKET",    RETROK_LEFTBRACKET },
+    { "BACKSLASH",      RETROK_BACKSLASH },
+    { "RIGHTBRACKET",   RETROK_RIGHTBRACKET },
+    { "CARET",          RETROK_CARET },
+    { "UNDERSCORE",     RETROK_UNDERSCORE },
+    { "BACKQUOTE",      RETROK_BACKQUOTE },
+    { "A",              RETROK_a },
+    { "B",              RETROK_b },
+    { "C",              RETROK_c },
+    { "D",              RETROK_d },
+    { "E",              RETROK_e },
+    { "F",              RETROK_f },
+    { "G",              RETROK_g },
+    { "H",              RETROK_h },
+    { "I",              RETROK_i },
+    { "J",              RETROK_j },
+    { "K",              RETROK_k },
+    { "L",              RETROK_l },
+    { "M",              RETROK_m },
+    { "N",              RETROK_n },
+    { "O",              RETROK_o },
+    { "P",              RETROK_p },
+    { "Q",              RETROK_q },
+    { "R",              RETROK_r },
+    { "S",              RETROK_s },
+    { "T",              RETROK_t },
+    { "U",              RETROK_u },
+    { "V",              RETROK_v },
+    { "W",              RETROK_w },
+    { "X",              RETROK_x },
+    { "Y",              RETROK_y },
+    { "Z",              RETROK_z },
+    { "DEL",            RETROK_DELETE },
+    { "KEYPAD0",        RETROK_KP0 },
+    { "KEYPAD1",        RETROK_KP1 },
+    { "KEYPAD2",        RETROK_KP2 },
+    { "KEYPAD3",        RETROK_KP3 },
+    { "KEYPAD4",        RETROK_KP4 },
+    { "KEYPAD5",        RETROK_KP5 },
+    { "KEYPAD6",        RETROK_KP6 },
+    { "KEYPAD7",        RETROK_KP7 },
+    { "KEYPAD8",        RETROK_KP8 },
+    { "KEYPAD9",        RETROK_KP9 },
+    { "KEYPADPERIOD",   RETROK_KP_PERIOD },
+    { "KEYPADDIVIDE",   RETROK_KP_DIVIDE },
+    { "KEYPADMULTIPLY", RETROK_KP_MULTIPLY },
+    { "KEYPADMINUS",    RETROK_KP_MINUS },
+    { "KEYPADPLUS",     RETROK_KP_PLUS },
+    { "KEYPADENTER",    RETROK_KP_ENTER },
+    { "KEYPADEQUALS",   RETROK_KP_EQUALS },
+    { "UP",             RETROK_UP },
+    { "DOWN",           RETROK_DOWN },
+    { "RIGHT",          RETROK_RIGHT },
+    { "LEFT",           RETROK_LEFT },
+    { "INSERT",         RETROK_INSERT },
+    { "HOME",           RETROK_HOME },
+    { "END",            RETROK_END },
+    { "PGUP",           RETROK_PAGEUP },
+    { "PGDN",           RETROK_PAGEDOWN },
+    { "F1",             RETROK_F1 },
+    { "F2",             RETROK_F2 },
+    { "F3",             RETROK_F3 },
+    { "F4",             RETROK_F4 },
+    { "F5",             RETROK_F5 },
+    { "F6",             RETROK_F6 },
+    { "F7",             RETROK_F7 },
+    { "F8",             RETROK_F8 },
+    { "F9",             RETROK_F9 },
+    { "F10",            RETROK_F10 },
+    { "F11",            RETROK_F11 },
+    { "F12",            RETROK_F12 },
+    { "F13",            RETROK_F13 },
+    { "F14",            RETROK_F14 },
+    { "F15",            RETROK_F15 },
+    { "NUMLOCK",        RETROK_NUMLOCK },
+    { "CAPSLOCK",       RETROK_CAPSLOCK },
+    { "SCROLLLOCK",     RETROK_SCROLLOCK },
+    { "RIGHTSHIFT",     RETROK_RSHIFT },
+    { "LEFTSHIFT",      RETROK_LSHIFT },
+    { "RIGHTCTRL",      RETROK_RCTRL },
+    { "LEFTCTRL",       RETROK_LCTRL },
+    { "RIGHTALT",       RETROK_RALT },
+    { "LEFTALT",        RETROK_LALT },
+    { "RIGHTMETA",      RETROK_RMETA },
+    { "LEFTMETA",       RETROK_LMETA },
+    { "RIGHTWINDOWS",   RETROK_RSUPER },
+    { "LEFTWINDOWS",    RETROK_LSUPER },
+    { "ALTGR",          RETROK_MODE },
+    { "COMPOSE",        RETROK_COMPOSE },
+    { "HELP",           RETROK_HELP },
+    { "PRINT",          RETROK_PRINT },
+    { "SYSREQ",         RETROK_SYSREQ },
+    { "BREAK",          RETROK_BREAK },
+    { "MENU",           RETROK_MENU },
+    { "POWER",          RETROK_POWER },
+};
+
+static const size_t kNumKeyMapEntries = sizeof(s_keyMap) / sizeof(s_keyMap[0]);
+
+static bool KeyNameEquals(const char *a, const char *b)
+{
+    for (; *a && *b; ++a, ++b) {
+        if (std::toupper((unsigned char)*a) != std::toupper((unsigned char)*b))
+            return false;
+    }
+    return *a == *b;
+}
+
 int CLibretroInputSystem::GetKeyIndex(const char *keyName)
 {
     if (!keyName) return -1;
-    
-    // Map Supermodel KEY_* to libretro RETROK_* codes
-    if (std::strcmp(keyName, "KEY_1") == 0) return RETROK_1;
-    if (std::strcmp(keyName, "KEY_2") == 0) return RETROK_2;
-    if (std::strcmp(keyName, "KEY_3") == 0) return RETROK_3;
-    if (std::strcmp(keyName, "KEY_4") == 0) return RETROK_4;
-    if (std::strcmp(keyName, "KEY_5") == 0) return RETROK_5;  // Service A
-    if (std::strcmp(keyName, "KEY_6") == 0) return RETROK_6;  // Test A
-    if (std::strcmp(keyName, "KEY_7") == 0) return RETROK_7;  // Service B
-    if (std::strcmp(keyName, "KEY_8") == 0) return RETROK_8;  // Test B
-    if (std::strcmp(keyName, "KEY_UP") == 0) return RETROK_UP;
-    if (std::strcmp(keyName, "KEY_DOWN") == 0) return RETROK_DOWN;
-    if (std::strcmp(keyName, "KEY_LEFT") == 0) return RETROK_LEFT;
-    if (std::strcmp(keyName, "KEY_RIGHT") == 0) return RETROK_RIGHT;
-    if (std::strcmp(keyName, "KEY_A") == 0) return RETROK_a;
-    if (std::strcmp(keyName, "KEY_S") == 0) return RETROK_s;
-    if (std::strcmp(keyName, "KEY_D") == 0) return RETROK_d;
-    if (std::strcmp(keyName, "KEY_F") == 0) return RETROK_f;
-    if (std::strcmp(keyName, "KEY_Q") == 0) return RETROK_q;
-    if (std::strcmp(keyName, "KEY_W") == 0) return RETROK_w;
-    if (std::strcmp(keyName, "KEY_E") == 0) return RETROK_e;
-    if (std::strcmp(keyName, "KEY_R") == 0) return RETROK_r;
-    if (std::strcmp(keyName, "KEY_H") == 0) return RETROK_h;
-    if (std::strcmp(keyName, "KEY_T") == 0) return RETROK_t;
-    if (std::strcmp(keyName, "KEY_X") == 0) return RETROK_x;
-    if (std::strcmp(keyName, "KEY_Y") == 0) return RETROK_y;
-    if (std::strcmp(keyName, "KEY_Z") == 0) return RETROK_z;
-    if (std::strcmp(keyName, "KEY_SPACE") == 0) return RETROK_SPACE;
-    
+
+    // Supermodel indexes its key source arrays with this value, so it must be
+    // a position in s_keyMap (fewer entries than s_validKeyNames), not a
+    // RETROK code.
+    for (size_t i = 0; i < kNumKeyMapEntries; i++) {
+        if (KeyNameEquals(keyName, s_keyMap[i].name))
+            return (int)i;
+    }
     return -1;
 }
 
@@ -669,10 +885,11 @@ bool CLibretroInputSystem::IsKeyPressed(int kbdNum, int keyIndex) const
 {
     if (kbdNum != 0) return false;
 
-    if (keyIndex >= 0 && keyIndex < 512)
-        return m_keyState[keyIndex];
+    if (keyIndex < 0 || (size_t)keyIndex >= kNumKeyMapEntries)
+        return false;
 
-    return false;
+    int code = s_keyMap[keyIndex].code;
+    return code >= 0 && code < 512 && m_keyState[code];
 }
 
 
@@ -760,42 +977,50 @@ const MouseDetails *CLibretroInputSystem::GetMouseDetails(int mseNum)
 
 bool CLibretroInputSystem::ProcessForceFeedbackCmd(int joyNum, int /*axisNum*/, ForceFeedbackCmd ffCmd)
 {
-    if (!m_rumbleInterface.set_rumble_state)
-    {
-        return false;
-    }
-
     // If the user disabled FFB in the menu, or we have no interface, abort early
     if (!m_ffbEnabled || !m_rumbleInterface.set_rumble_state)
         return false;
-        
-    // 2. Map the float force (-1.0 to 1.0) to Libretro's uint16_t (0 to 65535)
-    // Most gamepads only support vibration strength, not direction, so we use absolute value.
-    uint16_t strength = (uint16_t)(std::min(std::abs(ffCmd.force), 1.0f) * 65535);
+    if (joyNum < 0 || joyNum >= 2)
+        return false;
+
+    // A gamepad has two rumble motors, not a motorised wheel. Follow standalone
+    // Supermodel's XInput mapping (XInputConstForceThreshold 30,
+    // XInputConstForceMax 100, XInputVibrateMax 100, XInputStereoVibration):
+    // self-centre and friction are steady wheel resistance held for the whole
+    // race, so they are not mapped; a constant force rumbles only above 30%.
+    constexpr float kConstForceThreshold = 0.30f;
+    const auto toStrength = [](float force) -> uint16_t {
+        return static_cast<uint16_t>(std::min(std::abs(force), 1.0f) * 65535.0f);
+    };
 
     switch (ffCmd.id)
     {
+        case FFStop:
+            m_ffConstForce[joyNum] = 0;
+            m_ffVibrate[joyNum] = 0;
+            break;
+
         case FFConstantForce:
-        case FFSelfCenter:
-            // High torque effects go to the Strong (Low-Frequency) motor
-            m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_STRONG, strength);
+            m_ffConstForce[joyNum] = std::abs(ffCmd.force) < kConstForceThreshold
+                ? 0 : toStrength(ffCmd.force);
             break;
 
         case FFVibrate:
-        case FFFriction:
-            // High frequency effects go to the Weak (High-Frequency) motor
-            m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_WEAK, strength);
+            m_ffVibrate[joyNum] = toStrength(ffCmd.force);
             break;
 
-        case FFStop:
-            m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_STRONG, 0);
-            m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_WEAK, 0);
-            break;
+        case FFSelfCenter:
+        case FFFriction:
+            return false;
 
         default:
             return false;
     }
 
+    const uint16_t strength = static_cast<uint16_t>(std::min<unsigned>(
+        static_cast<unsigned>(m_ffConstForce[joyNum]) + m_ffVibrate[joyNum], 65535u));
+    m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_STRONG, strength);
+    m_rumbleInterface.set_rumble_state(joyNum, RETRO_RUMBLE_WEAK, strength);
     return true;
 }
 
@@ -806,6 +1031,8 @@ void CLibretroInputSystem::StopAllRumble()
 
     for (unsigned port = 0; port < 2; ++port)
     {
+        m_ffConstForce[port] = 0;
+        m_ffVibrate[port] = 0;
         m_rumbleInterface.set_rumble_state(port, RETRO_RUMBLE_STRONG, 0);
         m_rumbleInterface.set_rumble_state(port, RETRO_RUMBLE_WEAK, 0);
     }
@@ -854,4 +1081,9 @@ bool CLibretroInputSystem::Initialize()
     bool result = CInputSystem::Initialize(); // let base do its thing
     return result;
 }
-const char *CLibretroInputSystem::GetKeyName(int /*keyIndex*/) { return "NONE"; }
+const char *CLibretroInputSystem::GetKeyName(int keyIndex)
+{
+    if (keyIndex >= 0 && (size_t)keyIndex < kNumKeyMapEntries)
+        return s_keyMap[keyIndex].name;
+    return "NONE";
+}

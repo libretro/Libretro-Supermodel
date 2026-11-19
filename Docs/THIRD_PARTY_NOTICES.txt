@@ -1,0 +1,203 @@
+Supermodel Third-Party Notices
+
+The emulator is distributed under GPLv3+ (LICENSE.txt).
+The following notices are retained from compiled vendored components.
+
+TinyXML2
+Source: Src/Pkgs/tinyxml2.h
+/*
+Original code by Lee Thomason (www.grinninglizard.com)
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any
+damages arising from the use of this software.
+
+Permission is granted to anyone to use this software for any
+purpose, including commercial applications, and to alter it and
+redistribute it freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must
+not claim that you wrote the original software. If you use this
+software in a product, an acknowledgment in the product documentation
+would be appreciated but is not required.
+
+2. Altered source versions must be plainly marked as such, and
+must not be misrepresented as being the original software.
+
+3. This notice may not be removed or altered from any source
+distribution.
+*/
+
+MiniZip
+Source: Src/Pkgs/unzip.h
+/* unzip.h -- IO for uncompress .zip files using zlib
+   Version 1.1, February 14h, 2010
+   part of the MiniZip project - ( http://www.winimage.com/zLibDll/minizip.html )
+
+         Copyright (C) 1998-2010 Gilles Vollant (minizip) ( http://www.winimage.com/zLibDll/minizip.html )
+
+         Modifications of Unzip for Zip64
+         Copyright (C) 2007-2008 Even Rouault
+
+         Modifications for Zip64 support on both zip and unzip
+         Copyright (C) 2009-2010 Mathias Svensson ( http://result42.com )
+
+         For more info read MiniZip_info.txt
+
+         ---------------------------------------------------------------------------------
+
+        Condition of use and distribution are the same than zlib :
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+  ---------------------------------------------------------------------------------
+
+        Changes
+
+        See header of unzip64.c
+
+*/
+
+Musashi (GPL Permission)
+Source: Src/CPU/68K/Musashi/m68kcpu.c
+/**
+ ** Supermodel
+ ** A Sega Model 3 Arcade Emulator.
+ ** Copyright 2011 Bart Trzynadlowski, Nik Henson 
+ **
+ ** This file is part of Supermodel.
+ **
+ ** Supermodel is free software: you can redistribute it and/or modify it under
+ ** the terms of the GNU General Public License as published by the Free 
+ ** Software Foundation, either version 3 of the License, or (at your option)
+ ** any later version.
+ **
+ ** Supermodel is distributed in the hope that it will be useful, but WITHOUT
+ ** ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ ** FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ ** more details.
+ **
+ ** You should have received a copy of the GNU General Public License along
+ ** with Supermodel.  If not, see <http://www.gnu.org/licenses/>.
+ **/
+
+libretro-common (Representative MIT Notice)
+Source: Src/OSD/libretro/libretro-common/rthreads/rthreads.c
+/* Copyright  (C) 2010-2020 The RetroArch team
+ *
+ * ---------------------------------------------------------------------------------------
+ * The following license statement only applies to this file (rthreads.c).
+ * ---------------------------------------------------------------------------------------
+ *
+ * Permission is hereby granted, free of charge,
+ * to any person obtaining a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+minimp3
+Source: Src/Pkgs/minimp3.h
+/*
+    https://github.com/lieff/minimp3
+    To the extent possible under law, the author(s) have dedicated all copyright and related and neighboring rights to this software to the public domain worldwide.
+    This software is distributed without any warranty.
+    See <http://creativecommons.org/publicdomain/zero/1.0/>.
+*/
+
+/*
+ * m68kcpu.c
+ *
+ * Musashi core functions and interface.
+ *
+ * Permission was obtained from Karl Stenerud to apply the GPL license to this
+ * code.
+ *
+ * NOTE: The internal CPU context is initialized to all zeros here. If setting
+ * an external context for the first time, make sure it is cleared first, 
+ * otherwise interrupts may appear pending and other nasty problems.
+ */
+
+µGUI
+Source: deps/ugui/LICENSE.md
+/* -------------------------------------------------------------------------------- */
+/* -- µGUI - Generic GUI module (C)Achim Döbler, 2015                            -- */
+/* -------------------------------------------------------------------------------- */
+// µGUI is a generic GUI module for embedded systems.
+// This is a free software that is open for education, research and commercial
+// developments under license policy of following terms.
+//
+//  Copyright (C) 2015, Achim Döbler, all rights reserved.
+//  URL: http://www.embeddedlightning.com/
+//
+// * The µGUI module is a free software and there is NO WARRANTY.
+// * No restriction on use. You can use, modify and redistribute it for
+//   personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
+// * Redistributions of source code must retain the above copyright notice.
+//
+/* -------------------------------------------------------------------------------- */
+/* -- MY SPECIAL THANKS GO TO                                                    -- */
+/* -------------------------------------------------------------------------------- */
+// Andrey Filimonov (-->https://github.com/Sermus)
+// for giving valuable suggestions, reporting bugs and adding several new features.
+// Andrey also put a lot of work in the implementaion of anti-aliased font support. 
+//
+// Mikhail Podkur (-->https://github.com/MikhailPodkur)
+// for adding cyrillic 8x12 font, checkbox feature and RGB565 support.
+//
+// Gustavo Denardin
+// for giving valuable suggestions regarding real-time os support.
+//
+// Samuel Kleiser
+// for reporting bugs and giving examples how to improve µGUI.
+/* -------------------------------------------------------------------------------- */
+/* -- REVISION HISTORY                                                           -- */
+/* -------------------------------------------------------------------------------- */
+//  Dec 20, 2015  V0.31 Checkbox component with all funtions added.
+//                      Cyrillic font 8x12 added.
+//                      RGB565 color schema added.
+//                      Windows components font could be getted from current GUI by default
+//  Mar 18, 2015  V0.3  Driver support added.
+//                      Window and object support added.
+//                      Touch support added.
+//                      Fixed some minor bugs.
+//
+//  Oct 20, 2014  V0.2  Function UG_DrawRoundFrame() added.
+//                      Function UG_FillRoundFrame() added.
+//                      Function UG_DrawArc() added.
+//                      Fixed some minor bugs.
+//
+//  Oct 11, 2014  V0.1  First release.
+/* -------------------------------------------------------------------------------- */
+
+Dear ImGui
+Copyright (c) 2014-2025 Omar Cornut
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

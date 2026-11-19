@@ -1,0 +1,290 @@
+---
+schema_version: 1
+game:
+  set: harley
+  parent: harley
+  title: Harley-Davidson and L.A. Riders
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    options:
+    - key: difficulty
+      label: Difficulty
+      native_label_raw: DIFFICULTY
+      position: 1
+      catalogue_position: 1
+      native_default: NORMAL
+      implemented: true
+      observed_values_raw: NORMAL, +05SEC, +10SEC, +15SEC, +20SEC, -10SEC, -05SEC
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 2
+      catalogue_position: 2
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-advertise-sound-000.png"
+        sha256: b2ae896a897031c9bfe015b481b8024ac1ea01e751d53bb2804a6f9590de5412
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-advertise-sound-001.png"
+        sha256: '049423335a9e4f3330318e48eedb96c77ff7579b3d1e62fc17aa5907cf658ad3'
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-advertise-sound-002.png"
+        sha256: b2ae896a897031c9bfe015b481b8024ac1ea01e751d53bb2804a6f9590de5412
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: cabinet_type
+      label: Cabinet Type
+      native_label_raw: CABINET TYPE
+      position: 3
+      catalogue_position: 3
+      native_default: DELUXE
+      implemented: true
+      observed_values_raw: DELUXE, STANDARD
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: bgm_volume
+      label: Bgm Volume
+      native_label_raw: BGM VOLUME
+      position: 4
+      catalogue_position: 4
+      native_default: '4'
+      implemented: false
+      values:
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      - '8'
+      - '1'
+      - '2'
+      - '3'
+      photographed_cycle:
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      - '8'
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-bgm-volume-000.png"
+        sha256: d2750b94883cace32e0ac14d3c5e1ed843ab2259f6d217309172d10aba8812e2
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-bgm-volume-001.png"
+        sha256: 258d53603e7c132aa7b9a50c950c687e90b433da7ff9c5dc4123e32346894a97
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-bgm-volume-002.png"
+        sha256: f5e4447b161db1e5504206ebaaac7442fe3e6ba0c5948a0986c6ff22a1e73377
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-bgm-volume-003.png"
+        sha256: 8b8e5158d5a0790e1fc48e6cfe69e78a47506c7ea302e05b040ca6ed661f947b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-bgm-volume-004.png"
+        sha256: 29c24f77c93eff2c4728d79b01ebabb01f7c389a679191bb2173be9ce3ce9af8
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-bgm-volume-005.png"
+        sha256: e4195433dc3d9c7de3dee43ae672fb0ad586966f3f77fae525e11b7c8802d8f3
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-bgm-volume-006.png"
+        sha256: 3694d21acff7c8b2947cc89f9b16ef7e2f8b0e465fabbbd3a48d420085f96a40
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-bgm-volume-007.png"
+        sha256: ec66c716175677909682b63f736e4b364662c58ca1cd6cdfae1306a921889e34
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-bgm-volume-008.png"
+        sha256: d2750b94883cace32e0ac14d3c5e1ed843ab2259f6d217309172d10aba8812e2
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: engine_volume
+      label: Engine Volume
+      native_label_raw: ENGINE VOLUME
+      position: 5
+      catalogue_position: 5
+      native_default: '8'
+      implemented: false
+      values:
+      - '8'
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      photographed_cycle:
+      - '8'
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+      - '5'
+      - '6'
+      - '7'
+      - '8'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-engine-volume-000.png"
+        sha256: 9cac85142978480c3684241a0d4dcf0e9142976fd03ddac2c0324df83befb7a4
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-engine-volume-001.png"
+        sha256: 1d778004c044f441b23a4f6f7ed1c3d1314323eee5f4dea0d29cfcb215041cd7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-engine-volume-002.png"
+        sha256: 0e86105b3e4b729eeaeb3b13b70a89464292cf1017c5dce1c5be7413137b7f18
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-engine-volume-003.png"
+        sha256: b25617141bd7fd8db93d3e00ef95a4314bfe72176f050047f03fd845cf60a40b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-engine-volume-004.png"
+        sha256: 742849bdc2c0604c4913ccb0d0d4833b8ef1792464a14385e0fe43bb4f175602
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-engine-volume-005.png"
+        sha256: bb4ca9f33c7ca01ef1a2ca16b80d0aec58a362b2852d0ea6dd3d6467326e0e8e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-engine-volume-006.png"
+        sha256: 700f6a87a5891e6ef2cff05630cb298bc4162f9bddd703dae651e2eb6a1a682e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-engine-volume-007.png"
+        sha256: 0bd73c71a63cb08aabc0a6f02b2420b7b4d8254906e108b423fe687eec919e96
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-engine-volume-008.png"
+        sha256: 9cac85142978480c3684241a0d4dcf0e9142976fd03ddac2c0324df83befb7a4
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: number_of_stages
+      label: Number Of Stages
+      native_label_raw: NUMBER OF STAGES
+      position: 6
+      catalogue_position: 6
+      native_default: '4'
+      implemented: false
+      values:
+      - '4'
+      - '5'
+      - '3'
+      photographed_cycle:
+      - '4'
+      - '5'
+      - '3'
+      - '4'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-number-of-stages-000.png"
+        sha256: a2996999fc7d9ce37b59bda6a40f74b218f5af5fc498fcc9ed3cda43d67313e7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-number-of-stages-001.png"
+        sha256: 79b62ff1b5d098454b7908696fe562b8ebe2f01f5d900e5e296e1d6b6696fc58
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-number-of-stages-002.png"
+        sha256: a8b5cb5893468b21bed896e590bf2bf96bf0bc8002d9c04b055068444680102e
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-number-of-stages-003.png"
+        sha256: a2996999fc7d9ce37b59bda6a40f74b218f5af5fc498fcc9ed3cda43d67313e7
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: tournament_mode
+      label: Tournament Mode
+      native_label_raw: TOURNAMENT MODE
+      position: 7
+      catalogue_position: 7
+      native_default: 'OFF'
+      implemented: false
+      values:
+      - 'OFF'
+      - 'ON'
+      photographed_cycle:
+      - 'OFF'
+      - 'ON'
+      - 'OFF'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-tournament-mode-000.png"
+        sha256: a4e077787369d67b88195ea653891dbbc63f813b6589a688791b2798dfbee1d7
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-tournament-mode-001.png"
+        sha256: aa00e8f56882686c033e78903f3e4c3696cfa6b6819312ba0bdff7dd58d47d84
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/harley/screenshots/harley-20261018-cycle-tournament-mode-002.png"
+        sha256: a4e077787369d67b88195ea653891dbbc63f813b6589a688791b2798dfbee1d7
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+  country_assignments:
+    options:
+    - key: country
+      label: Country
+      native_label_raw: COUNTRY
+      position: 1
+      catalogue_position: 8
+      native_default: EXPORT
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      observed_values_raw: EXPORT, KOREA, AUSTRALIA, JAPAN, U.S.A.
+      historical_photo_evidence: ciclo completo nella schermata nascosta
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  network_assignments:
+    options:
+    - key: communication
+      label: Communication
+      native_label_raw: COMMUNICATION
+      position: 1
+      catalogue_position: 9
+      native_default: STAND-ALONE
+      implemented: true
+      observed_values_raw: STAND-ALONE, NETWORK
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: privilege_mode
+      label: Privilege Mode
+      native_label_raw: PRIVILEGE MODE
+      position: 2
+      catalogue_position: 10
+      native_default: non visibile con STAND-ALONE
+      implemented: true
+      dependency: Communication Network; Absent With Stand-Alone
+      observed_values_raw: MASTER, SLAVE
+      historical_photo_evidence: compare con COMMUNICATION NETWORK; ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: cabinet_id_number
+      label: Cabinet ID Number
+      native_label_raw: CABINET ID NUMBER
+      position: 3
+      catalogue_position: 11
+      native_default: non visibile con STAND-ALONE
+      implemented: true
+      dependency: Communication Network; Absent With Stand-Alone
+      observed_values_raw: 1, 2, 3, 4
+      historical_photo_evidence: compare con COMMUNICATION NETWORK; ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h

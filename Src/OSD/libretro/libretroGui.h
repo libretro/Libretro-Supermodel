@@ -21,6 +21,10 @@ void Libretro_UpdateGUI(Util::Config::Node& config,
 
 void Libretro_ShutdownGUI();
 
+// In-game timing overlay: draw into Supermodel's framebuffer before the final
+// blit so the frontend receives it as part of the submitted hardware frame.
+void Libretro_InitOverlay(const char* glslVersion);
+void Libretro_ShutdownOverlay();
 struct LibretroFrontendTimings
 {
     float engineMs = 0.0f;
@@ -35,10 +39,6 @@ struct LibretroFrontendTimings
     float actualFps = 0.0f;
 };
 
-// In-game timing overlay: draw into Supermodel's framebuffer before the final
-// blit so the frontend receives it as part of the submitted hardware frame.
-void Libretro_InitOverlay(const char* glslVersion);
-void Libretro_ShutdownOverlay();
 void Libretro_DrawTimingOverlay(const FrameTimings& t,
                                 const LibretroFrontendTimings& frontend,
                                 int displayW, int displayH,

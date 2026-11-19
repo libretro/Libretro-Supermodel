@@ -203,10 +203,9 @@ RENDERER ?= new3d
 
 LEGACY3D_SOURCES := %/Legacy3D/Error.cpp %/Legacy3D/Legacy3D.cpp %/Legacy3D/Models.cpp %/Legacy3D/TextureRefs.cpp
 
-# These platforms deliberately omit the fixed-function Legacy3D sources.
-# Reject an explicit legacy build instead of accepting the selector and later
-# failing with missing renderer objects or symbols.
-ifneq ($(filter osx android ios-arm64 tvos-arm64,$(platform)),)
+# These platforms always omit the Legacy3D sources (see below). Reject an
+# explicit legacy build up front instead of failing at link time on CLegacy3D.
+ifneq ($(filter $(platform),osx android ios-arm64 tvos-arm64),)
 ifeq ($(RENDERER),legacy)
     $(error RENDERER=legacy is not supported for platform=$(platform))
 endif
@@ -252,28 +251,17 @@ ifdef DROP_LEGACY3D
 endif
 endif
 # iOS and tvOS are GLES too, and there is no desktop GL on either to fall back
-# on, so Legacy3D goes whatever RENDERER says - the block further up rejects an
-# explicit legacy build for them the same way it does for osx and android.
+# on, so Legacy3D goes whatever RENDERER says, as it does for osx and android.
 ifneq ($(filter $(platform),ios-arm64 tvos-arm64),)
     SOURCES_C := $(filter-out %/glsym/glsym_gl.c,$(SOURCES_C))
     SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/glsym_es3.c
     SOURCES_CXX := $(filter-out $(LEGACY3D_SOURCES),$(SOURCES_CXX))
 endif
 
-# Renderer capabilities exposed to the Libretro option layer. Keep these as
-# feature defines rather than platform tests so future ports only need to
-# enable the capability here.
-ifneq ($(filter $(CORE_DIR)/Src/Graphics/Legacy3D/Legacy3D.cpp,$(SOURCES_CXX)),)
+# Tell the Libretro option layer whether Legacy3D is in this build, after all the
+# platform filtering above, so the 3D Renderer option only appears where it works.
+ifneq ($(filter %/Legacy3D/Legacy3D.cpp,$(SOURCES_CXX)),)
     RENDERER_DEFINES += -DHAVE_LEGACY3D
-endif
-
-ifneq ($(filter $(platform),osx android rpi64 aarch64 linux-aarch64 ios-arm64 tvos-arm64),$(platform))
-    RENDERER_DEFINES += -DHAVE_QUAD_RENDERING
-endif
-
-ifneq ($(filter $(platform),android rpi64 aarch64 linux-aarch64 ios-arm64 tvos-arm64),$(platform))
-    RENDERER_DEFINES += -DHAVE_CRT_COLOURS
-    RENDERER_DEFINES += -DHAVE_SUPERSAMPLING
 endif
 
 # GIT version
@@ -295,7 +283,10 @@ ifeq ($(platform),unix)
     LDFLAGS += -shared -fPIC
     CFLAGS += -fPIC
     CXXFLAGS += -fPIC
-    LIBS += -ldl -lm -lz
+    # Legacy3D uses GLU's perspective helper. Unlike desktop OpenGL entry
+    # points supplied by the Libretro frontend, GLU is not guaranteed to be
+    # exported by the frontend process and must be an explicit dependency.
+    LIBS += -ldl -lm -lz -lGLU
     ifeq ($(strip $(CROSS_COMPILE)),)
         INCFLAGS += -I/usr/include
     endif
@@ -711,13 +702,11 @@ $(BUNDLED_GAMES_XML_H): $(CORE_DIR)/Config/Games.xml
 	xxd -i $< | sed 's/unsigned char.*\[\]/const unsigned char bundled_games_xml[]/' \
 	           | sed 's/unsigned int.*_len/const unsigned int bundled_games_xml_len/' > $@
 
-# Track included headers so incremental builds rebuild every object whose ABI
-# may have changed. This is especially important for shared core option types.
--include $(DEPFILES)
-
 $(BUNDLED_SUPERMODEL_H): $(CORE_DIR)/Config/Supermodel.ini
 	xxd -i $< | sed 's/unsigned char.*\[\]/const unsigned char bundled_supermodel_ini[]/' \
 	           | sed 's/unsigned int.*_len/const unsigned int bundled_supermodel_ini_len/' > $@
+
+-include $(DEPFILES)
 
 $(TARGET): $(OBJECTS)
 	@echo "Linking $(TARGET)..."
@@ -731,11 +720,11 @@ $(CORE_DIR)/Src/CPU/PowerPC/ppc.o: CXXFLAGS := $(filter-out -ffast-math -funsafe
 $(CORE_DIR)/Src/CPU/PowerPC/ppc.o: CXXFLAGS += -Wno-unused-parameter
 
 # Both 3D renderers explicitly sanitize NaN/Inf fog values used by Star Wars
-# Trilogy. Fast-math assumes these values cannot exist and removes the checks.
+# Trilogy. -ffinite-math-only (part of -ffast-math) removes those checks, so
+# keep the rest of fast-math but allow non-finite values in these files.
 IEEE_FP_RENDERER_OBJECTS := $(CORE_DIR)/Src/Graphics/New3D/New3D.o \
                             $(CORE_DIR)/Src/Graphics/Legacy3D/Legacy3D.o
-$(IEEE_FP_RENDERER_OBJECTS): CXXFLAGS := $(filter-out -ffast-math -funsafe-math-optimizations,$(CXXFLAGS))
-
+$(IEEE_FP_RENDERER_OBJECTS): CXXFLAGS += -fno-finite-math-only
 ifeq ($(platform),android)
   ifeq ($(DEBUG),1)
     $(CORE_DIR)/Src/CPU/PowerPC/ppc.o: CXXFLAGS += -fPIC

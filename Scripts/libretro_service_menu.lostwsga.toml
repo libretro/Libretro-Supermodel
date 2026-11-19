@@ -1,0 +1,82 @@
+# Pilot catalog acquisition for The Lost World.
+
+[retroarch]
+executable = "~/Retro/Apps/RetroArch/Nightly/RetroArch (ARM).app/Contents/MacOS/RetroArch"
+core = "~/Library/Application Support/RetroArch/cores/supermodel_dev_libretro.dylib"
+rom_dir = "${SUPERMODEL_ROM_DIR}"
+system_assets = "../Config"
+base_config = "~/Library/Application Support/RetroArch/config/retroarch.cfg"
+
+[campaign]
+game = "lostwsga"
+standard_srm = "~/Documents/RetroArch/model3-nvram-analysis/lostwsga/game-base.srm"
+output_dir = "~/Documents/RetroArch/model3-game-settings-catalog/lostwsga"
+collect_saves = false
+startup_wait = 5.0
+button_hold = 0.06
+button_hold_long = 0.12
+default_wait = 0.2
+settle_before_close = 0.5
+close_gap = 0.7
+shutdown_timeout = 15.0
+window_width = 496
+window_height = 384
+
+[macros]
+EnterService = "TEST, WAIT(2.0)"
+OpenGameAssignments = "SERVICE*5, TEST, WAIT(0.7)"
+OpenCountryAssignments = "START*2, SERVICE, START, SERVICE, TEST, WAIT(0.7)"
+Close = "CLOSE"
+
+[[samples]]
+suffix = "difficulty"
+sequence = [
+  "@EnterService, @OpenGameAssignments, SERVICE",
+  "CAPTURE(00), TEST, CAPTURE(01), TEST, CAPTURE(02), TEST, CAPTURE(03)",
+  "TEST, CAPTURE(04), TEST, CAPTURE(05), TEST, CAPTURE(06), TEST, CAPTURE(07)",
+  "TEST, CAPTURE(08), TEST, CAPTURE(09), TEST, CAPTURE(10), TEST, CAPTURE(11)",
+  "TEST, CAPTURE(12), TEST, CAPTURE(13), TEST, CAPTURE(14), TEST, CAPTURE(15)",
+  "@Close",
+]
+
+[[samples]]
+suffix = "advertise-sound"
+sequence = [
+  "@EnterService, @OpenGameAssignments, SERVICE*2",
+  "CAPTURE(00), TEST, CAPTURE(01)",
+  "@Close",
+]
+
+[[samples]]
+suffix = "life"
+sequence = [
+  "@EnterService, @OpenGameAssignments, SERVICE*3",
+  "CAPTURE(00), TEST, CAPTURE(01), TEST, CAPTURE(02), TEST, CAPTURE(03)",
+  "TEST, CAPTURE(04), TEST, CAPTURE(05), TEST, CAPTURE(06), TEST, CAPTURE(07)",
+  "TEST, CAPTURE(08)",
+  "@Close",
+]
+
+[[samples]]
+suffix = "country"
+sequence = [
+  "@EnterService, @OpenGameAssignments, SERVICE*4",
+  "CAPTURE(00)",
+  "@Close",
+]
+
+[[samples]]
+suffix = "boss-action"
+sequence = [
+  "@EnterService, @OpenGameAssignments, SERVICE*5",
+  "CAPTURE(00), TEST, CAPTURE(01)",
+  "@Close",
+]
+
+[[samples]]
+suffix = "country-assignments"
+sequence = [
+  "@EnterService, @OpenCountryAssignments",
+  "CAPTURE(00), SERVICE, CAPTURE(01), SERVICE, CAPTURE(02), SERVICE, CAPTURE(03)",
+  "@Close",
+]

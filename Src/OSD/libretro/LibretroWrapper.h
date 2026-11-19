@@ -2,10 +2,10 @@
 #include <Model3/IEmulator.h>
 #include <Model3/Model3.h>
 #include <libretro.h>
-#include "LibretroTiming.h"
 #include "ROMSet.h"
 #include <Inputs/Input.h>
 #include <GL/glew.h>
+#include "LibretroTiming.h"
 
 #ifndef LIBRETRO_WRAPPER_H
 #define LIBRETRO_WRAPPER_H
@@ -47,14 +47,19 @@ public:
     IEmulator* getEmulator() const { return Model3; }
     void Reset();   // hard reset of the emulated machine (retro_reset)
     FrameTimings GetTimings() const;
+    // Video cadence chosen when the content was loaded (Model 3 Timing Mode).
+    double GetFramesPerSecond() const
+    {
+        return LibretroTiming::FramesPerSecond(m_frameRateMicroHz);
+    }
+    // Native timing was selected but Single Thread emulation forced 60 Hz.
+    bool NativeTimingUnavailable() const { return m_nativeTimingUnavailable; }
     float GetLastEngineMs() const { return lastEngineMs; }
     float GetLastAudioSubmitMs() const { return lastAudioSubmitMs; }
-    double GetFramesPerSecond() const;
     std::shared_ptr<CInputSystem> getInputSystem() const { return m_inputSystem; }
     retro_hw_render_callback getHwRender() const { return hw_render; }
     static const std::string& GetGameXMLPath() { return s_gameXMLFilePath; }
-    void SetWidescreen(bool enabled, bool wideBackground);
-    void SetCrosshairs(unsigned mask);
+    void SetWidescreen(bool enabled, bool wideBackground = false);
     void setXRes(unsigned val) { xRes = val; }
     void setYRes(unsigned val) { yRes = val; }
     void setXOffset(unsigned val) { xOffset = val; }
@@ -66,8 +71,15 @@ public:
     void setCRTColors(CRTcolor val) { CRTcolors = val; }
     void setHwRender(retro_hw_render_callback val) { hw_render = val; }
     void InitializePaths(const std::string& systemPath);
+    // viewWidth/Height: the 4:3 game area; outputWidth/Height: the whole frame (wider in
+    // widescreen). The game area is centred in the frame.
     void UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
                           unsigned outputWidth, unsigned outputHeight);
+    void SetServiceOnSticks(bool enabled);
+    void ApplyDrivingLayout();
+    void SetCrosshairs(unsigned mask);
+    void SetNetworkBoard(bool connected);
+    void SetNetworkCabinets(unsigned cabinets);
     void SetSoundVolume(int volume);
     void SetMusicVolume(int volume);
     int Emulate(const char* romPath);
@@ -83,15 +95,15 @@ public:
     void ShutDownSupermodel();
     bool InitRenderers();
     bool InitGL();
-    // Returns the base-resolution frame resolved for Libretro submission.
+    // Returns the base-resolution frame resolved for Libretro submission
     GLuint getSuperModelFBO() const;
 
 private:
-    float lastEngineMs = 0.0f;
-    float lastAudioSubmitMs = 0.0f;
+    uint64_t m_lastFrameTime = 0;
     uint64_t m_frameRateMicroHz = LibretroTiming::kDefaultFrameRateMicroHz;
     uint64_t m_audioFrameRemainder = 0;
-    uint64_t m_lastFrameTime = 0;
+    bool m_nativeTimingUnavailable = false;
+    bool m_glObjectsReleased = false;      // DestroyGLScreen ran; InitRenderers re-uploads textures
     static const char* s_outputNames[];
     struct retro_hw_render_callback hw_render{};
     unsigned  xOffset, yOffset;                                         // offset of renderer output within OpenGL viewport
@@ -117,6 +129,8 @@ private:
     char baseTitleStr[128];
     char titleStr[128];
     UpscaleMode upscaleMode;
+    float       lastEngineMs = 0.0f;       // RunFrame/RenderFrame time of the last frame
+    float       lastAudioSubmitMs = 0.0f;  // time spent handing that frame's audio over
     uint64_t perfCountPerFrame;
     uint64_t nextTime;
 

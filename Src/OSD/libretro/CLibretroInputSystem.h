@@ -7,6 +7,15 @@
 class CLibretroInputSystem : public CInputSystem
 {
 public:
+    // What the gun's second button means. Most gun games have a second trigger
+    // (AUX_A, with Reload as an alias). The Lost World has one trigger and reloads
+    // by shooting off-screen, so there its second button is an off-screen shot.
+    enum class GunSecondaryInput
+    {
+        Reload,
+        AuxAOrReload
+    };
+
     CLibretroInputSystem();
     virtual ~CLibretroInputSystem() override;
 
@@ -21,12 +30,14 @@ public:
     virtual const KeyDetails *GetKeyDetails(int kbdNum) override;
     bool Initialize();
 
-    virtual int GetNumMice() const override { return 7; }
+    virtual int GetNumMice() const override { return kMouseDeviceCount; }
     virtual int GetMouseAxisValue(int mseNum, int axisNum) const override;
     virtual int GetMouseWheelDir(int mseNum) const override;
     virtual bool IsMouseButPressed(int mseNum, int butNum) const override;
     virtual const MouseDetails *GetMouseDetails(int mseNum) override;
     virtual void SetMouseVisibility(bool visible) override;
+    void SetServiceOnSticks(bool enabled) { m_serviceOnSticks = enabled; }
+    void SetGunSecondaryInput(GunSecondaryInput input) { m_gunSecondaryInput = input; }
     virtual int GetNumJoysticks() const override { return 2; }
     virtual int GetJoyAxisValue(int joyNum, int axisNum) const override;
     virtual bool IsJoyPOVInDir(int joyNum, int povNum, int povDir) const override;
@@ -43,14 +54,13 @@ private:
     int16_t m_joyButtons[2][NUM_JOY_BUTTONS];
     int16_t m_joyAxes[2][NUM_JOY_AXES];
     uint8_t m_joyPOV[2][4]; // Up, Down, Left, Right
-    unsigned m_hGatePosition; // active diagonal: 0=center, 1-4=gear position
     bool m_keyState[512];  // Add this for keyboard
     
     // Supermodel mouse numbers:
     //   MOUSE/MOUSE2 = RetroMouse ports 1/2
     //   MOUSE3/MOUSE4 = RetroLightgun ports 1/2
     //   MOUSE5/MOUSE6 = virtual gun cursors for players 1/2
-    //   MOUSE7 = virtual Star Wars analog joystick (lightgun, mouse or stick)
+    //   MOUSE7 = virtual Star Wars analog joystick (light gun, mouse or stick)
     static constexpr int kMouseDeviceCount = 7;
     int16_t m_mouseAxes[kMouseDeviceCount][NUM_MOUSE_AXES];
     bool m_mouseButtons[kMouseDeviceCount][NUM_MOUSE_BUTTONS];
@@ -69,9 +79,17 @@ private:
     int m_analogJoystickCursorY;
     bool m_analogJoystickCursorInitialized;
     unsigned m_analogJoystickSource; // 0: stick, 1: mouse
+    bool m_port2MouseDistinct;       // port 2 mouse proved to be a separate device
+    bool m_port2LightgunDistinct;    // port 2 light gun proved to be a separate device
 
+    bool m_serviceOnSticks = false;
+    GunSecondaryInput m_gunSecondaryInput = GunSecondaryInput::AuxAOrReload;
     retro_rumble_interface m_rumbleInterface;
     bool m_ffbEnabled = false; // Guard flag
+    // Gamepad rumble state per port, as in standalone Supermodel's XInput
+    // path: the constant-force and vibrate effects are summed on both motors.
+    uint16_t m_ffConstForce[2] = { 0, 0 };
+    uint16_t m_ffVibrate[2] = { 0, 0 };
 };
 
 #endif

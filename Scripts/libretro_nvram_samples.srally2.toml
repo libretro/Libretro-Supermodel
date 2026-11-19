@@ -27,21 +27,21 @@ window_height = 384
 # reference other macros; *N repeats a button or macro. CLOSE performs the
 # exact clean shutdown sequence Esc, wait, Esc on this RetroArch process only.
 [macros]
-EnterServ = "L3, WAIT(0.7)"
-OpenGameAssignments = "R3*9, L3, WAIT(0.5)"
-SelectCabinetType = "R3*8"
-ExitCabinetType = "R3*2, L3, WAIT(0.5)"
-SelectLinkType = "R3*9"
-ExitLinkType = "R3, L3, WAIT(0.5)"
-ExitServfromGame = "R3*3, L3, WAIT(3.0)"
-OpenCountryAssignments = "SHORT(R3)*4, LONG(R3)*2, SHORT(R3)*2, LONG(R3)*1"
+EnterServ = "TEST, WAIT(0.7)"
+OpenGameAssignments = "SERVICE*9, TEST, WAIT(0.5)"
+SelectCabinetType = "SERVICE*8"
+ExitCabinetType = "SERVICE*2, TEST, WAIT(0.5)"
+SelectLinkType = "SERVICE*9"
+ExitLinkType = "SERVICE, TEST, WAIT(0.5)"
+ExitServfromGame = "SERVICE*3, TEST, WAIT(3.0)"
+OpenCountryAssignments = "SHORT(SERVICE)*4, LONG(SERVICE)*2, SHORT(SERVICE)*2, LONG(SERVICE)*1"
 SelectCountryType = ""
-ExitCountryType = "L3, WAIT(0.5)"
-ExitServfromCountry = "R3*3, L3, WAIT(3.0)"
-SelectDifficultyType = "R3*2"
-ExitDifficultyType = "R3*8, L3, WAIT(0.5)"
-SelectDefaultViewType = "R3*4"
-ExitDefaultViewType = "R3*6, L3, WAIT(0.5)"
+ExitCountryType = "TEST, WAIT(0.5)"
+ExitServfromCountry = "SERVICE*3, TEST, WAIT(3.0)"
+SelectDifficultyType = "SERVICE*2"
+ExitDifficultyType = "SERVICE*8, TEST, WAIT(0.5)"
+SelectDefaultViewType = "SERVICE*4"
+ExitDefaultViewType = "SERVICE*6, TEST, WAIT(0.5)"
 Close = "CLOSE"
 
 # Starting from the immutable DELUXE standard above, one press on Cabinet Type
@@ -51,7 +51,7 @@ suffix = "difficulty-00-normal"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*0, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*0, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -62,7 +62,7 @@ suffix = "difficulty-01-hard"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*1, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*1, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -73,7 +73,7 @@ suffix = "difficulty-02-very-hard"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*2, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*2, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -84,7 +84,7 @@ suffix = "difficulty-03-very-easy"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*3, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*3, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -95,7 +95,7 @@ suffix = "difficulty-04-easy"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDifficultyType, L3*4, WAIT(0.5)",
+  "@SelectDifficultyType, TEST*4, WAIT(0.5)",
   "@ExitDifficultyType",
   "@ExitServfromGame",
   "@Close",
@@ -106,7 +106,7 @@ suffix = "cabinet-00-deluxe"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectCabinetType, L3*0, WAIT(0.5)",
+  "@SelectCabinetType, TEST*0, WAIT(0.5)",
   "@ExitCabinetType",
   "@ExitServfromGame",
   "@Close",
@@ -117,7 +117,7 @@ suffix = "cabinet-01-twin"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectCabinetType, L3*1, WAIT(0.5)",
+  "@SelectCabinetType, TEST*1, WAIT(0.5)",
   "@ExitCabinetType",
   "@ExitServfromGame",
   "@Close",
@@ -128,7 +128,7 @@ suffix = "link-00-stand-alone"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectLinkType, L3*0, WAIT(0.5)",
+  "@SelectLinkType, TEST*0, WAIT(0.5)",
   "@ExitLinkType",
   "@ExitServfromGame",
   "@Close",
@@ -139,7 +139,7 @@ suffix = "link-01-master-car-01"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectLinkType, L3*1, WAIT(0.5)",
+  "@SelectLinkType, TEST*1, WAIT(0.5)",
   "@ExitLinkType",
   "@ExitServfromGame",
   "@Close",
@@ -150,7 +150,7 @@ suffix = "link-02-slave-car-02"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectLinkType, L3*2, WAIT(0.5)",
+  "@SelectLinkType, TEST*2, WAIT(0.5)",
   "@ExitLinkType",
   "@ExitServfromGame",
   "@Close",
@@ -161,7 +161,7 @@ suffix = "link-03-slave-car-03"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectLinkType, L3*3, WAIT(0.5)",
+  "@SelectLinkType, TEST*3, WAIT(0.5)",
   "@ExitLinkType",
   "@ExitServfromGame",
   "@Close",
@@ -172,7 +172,7 @@ suffix = "link-04-slave-car-04"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectLinkType, L3*4, WAIT(0.5)",
+  "@SelectLinkType, TEST*4, WAIT(0.5)",
   "@ExitLinkType",
   "@ExitServfromGame",
   "@Close",
@@ -183,7 +183,7 @@ suffix = "link-05-relay"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectLinkType, L3*5, WAIT(0.5)",
+  "@SelectLinkType, TEST*5, WAIT(0.5)",
   "@ExitLinkType",
   "@ExitServfromGame",
   "@Close",
@@ -194,7 +194,7 @@ suffix = "country-00-export"
 sequence = [
   "@EnterServ",
   "@OpenCountryAssignments",
-  "@SelectCountryType, R3*0, WAIT(0.5)",
+  "@SelectCountryType, SERVICE*0, WAIT(0.5)",
   "@ExitCountryType",
   "@ExitServfromCountry",
   "@Close",
@@ -205,7 +205,7 @@ suffix = "country-01-japan"
 sequence = [
   "@EnterServ",
   "@OpenCountryAssignments",
-  "@SelectCountryType, R3*1, WAIT(0.5)",
+  "@SelectCountryType, SERVICE*1, WAIT(0.5)",
   "@ExitCountryType",
   "@ExitServfromCountry",
   "@Close",
@@ -216,7 +216,7 @@ suffix = "country-02-usa"
 sequence = [
   "@EnterServ",
   "@OpenCountryAssignments",
-  "@SelectCountryType, R3*2, WAIT(0.5)",
+  "@SelectCountryType, SERVICE*2, WAIT(0.5)",
   "@ExitCountryType",
   "@ExitServfromCountry",
   "@Close",
@@ -227,7 +227,7 @@ suffix = "country-03-australia"
 sequence = [
   "@EnterServ",
   "@OpenCountryAssignments",
-  "@SelectCountryType, R3*3, WAIT(0.5)",
+  "@SelectCountryType, SERVICE*3, WAIT(0.5)",
   "@ExitCountryType",
   "@ExitServfromCountry",
   "@Close",
@@ -238,7 +238,7 @@ suffix = "default-view-00-driver"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDefaultViewType, L3*0, WAIT(0.5)",
+  "@SelectDefaultViewType, TEST*0, WAIT(0.5)",
   "@ExitDefaultViewType",
   "@ExitServfromGame",
   "@Close",
@@ -249,7 +249,7 @@ suffix = "default-view-01-behind"
 sequence = [
   "@EnterServ",
   "@OpenGameAssignments",
-  "@SelectDefaultViewType, L3*1, WAIT(0.5)",
+  "@SelectDefaultViewType, TEST*1, WAIT(0.5)",
   "@ExitDefaultViewType",
   "@ExitServfromGame",
   "@Close",
@@ -261,4 +261,4 @@ sequence = [
 #
 # [[samples]]
 # suffix = "another-setting"
-# sequence = "@EnterServ, R3*4, L3, WAIT(1.0), @Close"
+# sequence = "@EnterServ, SERVICE*4, TEST, WAIT(1.0), @Close"

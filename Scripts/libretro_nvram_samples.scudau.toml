@@ -1,0 +1,99 @@
+# Scud Australia: native operator inventory and managed-field persistence.
+# Use the reviewed Games.xml without the historical graphics-debug-menu patch.
+[retroarch]
+executable = "~/Retro/Apps/RetroArch/Nightly/RetroArch (ARM).app/Contents/MacOS/RetroArch"
+core = "~/Library/Application Support/RetroArch/cores/supermodel_libretro.dylib"
+rom_dir = "${SUPERMODEL_ROM_DIR}"
+system_assets = "../Config"
+base_config = "~/Library/Application Support/RetroArch/config/retroarch.cfg"
+[campaign]
+game = "scudau"
+standard_srm = "~/Documents/RetroArch/model3-nvram-analysis/scudau/game-base.srm"
+output_dir = "~/Documents/RetroArch/model3-nvram-analysis/scudau/generated"
+startup_wait = 6.0
+button_hold = 0.06
+button_hold_long = 0.12
+default_wait = 0.4
+settle_before_close = 0.5
+close_gap = 0.7
+shutdown_timeout = 45.0
+window_width = 496
+window_height = 384
+[macros]
+EnterServ = "TEST, WAIT(2)"
+OpenGameAssignments = "SERVICE*8, TEST, WAIT(1)"
+OpenNetAssignments = "@OpenGameAssignments"
+SelectLinkType = "SERVICE"
+SelectLinkId = "SERVICE*2"
+ExitLinkType = "SERVICE*8, TEST, WAIT(0.5)"
+ExitLinkId = "SERVICE*7, TEST, WAIT(0.5)"
+ExitServfromNet = "SERVICE*4, TEST, WAIT(5)"
+Close = "CLOSE"
+
+[[samples]]
+suffix = "link-00-master"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkType, TEST*0, WAIT(0.5)", "@ExitLinkType", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-01-slave"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkType, TEST*1, WAIT(0.5)", "@ExitLinkType", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-02-single"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkType, TEST*2, WAIT(0.5)", "@ExitLinkType", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-id-00-car-01"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkId, TEST*0, WAIT(0.5)", "@ExitLinkId", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-id-01-car-02"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkId, TEST*1, WAIT(0.5)", "@ExitLinkId", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-id-02-car-03"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkId, TEST*2, WAIT(0.5)", "@ExitLinkId", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-id-03-car-04"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkId, TEST*3, WAIT(0.5)", "@ExitLinkId", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-id-04-car-05"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkId, TEST*4, WAIT(0.5)", "@ExitLinkId", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-id-05-car-06"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkId, TEST*5, WAIT(0.5)", "@ExitLinkId", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-id-06-car-07"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkId, TEST*6, WAIT(0.5)", "@ExitLinkId", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "link-id-07-car-08"
+sequence = ["@EnterServ", "@OpenNetAssignments", "@SelectLinkId, TEST*7, WAIT(0.5)", "@ExitLinkId", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "cabinet-00-twin"
+sequence = ["@EnterServ", "@OpenGameAssignments", "SERVICE*3, TEST*0, WAIT(0.5)", "SERVICE*6, TEST, WAIT(0.5)", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "cabinet-01-deluxe"
+sequence = ["@EnterServ", "@OpenGameAssignments", "SERVICE*3, TEST*1, WAIT(0.5)", "SERVICE*6, TEST, WAIT(0.5)", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "difficulty-00-normal"
+sequence = ["@EnterServ", "@OpenGameAssignments", "SERVICE*4, TEST*0, WAIT(0.5)", "SERVICE*5, TEST, WAIT(0.5)", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "difficulty-01-hard"
+sequence = ["@EnterServ", "@OpenGameAssignments", "SERVICE*4, TEST*1, WAIT(0.5)", "SERVICE*5, TEST, WAIT(0.5)", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "difficulty-02-hardest"
+sequence = ["@EnterServ", "@OpenGameAssignments", "SERVICE*4, TEST*2, WAIT(0.5)", "SERVICE*5, TEST, WAIT(0.5)", "@ExitServfromNet", "@Close"]
+
+[[samples]]
+suffix = "difficulty-03-easy"
+sequence = ["@EnterServ", "@OpenGameAssignments", "SERVICE*4, TEST*3, WAIT(0.5)", "SERVICE*5, TEST, WAIT(0.5)", "@ExitServfromNet", "@Close"]

@@ -1,6 +1,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
+#import <ImageIO/ImageIO.h>
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 #include <errno.h>
 #include <signal.h>
@@ -101,6 +102,48 @@ static void PrintError(NSString *message)
     fprintf(stderr, "error: %s\n", message.UTF8String);
 }
 
+static int CaptureImage(SCWindow *window, SCDisplay *display, NSString *outputPath)
+{
+    CGFloat scale = 1.0;
+    if (display && display.frame.size.width > 0.0)
+        scale = MAX(1.0, (CGFloat)display.width / display.frame.size.width);
+
+    SCStreamConfiguration *configuration = [[SCStreamConfiguration alloc] init];
+    configuration.width = MAX(1, (size_t)llround(window.frame.size.width * scale));
+    configuration.height = MAX(1, (size_t)llround(window.frame.size.height * scale));
+    configuration.showsCursor = NO;
+
+    SCContentFilter *filter =
+        [[SCContentFilter alloc] initWithDesktopIndependentWindow:window];
+    __block NSError *failure = nil;
+    __block BOOL written = NO;
+    dispatch_semaphore_t done = dispatch_semaphore_create(0);
+    [SCScreenshotManager captureImageWithFilter:filter
+                                   configuration:configuration
+                               completionHandler:^(CGImageRef image, NSError *error) {
+        if (error || !image) {
+            failure = error;
+        } else {
+            NSURL *url = [NSURL fileURLWithPath:outputPath];
+            CGImageDestinationRef destination = CGImageDestinationCreateWithURL(
+                (__bridge CFURLRef)url, CFSTR("public.png"), 1, NULL);
+            if (destination) {
+                CGImageDestinationAddImage(destination, image, NULL);
+                written = CGImageDestinationFinalize(destination);
+                CFRelease(destination);
+            }
+        }
+        dispatch_semaphore_signal(done);
+    }];
+    dispatch_semaphore_wait(done, DISPATCH_TIME_FOREVER);
+    if (!written) {
+        PrintError(failure.localizedDescription ?: @"could not write screenshot");
+        return 9;
+    }
+    printf("captured window image\n");
+    return 0;
+}
+
 int main(int argc, const char *argv[])
 {
     @autoreleasepool {
@@ -109,18 +152,21 @@ int main(int argc, const char *argv[])
 
         pid_t pid = 0;
         NSString *outputPath = nil;
+        NSString *imagePath = nil;
         for (int index = 1; index < argc; ++index) {
             if (strcmp(argv[index], "--pid") == 0 && index + 1 < argc)
                 pid = (pid_t)strtol(argv[++index], NULL, 10);
             else if (strcmp(argv[index], "--output") == 0 && index + 1 < argc)
                 outputPath = [NSString stringWithUTF8String:argv[++index]];
+            else if (strcmp(argv[index], "--image") == 0 && index + 1 < argc)
+                imagePath = [NSString stringWithUTF8String:argv[++index]];
             else {
-                PrintError(@"usage: ScreenCaptureWindow --pid PID --output FILE.mov");
+                PrintError(@"usage: ScreenCaptureWindow --pid PID (--output FILE.mov | --image FILE.png)");
                 return 2;
             }
         }
-        if (pid <= 0 || outputPath.length == 0) {
-            PrintError(@"usage: ScreenCaptureWindow --pid PID --output FILE.mov");
+        if (pid <= 0 || (outputPath.length == 0) == (imagePath.length == 0)) {
+            PrintError(@"usage: ScreenCaptureWindow --pid PID (--output FILE.mov | --image FILE.png)");
             return 2;
         }
 
@@ -132,6 +178,9 @@ int main(int argc, const char *argv[])
                 @"no capturable on-screen window appeared for PID %d", pid]);
             return 4;
         }
+
+        if (imagePath.length != 0)
+            return CaptureImage(window, display, imagePath);
 
         CGFloat scale = 1.0;
         if (display && display.frame.size.width > 0.0)

@@ -1,0 +1,289 @@
+---
+schema_version: 1
+game:
+  set: dirtdvls
+  parent: dirtdvls
+  title: Dirt Devils
+verification:
+  date: '2026-10-18'
+  method: Target Supermodel Core In Actual RetroArch; Existing Recipes And Baselines
+    Reused
+  scope: Photographic Inventory; Existing Binary Validation Retained Separately
+  core_sha256: 7d0ba9c6a7375e184fa409a71e0ff4a632a64e7ce1af0dd9dea35d9e24d7073b
+  fresh_acquisition_gate: available
+  primary_evidence: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots"
+  historical_evidence: Docs/Service_Menu_NVRAM_Summary.xlsx; Historical Source Notes In Campaign;
+    Original Revision And Photo Archive Retained
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  country_assignments:
+    options:
+    - key: country_country_code
+      label: Country / Country Code
+      native_label_raw: COUNTRY / COUNTRY CODE
+      position: 1
+      catalogue_position: 1
+      native_default: EXPORT
+      implemented: true
+      navigation: Reuse Existing Hidden Country Macro
+      read_only_display:
+        menu: game_assignments
+        position: 1
+      observed_values_raw: EXPORT, AUSTRALIA, JAPAN, USA
+      historical_photo_evidence: base + ciclo completo in Country Select Mode
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+  game_assignments:
+    options:
+    - key: game_difficulty
+      label: Game Difficulty
+      native_label_raw: GAME DIFFICULTY
+      position: 2
+      catalogue_position: 2
+      native_default: barra 9 / 16
+      implemented: true
+      observed_values_raw: barre da 1 / 16 a 16 / 16
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: time_canyon
+      label: Time (Canyon)
+      native_label_raw: TIME (CANYON)
+      position: 3
+      catalogue_position: 3
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - HARD
+      - HARDER
+      - EASIER
+      - EASY
+      photographed_cycle:
+      - NORMAL
+      - HARD
+      - HARDER
+      - EASIER
+      - EASY
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-canyon-000.png"
+        sha256: 6b2ee8531ae0bb3d2aed58e096a82c516766fde482fc1bba5a7d818bbbb6fa15
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-canyon-001.png"
+        sha256: b01e20d5124feb98496b50c1e50a2b2c07cd5f04fb940d6f410cb9e30618bf9a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-canyon-002.png"
+        sha256: d662e7b66ed3fafb4dc5c70167cb60aa7c3f6e95cddcde794b06632297041c03
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-canyon-003.png"
+        sha256: dd8e814a79ad6c5a1e8eaa182c568154dd2c78dbde092671e597a471b02f516f
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-canyon-004.png"
+        sha256: 3f2d9a20eb8eead6d2150e493459c5d32e463627c1e0bbb0d43a774a13c97e6d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-canyon-005.png"
+        sha256: 6b2ee8531ae0bb3d2aed58e096a82c516766fde482fc1bba5a7d818bbbb6fa15
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: time_stadium
+      label: Time (Stadium)
+      native_label_raw: TIME (STADIUM)
+      position: 4
+      catalogue_position: 4
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - HARD
+      - HARDER
+      - EASIER
+      - EASY
+      photographed_cycle:
+      - NORMAL
+      - HARD
+      - HARDER
+      - EASIER
+      - EASY
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-stadium-000.png"
+        sha256: 83d5448a5eec9a82e7e89934ef79183fb479b35ed91efde8875943286ef0847b
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-stadium-001.png"
+        sha256: 17deac09ac2a3e7923ee3eb8043da3f3a86c1c8de9924544fbc46e84d42a9321
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-stadium-002.png"
+        sha256: 52363c44539acd44399c67b7fd1f49aa28e1e4d229867c36e2d35486dac7b704
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-stadium-003.png"
+        sha256: 9b8f42c91c19a9e82e6773025ab60be2b47f2954fe199a193b125074c6ac3b37
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-stadium-004.png"
+        sha256: f3aa94c5bd01d8b32268c4299bc8dc87e4aab185384608739b5ecad996e1d019
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-stadium-005.png"
+        sha256: 83d5448a5eec9a82e7e89934ef79183fb479b35ed91efde8875943286ef0847b
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: time_desert
+      label: Time (Desert)
+      native_label_raw: TIME (DESERT)
+      position: 5
+      catalogue_position: 5
+      native_default: NORMAL
+      implemented: false
+      values:
+      - NORMAL
+      - HARD
+      - HARDER
+      - EASIER
+      - EASY
+      photographed_cycle:
+      - NORMAL
+      - HARD
+      - HARDER
+      - EASIER
+      - EASY
+      - NORMAL
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-desert-000.png"
+        sha256: a9f350c73a5a394a5bce47e831bc53dff840c973d4a6639a72d297340ed2ce7d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-desert-001.png"
+        sha256: 445baff2cabb2d02ed0cff85ff575d4d1f864751ec21a674ac4fb036b70b838a
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-desert-002.png"
+        sha256: bc381ce3073a3c63fb47893636e88d9337486914199dc64f4565b3080c1495be
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-desert-003.png"
+        sha256: 1918d58a95c60903056e42431e3b5e74a0d8af8f155afdaa529cb2aa2d77c208
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-desert-004.png"
+        sha256: 22b3af9187ee636e9466add9065c74be5f868d1b5983f691f7ac59fb928fd630
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-time-desert-005.png"
+        sha256: a9f350c73a5a394a5bce47e831bc53dff840c973d4a6639a72d297340ed2ce7d
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: steering_force
+      label: Steering Force
+      native_label_raw: STEERING FORCE
+      position: 6
+      catalogue_position: 6
+      native_default: 80%
+      implemented: false
+      values:
+      - 80%
+      - 90%
+      - 100%
+      - 50%
+      - 60%
+      - 70%
+      photographed_cycle:
+      - 80%
+      - 90%
+      - 100%
+      - 50%
+      - 60%
+      - 70%
+      - 80%
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-steering-force-000.png"
+        sha256: f99eedf7edf383c0e185356c5cb50cb52911481aade885d5c0ada0c2085ac5b1
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-steering-force-001.png"
+        sha256: b18d80c9dbfeac0cb26958162a195a3e2c71e0e2e2e0d26401050da5da48bfce
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-steering-force-002.png"
+        sha256: ef91c0075225435253d7d559f59fedff4dcf7f62f7c1b6748901ac643f6a5ccb
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-steering-force-003.png"
+        sha256: f5e4607d2c8204f706d51a42bdf1de1b45ad62dc7e5056dc745a0da09db36778
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-steering-force-004.png"
+        sha256: 4bd64bde8981df961ba6180620ac367f30eabe1823426936d09c853923b01d32
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-steering-force-005.png"
+        sha256: a9944e25f57c98e3af7ee47ee9be37f766463b88d95dc0830beb88044dd54010
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-steering-force-006.png"
+        sha256: f99eedf7edf383c0e185356c5cb50cb52911481aade885d5c0ada0c2085ac5b1
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: advertise_sound
+      label: Advertise Sound
+      native_label_raw: ADVERTISE SOUND
+      position: 7
+      catalogue_position: 7
+      native_default: 'ON'
+      implemented: false
+      values:
+      - 'ON'
+      - 'OFF'
+      photographed_cycle:
+      - 'ON'
+      - 'OFF'
+      - 'ON'
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-advertise-sound-000.png"
+        sha256: 334738df8d52f97520571f82bbd6197386003c2b0bf8c9bd3afc7a048216f83d
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-advertise-sound-001.png"
+        sha256: d78c04ba4b129f49d988ff23c3a3e8ae7acca364ce51aec9b02cc4282bbb9953
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-advertise-sound-002.png"
+        sha256: 334738df8d52f97520571f82bbd6197386003c2b0bf8c9bd3afc7a048216f83d
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested
+    - key: communication_mode
+      label: Communication Mode
+      native_label_raw: COMMUNICATION MODE
+      position: 8
+      catalogue_position: 8
+      native_default: SLAVE
+      implemented: true
+      observed_values_raw: SLAVE, SATELLITE, NOLINK, MASTER
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: machine_id
+      label: Machine ID
+      native_label_raw: MACHINE ID
+      position: 9
+      catalogue_position: 9
+      native_default: '1'
+      implemented: true
+      observed_values_raw: 1, 2, 3, 4
+      historical_photo_evidence: base + ciclo completo
+      verification: Existing Direct Photographic Inventory Retained
+      nvram:
+        mapping_status: Existing Reviewed Core Definition; Unchanged
+        source: Src/OSD/libretro/LibretroNvramSettings.h
+    - key: speed_meter
+      label: Speed Meter
+      native_label_raw: SPEED METER
+      position: 10
+      catalogue_position: 10
+      native_default: KM/H
+      implemented: false
+      values:
+      - KM/H
+      - MPH
+      photographed_cycle:
+      - KM/H
+      - MPH
+      - KM/H
+      verification: Direct Native Value Cycle And Closing Return, 2026-10-18
+      evidence:
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-speed-meter-000.png"
+        sha256: 1bcd6c0ae297c517ef9192d2fb179605c035905b22b70e5350c09feb8f324add
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-speed-meter-001.png"
+        sha256: 8fbaace9805274cd1c9f7b4c086d7b88e07cf95340b0eca377e236426612ebb0
+      - file: "/Users/andrea/Documents/RetroArch/model3-game-settings-catalog/dirtdvls/screenshots/dirtdvls-20261018-cycle-speed-meter-002.png"
+        sha256: 1bcd6c0ae297c517ef9192d2fb179605c035905b22b70e5350c09feb8f324add
+      nvram:
+        offset:
+        encodings:
+        mapping_status: Not Measured; Unexposed Field; No Supplemental Sample Requested

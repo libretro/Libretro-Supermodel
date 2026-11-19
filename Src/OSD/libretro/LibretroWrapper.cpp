@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <algorithm>
 #include <chrono>
 #include <GL/glew.h>
 #if !defined(ANDROID) && !defined(CORE_GLES)
@@ -28,7 +29,6 @@
 #include "OSD/FileSystemPath.h"
 #include "GameLoader.h"
 #include "libretro_cbs.h"
-#include "LibretroTiming.h"
 #include "vfs_ioapi.h"
 #include "Debugger/SupermodelDebugger.h"
 #if defined(HAVE_LEGACY3D) || defined(USE_LEGACY3D)
@@ -45,6 +45,7 @@
 #include "libretroCrosshair.h"
 #include "LibretroWrapper.h"
 #include "CLibretroInputSystem.h"
+void ResetLibretroAudio();   // libretroAudio.cpp
 #include "CLibretroOutputSystem.h"
 #include "libretroGui.h"
 #include "LibretroConfigProvider.h"
@@ -54,6 +55,8 @@
 
 // --- External Audio Hooks ---
 extern void PlayCallback(void *userdata, UINT8 *stream, int len);
+extern UINT32 GetAvailableAudioLen();
+extern int bytes_per_frame_host;
 extern retro_environment_t environ_cb;
 extern retro_log_printf_t log_cb;  // defined in libretro.cpp
 
@@ -130,6 +133,7 @@ std::string LibretroWrapper::s_logFilePath;
 static Util::Config::Node s_runtime_config("Global");
 static LibretroWrapper* g_ctx = nullptr;
 
+
 /*
  * Crosshair stuff
  */
@@ -150,12 +154,6 @@ LibretroWrapper::LibretroWrapper() :
 }
 
 LibretroWrapper::~LibretroWrapper() {}
-
-double LibretroWrapper::GetFramesPerSecond() const
-{
-    return static_cast<double>(m_frameRateMicroHz) /
-           static_cast<double>(LibretroTiming::kMicroHzScale);
-}
 
 FrameTimings LibretroWrapper::GetTimings() const
 {
@@ -211,7 +209,13 @@ void LibretroWrapper::InitializePaths(const std::string& systemPath)
     // Use the negotiated Libretro VFS instead of relying on filesystem helper
     // symbols that are not part of the frontend ABI.
     if (g_vfs_interface && g_vfs_interface->mkdir)
+    {
+        // VFS mkdir is single-level: create the parent first, then the target.
+        const size_t lastSlash = systemPath.rfind('/');
+        if (lastSlash != std::string::npos)
+            g_vfs_interface->mkdir(systemPath.substr(0, lastSlash).c_str());
         g_vfs_interface->mkdir(systemPath.c_str());
+    }
 
     // External assets remain authoritative. The official embedded assets are
     // retained as a first-run fallback when neither the native nor legacy
@@ -224,7 +228,11 @@ void LibretroWrapper::InitializePaths(const std::string& systemPath)
     s_logFilePath      = systemPath + "/Supermodel.log";
     s_analysisPath     = systemPath + "/Analysis/";
 
-    std::cout << "[Supermodel] System assets: " << systemPath << std::endl;
+    if (log_cb)
+    {
+        log_cb(RETRO_LOG_INFO, "[Supermodel] Games.xml: %s\n", s_gameXMLFilePath.c_str());
+        log_cb(RETRO_LOG_INFO, "[Supermodel] Supermodel.ini: %s\n", s_configFilePath.c_str());
+    }
 }
 
 [[maybe_unused]] static void GLAPIENTRY DebugCallback(GLenum /*source*/, GLenum /*type*/, GLuint id,
@@ -235,8 +243,7 @@ void LibretroWrapper::InitializePaths(const std::string& systemPath)
 }
 
 void LibretroWrapper::UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
-                                       unsigned outputWidth,
-                                       unsigned outputHeight)
+                                       unsigned outputWidth, unsigned outputHeight)
 {
     // If dimensions match and renderers are initialized, skip costly re-init
     if (viewWidth == xRes && viewHeight == yRes &&
@@ -244,6 +251,10 @@ void LibretroWrapper::UpdateScreenSize(unsigned viewWidth, unsigned viewHeight,
         superAA != nullptr)
         return;
 
+    // As in standalone Supermodel: the 4:3 game area (xRes x yRes) is centred in the
+    // output frame. In widescreen the frame is wider; New3D widens full-screen
+    // viewports into the sides and Render2D keeps the 2D layers at 4:3 (or stretches
+    // the background layer with WideBackground).
     xRes = std::min(viewWidth, outputWidth);
     yRes = std::min(viewHeight, outputHeight);
     totalXRes = outputWidth;
@@ -373,8 +384,44 @@ void EndFrameVideo()
 /******************************************************************************
  Frame Timing & Init
 ******************************************************************************/
+// The frontend is about to destroy the GL context (context_destroy). Delete every GL
+// object now, while that context is still current: the renderers, SuperAA and the
+// resolved FBO. Deleting them later, from context_reset, would run on the new context,
+// where the old names already belong to the frontend's own objects: on a Raspberry Pi
+// with an input overlay, the overlay's texture was deleted and its name then became
+// the core's render target, so the overlay showed the game frame upside down.
+void LibretroWrapper::DestroyGLScreen()
+{
+    if (Render3D == nullptr && Render2D == nullptr && superAA == nullptr && m_libretrFBO == 0)
+        return;
+
+    const bool pauseThreads = Model3 && !paused;
+    if (pauseThreads)
+        Model3->PauseThreads();
+
+    delete Render2D; Render2D = nullptr;
+    delete Render3D; Render3D = nullptr;
+    delete superAA;  superAA  = nullptr;
+    if (m_libretrFBO) {
+        glDeleteFramebuffers(1,  &m_libretrFBO);   m_libretrFBO   = 0;
+        glDeleteTextures(1,      &m_libretrTex);    m_libretrTex   = 0;
+        glDeleteRenderbuffers(1, &m_libretrDepth);  m_libretrDepth = 0;
+    }
+    // Nothing renders until context_reset re-creates the renderers (retro_run
+    // skips the engine while the context is not ready); the game's textures must
+    // be uploaded into the new ones.
+    m_glObjectsReleased = Model3 != nullptr;
+
+    if (pauseThreads)
+        Model3->ResumeThreads();
+}
+
 bool LibretroWrapper::InitRenderers()
 {
+    // Runtime re-creation (widescreen, resolution, or after a GL context reset
+    // released the previous renderers) vs the first creation.
+    const bool recreated = Render3D != nullptr || m_glObjectsReleased;
+    m_glObjectsReleased = false;
     delete Render2D; Render2D = nullptr;
     delete Render3D; Render3D = nullptr;
     delete superAA;  superAA  = nullptr;
@@ -391,11 +438,11 @@ bool LibretroWrapper::InitRenderers()
 
     GLuint renderTarget = superAA->GetTargetID();
 
-    // Libretro always needs a base-resolution resolved target. With native
-    // supersampling/CRT colour active, SuperAA renders its high-resolution
-    // input down into this FBO. Without that pass, the Model 3 renderers draw
-    // here directly. Never submit SuperAA's high-resolution source FBO to the
-    // frontend: doing so crops the image to its lower-left base-size region.
+    // Libretro always needs a base-resolution resolved target. With supersampling
+    // or CRT colour active, SuperAA renders its high-resolution input down into
+    // this FBO. Without that pass, the Model 3 renderers draw here directly. Never
+    // submit SuperAA's high-resolution source FBO to the frontend: it is the
+    // unprocessed image, and at 2x or more only its lower-left part would show.
     glGenFramebuffers(1, &m_libretrFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, m_libretrFBO);
 
@@ -430,9 +477,9 @@ bool LibretroWrapper::InitRenderers()
         renderTarget = m_libretrFBO;
 
     Render2D = new CRender2D(s_runtime_config);
-    // Normal desktop builds can include both renderers and select at runtime.
-    // Platforms whose graphics API cannot build Legacy3D omit it entirely;
-    // explicit RENDERER=legacy builds remain fixed to that renderer.
+    // Builds that include both renderers (HAVE_LEGACY3D, from the Makefile) select
+    // one at runtime through the 3D Renderer option. Where Legacy3D is not built in,
+    // New3D is the only choice; RENDERER=legacy builds are fixed to Legacy3D.
     Render3D =
 #if defined(USE_LEGACY3D)
         (IRender3D*)new Legacy3D::CLegacy3D(s_runtime_config);
@@ -471,6 +518,13 @@ bool LibretroWrapper::InitRenderers()
     }
 
     Model3->AttachRenderers(Render2D, Render3D, superAA);
+
+    // A renderer created while a game is running starts with an empty texture sheet
+    // although the emulated texture RAM still holds the game's textures, so every model
+    // already in memory renders black until the game writes its textures again. Re-upload
+    // the whole sheet, as CReal3D::LoadState does after a state load.
+    if (recreated)
+        Render3D->UploadTextures(0, 0, 0, 2048, 2048);
     return true;
 }
 
@@ -482,7 +536,6 @@ int LibretroWrapper::SuperModelInit(const Game &game) {
   quit = false;
   paused = false;
   dumpTimings = false;
-  m_audioFrameRemainder = 0;
 
   // Initialize and load ROMs
   if (Result::OKAY != Model3->Init())
@@ -495,6 +548,8 @@ int LibretroWrapper::SuperModelInit(const Game &game) {
 
   totalXRes = xRes = s_runtime_config["XResolution"].ValueAs<unsigned>();
   totalYRes = yRes = s_runtime_config["YResolution"].ValueAs<unsigned>();
+  // A new content load starts with no margins from the previous wide viewport.
+  xOffset = yOffset = 0;
   snprintf(baseTitleStr, sizeof(baseTitleStr), "Supermodel - %s", game.title.c_str());
 
   SetAudioType(game.audio);
@@ -569,15 +624,21 @@ int LibretroWrapper::Supermodel(const Game &game, bool skipRender)
         lastEngineMs = std::chrono::duration<float, std::milli>(
             audioStart - engineStart).count();
 
-        // Submit exactly 44.1 kHz over the selected video cadence. At 60 Hz
-        // this is a fixed 735-frame packet; native Model 3 timing uses a
-        // deterministic 766/767-frame sequence. Never derive the count from
-        // measured performance: that would create a pacing feedback loop.
-        const unsigned audio_frames = LibretroTiming::NextAudioFrames(
+        // One video frame carries exactly 44.1 kHz worth of audio for the selected
+        // Model 3 Timing Mode: a fixed 735 samples at 60 Hz (the sound board's own
+        // chunk), a 766/767 cadence at native 57.524 Hz. This used to be computed from the MEASURED
+        // framerate instead, which is a positive feedback loop under RetroArch's
+        // synchronous audio driver: fps dips -> 44100/fps sends MORE samples than
+        // real time -> the driver blocks in audio_batch_cb to absorb the excess ->
+        // fps dips further -> even more samples. Measured on Daytona 2: the sample
+        // count climbed 766 -> 1047 while audio_batch_cb blocked for up to 36 ms
+        // per frame, producing exactly the recurring 30-50 ms frame spikes.
+        // The frontend already resamples to keep audio and video in sync; the core
+        // must simply hand it one frame of audio per frame.
+        const unsigned audioFrames = LibretroTiming::NextAudioFrames(
             m_frameRateMicroHz, m_audioFrameRemainder);
         PlayCallback(NULL, NULL,
-                     static_cast<int>(audio_frames *
-                         LibretroTiming::kStereoAudioBytesPerFrame));
+                     static_cast<int>(audioFrames * LibretroTiming::kStereoAudioBytesPerFrame));
         lastAudioSubmitMs = std::chrono::duration<float, std::milli>(
             std::chrono::steady_clock::now() - audioStart).count();
     }
@@ -751,13 +812,27 @@ void LibretroWrapper::ShutDownSupermodel()
 // Create and configure inputs
 Result LibretroWrapper::ConfigureInputs(CInputs *Inputs, Util::Config::Node *fileConfig, Util::Config::Node *runtimeConfig, const Game &game, bool configure)
 {
-  (void)fileConfig;
-  (void)game;
+  static constexpr char configFileComment[] = {
+    ";\n"
+    "; Supermodel Configuration File\n"
+    ";\n"
+  };
 
   Inputs->LoadFromConfig(*runtimeConfig);
 
   if (configure)
-    ErrorLog("Interactive input configuration is not available in the Libretro core; use frontend remaps instead.");
+  {
+    Util::Config::Node *fileConfigRoot = game.name.empty() ? fileConfig : fileConfig->TryGet(game.name);
+    if (fileConfigRoot == nullptr)
+      fileConfigRoot = &fileConfig->Add(game.name);
+
+    if (Inputs->ConfigureInputs(game, xOffset, yOffset, xRes, yRes))
+    {
+      Inputs->StoreToConfig(fileConfigRoot);
+      Util::Config::WriteINIFile(s_configFilePath, *fileConfig, configFileComment);
+      Inputs->StoreToConfig(runtimeConfig);
+    }
+  }
 
   return Result::OKAY;
 }
@@ -769,7 +844,14 @@ void LibretroWrapper::Reset()
     if (!Model3)
         return;
     if (!paused) Model3->PauseThreads();
+    // Drive board effects do not survive the reset; neither should the motors.
+    auto libretroInput = std::static_pointer_cast<CLibretroInputSystem>(m_inputSystem);
+    if (libretroInput) libretroInput->StopAllRumble();
     Model3->Reset();
+    // Start the audio queue afresh: the sound board restarts from silence and the
+    // frames queued before the reset would otherwise play first.
+    ResetLibretroAudio();
+    m_audioFrameRemainder = 0;
     if (!paused) Model3->ResumeThreads();
     InfoLog("Model 3 reset.");
 }
@@ -804,20 +886,16 @@ int LibretroWrapper::Emulate(const char* romPath)
         Util::Config::Node fileConfigWithDefaults("Global");
         Util::Config::Node config3("Global");
         Util::Config::Node config4("Global");
-
-        // Supermodel.ini is an advanced, read-only override. Normal user
-        // configuration belongs to Libretro core options and frontend input
-        // remaps. When no external file exists, InitializePaths() exposes the
-        // official embedded fallback without ever updating it afterwards.
+        // Supermodel.ini is optional: InitializePaths() extracts the bundled
+        // copy on first run, and the core never writes it afterwards. Without
+        // a readable file the built-in defaults apply.
         if (FileExists(s_configFilePath))
         {
-            if (Util::Config::FromINIFile(&fileConfig, s_configFilePath))
-                return 1;
-            InfoLog("Loaded optional configuration override: %s", s_configFilePath.c_str());
+            Util::Config::FromINIFile(&fileConfig, s_configFilePath);
+            InfoLog("Using configuration file: %s", s_configFilePath.c_str());
         }
-
-        Util::Config::MergeINISections(&fileConfigWithDefaults, LibretroConfigProvider::DefaultConfig(s_gameXMLFilePath), fileConfig);
-        Util::Config::MergeINISections(&config3, fileConfigWithDefaults, cmd_line.config);
+        Util::Config::MergeINISections(&fileConfigWithDefaults, LibretroConfigProvider::DefaultConfig(s_gameXMLFilePath), fileConfig); 
+        Util::Config::MergeINISections(&config3, fileConfigWithDefaults, cmd_line.config);    
 
 	config3.Set("GameXMLFile", s_gameXMLFilePath);
         if (rom_specified || cmd_line.print_games)
@@ -863,24 +941,61 @@ int LibretroWrapper::Emulate(const char* romPath)
             
         Util::Config::MergeINISections(&s_runtime_config, config4, cmd_line.config);
 
-        // Libretro options are authoritative over both defaults and the optional INI.
-        LibretroConfigProvider::ApplyCoreOptions(s_runtime_config);
-        const bool native_timing =
-            g_options.av_timing_mode == AVTimingMode::Native57524Hz;
-        m_frameRateMicroHz = LibretroTiming::FrameRateMicroHz(native_timing);
-        m_audioFrameRemainder = 0;
-        InfoLog("Libretro timing: %.6f Hz video, %u Hz audio",
-                GetFramesPerSecond(), LibretroTiming::kAudioSampleRate);
+        // After the merge, so an explicit core option beats the on-disk Supermodel.ini
+        LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
+        LibretroConfigProvider::ApplyCabinetLayout(s_runtime_config, game.inputs);
+        LibretroConfigProvider::ApplyGunLayout(s_runtime_config,
+            (game.inputs & (Game::INPUT_ANALOG_GUN1 | Game::INPUT_ANALOG_GUN2)) != 0,
+            (game.inputs & Game::INPUT_ANALOG_JOYSTICK) != 0);
+        s_runtime_config.Get("UpscaleMode").SetValue(g_options.upscale_mode);
+        s_runtime_config.Get("New3DEngine").SetValue(g_options.renderer_3d == Renderer3D::New3D);
+        s_runtime_config.Get("MultiTexture").SetValue(
+            g_options.renderer_3d == Renderer3D::Legacy3D && g_options.legacy_multi_texture);
+        s_runtime_config.Get("QuadRendering").SetValue(
+            g_options.renderer_3d == Renderer3D::New3D && g_options.quad_rendering);
+        s_runtime_config.Get("Supersampling").SetValue(g_options.supersampling);
+        s_runtime_config.Get("NoWhiteFlash").SetValue(g_options.no_white_flash);
+        // Sound emulation is fixed for the session: Model3 reads EmulateSound
+        // when content starts (Sound Enable is restart-dependent).
+        s_runtime_config.Get("EmulateSound").SetValue(g_options.sound_enable);
+        // The drive board only generates force effects when Supermodel's
+        // ForceFeedback is set; it reads this when the board is reset.
+        s_runtime_config.Get("ForceFeedback").SetValue(g_options.force_feedback);
+#ifdef NET_BOARD
+        // The Libretro backend simulates the Model 3 network board and uses
+        // RetroArch's netpacket transport, never the standalone sockets.
+        s_runtime_config.Get("Network").SetValue(g_options.network_board);
+        s_runtime_config.Get("NetworkCabinets").SetValue(g_options.network_cabinets);
+        s_runtime_config.Get("SimulateNet").SetValue(true);
+#endif
+        s_runtime_config.Get("CRTcolors").SetValue(
+            g_options.renderer_3d == Renderer3D::New3D ? g_options.crt_colors : 0);
+        s_runtime_config.Get("LegacySoundDSP").SetValue(g_options.legacy_sound_dsp);
+        s_runtime_config.Get("MultiThreaded").SetValue(
+            g_options.emulation_threading != EmulationThreading::SingleThread);
+        s_runtime_config.Get("GPUMultiThreaded").SetValue(
+            g_options.emulation_threading == EmulationThreading::MultiThreadedGPU);
         InfoLog("Libretro emulation threading: MultiThreaded=%d, GPUMultiThreaded=%d",
                 s_runtime_config["MultiThreaded"].ValueAs<bool>(),
                 s_runtime_config["GPUMultiThreaded"].ValueAs<bool>());
-        const LibretroInputProfiles::Profile *input_profile =
-            LibretroConfigProvider::ApplyInputProfile(s_runtime_config, game);
-        if (input_profile)
-            InfoLog("Libretro control profile: %s", input_profile->name);
-        else
-            InfoLog("No exact Libretro control profile for input mask 0x%08X; using generic mappings.",
-                    LibretroInputProfiles::NormalizeInputs(game.inputs));
+
+        // Native timing drains 766/767 samples per frame. Only the multi-threaded
+        // sound board produces audio on demand; single-threaded it runs one
+        // 735-sample chunk per frame, so native timing would underrun.
+        const bool wantNative = g_options.av_timing_mode == AVTimingMode::Native57524Hz;
+        const bool nativeTiming = wantNative &&
+            g_options.emulation_threading != EmulationThreading::SingleThread;
+        m_nativeTimingUnavailable = wantNative && !nativeTiming;
+        m_frameRateMicroHz = LibretroTiming::FrameRateMicroHz(nativeTiming);
+        m_audioFrameRemainder = 0;
+        // Supermodel's RefreshRate and SoundFreq follow the timing mode, as in the
+        // standalone build; OpenAudio() sizes its per-frame buffer from SoundFreq.
+        const float framesPerSecond = static_cast<float>(GetFramesPerSecond());
+        s_runtime_config.Get("RefreshRate").SetValue(framesPerSecond);
+        s_runtime_config.Get("SoundFreq").SetValue(framesPerSecond);
+        InfoLog("Libretro timing: %.6f Hz video, %u Hz audio%s", GetFramesPerSecond(),
+                LibretroTiming::kAudioSampleRate,
+                m_nativeTimingUnavailable ? " (native needs multi-threading)" : "");
     }
 
     if (Model3 || Inputs || Outputs)
@@ -891,8 +1006,7 @@ int LibretroWrapper::Emulate(const char* romPath)
 
     aaValue   = s_runtime_config["Supersampling"].ValueAs<int>();
     CRTcolors = (CRTcolor)s_runtime_config["CRTcolors"].ValueAs<int>();   // 0 = None; was never read, left indeterminate
-    upscaleMode = static_cast<UpscaleMode>(
-        s_runtime_config["UpscaleMode"].ValueAs<int>());
+    upscaleMode = static_cast<UpscaleMode>(s_runtime_config["UpscaleMode"].ValueAs<int>());
 
     auto inputSystem = std::make_shared<CLibretroInputSystem>();
     auto inputs = std::make_unique<CInputs>(inputSystem);
@@ -959,24 +1073,63 @@ GLuint LibretroWrapper::getSuperModelFBO() const
 
 void LibretroWrapper::SetWidescreen(bool enabled, bool wideBackground)
 {
-    const bool currentWide =
-        s_runtime_config["WideScreen"].ValueAsDefault<bool>(false);
-    const bool currentWideBackground =
-        s_runtime_config["WideBackground"].ValueAsDefault<bool>(false);
-    if (currentWide == enabled && currentWideBackground == wideBackground)
+    // WideBackground is read by Render2D every frame, so it applies live.
+    try {
+        s_runtime_config.Get("WideBackground").SetValue(enabled && wideBackground);
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("WideBackground").SetValue(enabled && wideBackground);
+    }
+
+    // Check if the value actually changed
+    bool current_value = s_runtime_config["WideScreen"].ValueAsDefault<bool>(false);
+    if (current_value == enabled) {
+        // No change, skip reinitialization
+        return;
+    }
+
+    try {
+        s_runtime_config.Get("WideScreen").SetValue(enabled);
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("WideScreen").SetValue(enabled);
+    }
+
+    // Only reinit renderers if they already exist (i.e. GL context is live).
+    // On initial load, InitRenderers() will be called later by context_reset()
+    // and will pick up the correct WideScreen value from s_runtime_config.
+    if (Render2D == nullptr) {
+        return;
+    }
+
+    if (Model3) Model3->PauseThreads();
+    InitRenderers();
+    if (Model3) Model3->ResumeThreads();
+}
+
+void LibretroWrapper::SetServiceOnSticks(bool enabled)
+{
+    auto* libretroInput = dynamic_cast<CLibretroInputSystem*>(m_inputSystem.get());
+    if (libretroInput)
+        libretroInput->SetServiceOnSticks(enabled);
+}
+
+// Re-applies the Driving Controls Layout to a running game: rewrite the gear/pedal
+// mappings in the runtime config, then have Supermodel re-parse its input mappings, as
+// it does when content is loaded. RetroArch's Restart (retro_reset) only resets the
+// board, so without this a layout change needed the content to be closed and reloaded.
+void LibretroWrapper::ApplyDrivingLayout()
+{
+    LibretroConfigProvider::ApplyDrivingLayout(s_runtime_config);
+    if (!Inputs)
         return;
 
-    const auto setBool = [](const char *key, bool value)
-    {
-        try {
-            s_runtime_config.Get(key).SetValue(value);
-        }
-        catch (const std::range_error&) {
-            s_runtime_config.Add(key).SetValue(value);
-        }
-    };
-    setBool("WideScreen", enabled);
-    setBool("WideBackground", enabled && wideBackground);
+    const bool pauseThreads = Model3 && !paused;
+    if (pauseThreads)
+        Model3->PauseThreads();
+    Inputs->LoadFromConfig(s_runtime_config);
+    if (pauseThreads)
+        Model3->ResumeThreads();
 }
 
 void LibretroWrapper::SetCrosshairs(unsigned mask)
@@ -988,8 +1141,27 @@ void LibretroWrapper::SetCrosshairs(unsigned mask)
     catch (const std::range_error&) {
         s_runtime_config.Add("Crosshairs").SetValue(static_cast<int>(mask));
     }
+}
 
-    InfoLog("[Supermodel] Crosshairs mask applied: %u", mask);
+void LibretroWrapper::SetNetworkBoard(bool connected)
+{
+    try {
+        s_runtime_config.Get("Network").SetValue(connected);
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("Network").SetValue(connected);
+    }
+}
+
+void LibretroWrapper::SetNetworkCabinets(unsigned cabinets)
+{
+    cabinets = std::max(1u, std::min(17u, cabinets));
+    try {
+        s_runtime_config.Get("NetworkCabinets").SetValue(cabinets);
+    }
+    catch (const std::range_error&) {
+        s_runtime_config.Add("NetworkCabinets").SetValue(cabinets);
+    }
 }
 
 void LibretroWrapper::SetSoundVolume(int volume)

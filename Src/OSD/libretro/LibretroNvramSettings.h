@@ -61,13 +61,15 @@ struct SettingInfo {
   size_t valueCount;
 };
 
-// Every released ROM set covered by the Service-menu sampling campaign gets
-// its own persistent set of core-option keys. Parent and clone entries remain
-// separate even when they share the same NVRAM layout and supported values.
-// Prototypes, location tests and known bad dumps are intentionally omitted.
+// Every released ROM set whose NVRAM route has been validated gets its own
+// persistent set of core-option keys. Parent and clone entries remain separate
+// even when they share the same layout and supported values. Prototypes,
+// location tests and other pre-release sets are excluded from NVRAM management.
 struct SupportedGame {
   const char *name;
   const char *parent;
+  // Frontend defaults. Country deliberately prefers Export, with USA as the
+  // fallback; other fields use native defaults or reviewed safe overrides.
   const char *defaults[static_cast<unsigned>(Setting::Count)];
 };
 
@@ -75,27 +77,27 @@ inline const SupportedGame *GetSupportedGames(size_t &count)
 {
   static const SupportedGame games[] = {
     { "bassdx", nullptr,
-      { "usa", "normal" } },
+      { "export", "normal" } },
     { "getbassdx", "bassdx",
-      { "japan", "normal" } },
+      { "export", "normal" } },
     { "getbassur", "bassdx",
-      { "japan", "normal" } },
+      { "export", "normal" } },
     { "getbass", "bassdx",
-      { "japan", "medium_hard" } },
+      { "export", "medium_hard" } },
     { "daytona2", nullptr,
-      { "japan", "normal", "single", "1", "twin", nullptr, nullptr,
+      { "export", "normal", "single", "1", "twin", nullptr, nullptr,
         nullptr, "dennis" } },
     { "dayto2pe", "daytona2",
-      { "japan", "normal", "single", "1", "twin", nullptr, nullptr,
+      { "export", "normal", "single", "1", "twin", nullptr, nullptr,
         nullptr, "mitsuyoshi" } },
     { "dirtdvls", nullptr,
       { "export", "level_9", "no_link", "1" } },
     { "dirtdvlsu", "dirtdvls",
-      { "usa", "level_9", "no_link", "1" } },
+      { "export", "level_9", "no_link", "1" } },
     { "dirtdvlsau", "dirtdvls",
-      { "australia", "level_9", "no_link", "1" } },
+      { "export", "level_9", "no_link", "1" } },
     { "dirtdvlsj", "dirtdvls",
-      { "japan", "level_9", "no_link", "1" } },
+      { "export", "level_9", "no_link", "1" } },
     { "dirtdvlsg", "dirtdvls",
       { "export", "level_9", "no_link", "1" } },
     { "eca", nullptr,
@@ -105,43 +107,42 @@ inline const SupportedGame *GetSupportedGames(size_t &count)
     { "ecaj", "eca",
       { nullptr, "normal" } },
     { "fvipers2", nullptr,
-      { "japan", "normal" } },
+      { "export", "normal" } },
     { "fvipers2o", "fvipers2",
-      { "japan", "normal" } },
+      { "export", "normal" } },
     { "harley", nullptr,
       { "export", "normal", "stand_alone", "1", "deluxe" } },
     { "harleya", "harley",
       { "export", "normal", "stand_alone", "1", "deluxe" } },
     { "lamachin", nullptr,
-      { "japan", "level_5", nullptr, nullptr, "standard", nullptr,
+      { "export", "level_5", nullptr, nullptr, "standard", nullptr,
         nullptr, nullptr, nullptr, nullptr, nullptr, "disabled" } },
     { "lemans24", nullptr,
-      { "japan", "level_8", "no_link", "1", "twin_lemans", "none" } },
+      { "export", "level_8", "no_link", "1", "twin_lemans", "none" } },
     { "lostwsga", nullptr,
-      { "japan", "level_8", nullptr, nullptr, nullptr, nullptr, nullptr,
+      { "export", "level_8", nullptr, nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr, "disabled" } },
     { "magtruck", nullptr,
       { "export", "level_8", nullptr, nullptr, nullptr, nullptr, nullptr, "off" } },
     { "oceanhun", nullptr,
-      { "japan", "normal", nullptr, nullptr, "deluxe", nullptr, nullptr,
+      { "export", "normal", nullptr, nullptr, "deluxe", nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr, "disabled" } },
     { "oceanhuna", "oceanhun",
-      { "japan", "normal", nullptr, nullptr, "deluxe", nullptr, nullptr,
+      { "export", "normal", nullptr, nullptr, "deluxe", nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr, "disabled" } },
     { "scud", nullptr,
-      { "japan", "normal", "single", "1", "twin" } },
-    { "scudau", "scud",
-      { nullptr, "normal", "single", "1", "twin" } },
+      { "export", "normal", "single", "1", "twin" } },
+    { "scudau", "scud", { nullptr, "normal", "single", "1", "twin" } },
     { "scuddx", "scud",
-      { "japan", "normal", "single", "1", "deluxe" } },
+      { "export", "normal" } },
     { "scuddxo", "scud",
-      { "japan", "normal", "single", "1", "deluxe" } },
+      { "export", "normal" } },
     { "scudplus", "scud",
-      { "japan", "normal", "single", "1", "twin" } },
+      { "export", "normal", "single", "1", "twin" } },
     { "scudplusa", "scud",
-      { "japan", "normal", "single", "1", "twin" } },
+      { "export", "normal", "single", "1", "twin" } },
     { "skichamp", nullptr,
-      { "japan", nullptr, "stand_alone", "1" } },
+      { "export", nullptr, "stand_alone", "1" } },
     { "spikeofe", nullptr,
       { "export", "normal", "single" } },
     { "spikeout", nullptr,
@@ -150,7 +151,7 @@ inline const SupportedGame *GetSupportedGames(size_t &count)
       { "export", "normal", "stand_alone", nullptr, "deluxe", nullptr,
         nullptr, nullptr, nullptr, nullptr, "driver" } },
     { "srally2dx", "srally2",
-      { "export", "normal", "stand_alone", nullptr, "deluxe", nullptr,
+      { "export", "normal", nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr, "driver" } },
     { "swtrilgy", nullptr,
       { "export", "normal", nullptr, nullptr, "upright", nullptr, nullptr,
@@ -159,21 +160,21 @@ inline const SupportedGame *GetSupportedGames(size_t &count)
       { "export", "normal", nullptr, nullptr, "upright", nullptr, nullptr,
         nullptr, nullptr, "enable", nullptr, "disabled" } },
     { "vf3", nullptr,
-      { "japan", "normal" } },
+      { "export", "normal" } },
     { "vf3a", "vf3",
-      { "japan", "normal" } },
+      { "export", "normal" } },
     { "vf3c", "vf3",
-      { "japan", "normal" } },
+      { "export", "normal" } },
     { "vf3tb", "vf3",
-      { "japan", "normal" } },
+      { "export", "normal" } },
     { "von2", nullptr,
-      { "japan", "level_10", "no_link", "seat_a", nullptr, nullptr, "crt" } },
+      { "export", "level_10", "no_link", "seat_a", nullptr, nullptr, "crt" } },
     { "von254g", "von2",
-      { "japan", "level_10", "no_link", "seat_a", nullptr, nullptr, "crt" } },
+      { "export", "level_10", "no_link", "seat_a", nullptr, nullptr, "crt" } },
     { "von2a", "von2",
-      { "japan", "level_10", "no_link", "seat_a", nullptr, nullptr, "crt" } },
+      { "export", "level_10", "no_link", "seat_a", nullptr, nullptr, "crt" } },
     { "von2o", "von2",
-      { "japan", "level_10", "no_link", "seat_a", nullptr, nullptr, "crt" } },
+      { "export", "level_10", "no_link", "seat_a", nullptr, nullptr, "crt" } },
     { "vs2", nullptr,
       { "export", "normal" } },
     { "vs215", "vs2",
@@ -181,7 +182,7 @@ inline const SupportedGame *GetSupportedGames(size_t &count)
     { "vs215o", "vs2",
       { nullptr, "normal" } },
     { "vs298", nullptr,
-      { "japan", "normal" } },
+      { "export", "normal" } },
     { "vs29815", "vs298",
       { nullptr, "normal" } },
     { "vs2v991", nullptr,
@@ -274,11 +275,14 @@ inline Family GetFamily(const Game *game)
   if (!game)
     return Family::None;
 
-  // Prototypes, location tests and known bad dumps were intentionally not
-  // part of the supported Service-menu campaign.
+  if (game->name == "mgtrkbad")
+    return Family::None;
+
+  // Prototype, location-test and other pre-release sets are catalogued by the
+  // Service-menu campaign but intentionally excluded from NVRAM management.
   if (game->name == "srally2p" || game->name == "srally2pa" ||
       game->name == "lostwsgp" || game->name == "swtrilgyp" ||
-      game->name == "ecap" || game->name == "mgtrkbad")
+      game->name == "ecap")
     return Family::None;
 
   const std::string &family = game->parent.empty() ? game->name : game->parent;
@@ -309,9 +313,22 @@ inline Family GetFamily(const Game *game)
 
 inline bool CountryExcluded(const Game &game)
 {
-  return game.name == "scudau" || game.name == "vs215o" ||
-         game.name == "vs29815" || game.name == "vs299j" ||
-         game.name == "vs29915j";
+  return game.name == "vs215o" || game.name == "vs29815" ||
+         game.name == "vs299j" || game.name == "vs29915j";
+}
+
+inline bool SettingExcluded(const Game &game, Setting setting)
+{
+  // The native Australian operator catalogue has no Country selector.
+  // Difficulty, Cabinet Type and networking use directly verified native fields.
+  if (game.name == "scudau")
+    return setting == Setting::Country;
+  if (game.name == "scuddx" || game.name == "scuddxo")
+    return setting == Setting::LinkMode || setting == Setting::LinkId ||
+           setting == Setting::Cabinet;
+  if (game.name == "srally2dx")
+    return setting == Setting::LinkMode || setting == Setting::Cabinet;
+  return false;
 }
 
 #define NVRAM_VALUES(name, ...) \
@@ -407,6 +424,9 @@ NVRAM_VALUES(kDifficulty16,
   { "level_11", "Level 11", 0xa0 }, { "level_12", "Level 12", 0xb0 },
   { "level_13", "Level 13", 0xc0 }, { "level_14", "Level 14", 0xd0 },
   { "level_15", "Level 15", 0xe0 }, { "level_16", "Level 16", 0xf0 });
+
+NVRAM_VALUES(kCabinetTwinSpecial,
+  { "twin", "Twin", 0 }, { "special", "Special", 1 });
 
 NVRAM_VALUES(kLinkDaytona,
   { "single", "Single", 0 }, { "master", "Master", 1 },
@@ -513,21 +533,19 @@ NVRAM_INFO(kDifficultyInfoRally, Setting::Difficulty, "Difficulty", "Set the ope
 NVRAM_INFO(kDifficultyInfoStarWars, Setting::Difficulty, "Difficulty", "Set the operator difficulty stored in NVRAM.", kDifficultyStarWars);
 NVRAM_INFO(kDifficultyInfo8, Setting::Difficulty, "Difficulty", "Set the operator difficulty level stored in NVRAM.", kDifficulty8);
 NVRAM_INFO(kDifficultyInfo16, Setting::Difficulty, "Difficulty", "Set the operator difficulty level stored in NVRAM.", kDifficulty16);
+NVRAM_INFO(kCabinetInfoTwinSpecial, Setting::Cabinet, "Cabinet Type", "Select Daytona USA 2 Power Edition's cabinet type stored in NVRAM.", kCabinetTwinSpecial);
 
-static constexpr char kType1LinkDescription[] =
-  "Set the cabinet link mode stored in NVRAM. For RetroArch Netplay, start "
-  "the host first and select Master on it. Every client must use Slave.";
-static constexpr char kType2LinkDescription[] =
-  "Set the cabinet link mode stored in NVRAM. For RetroArch Netplay, start "
-  "the host first and select Master on it. Clients cannot use Master; select "
-  "a supported Slave / Satellite role.";
+static constexpr char kLinkDescription[] =
+  "Set the native link mode stored in NVRAM. Native roles are independent of "
+  "RetroArch host/client identity and Linked Cabinets. Auto Network Role "
+  "Settings takes priority while enabled.";
 
-NVRAM_INFO(kLinkInfoDaytona, Setting::LinkMode, "Link Mode", kType1LinkDescription, kLinkDaytona);
-NVRAM_INFO(kLinkInfoSingle, Setting::LinkMode, "Link Mode", kType1LinkDescription, kLinkSingle);
-NVRAM_INFO(kLinkInfoA3, Setting::LinkMode, "Link Mode", kType2LinkDescription, kLinkA3Four);
-NVRAM_INFO(kLinkInfoLeMans, Setting::LinkMode, "Link Mode", kType2LinkDescription, kLinkLeMans);
-NVRAM_INFO(kLinkInfoStandAlone, Setting::LinkMode, "Link Mode", kType1LinkDescription, kLinkStandAlone);
-NVRAM_INFO(kLinkInfoRally, Setting::LinkMode, "Link Configuration", kType1LinkDescription, kLinkRally);
+NVRAM_INFO(kLinkInfoDaytona, Setting::LinkMode, "Link Mode", kLinkDescription, kLinkDaytona);
+NVRAM_INFO(kLinkInfoSingle, Setting::LinkMode, "Link Mode", kLinkDescription, kLinkSingle);
+NVRAM_INFO(kLinkInfoA3, Setting::LinkMode, "Link Mode", kLinkDescription, kLinkA3Four);
+NVRAM_INFO(kLinkInfoLeMans, Setting::LinkMode, "Link Mode", kLinkDescription, kLinkLeMans);
+NVRAM_INFO(kLinkInfoStandAlone, Setting::LinkMode, "Link Mode", kLinkDescription, kLinkStandAlone);
+NVRAM_INFO(kLinkInfoRally, Setting::LinkMode, "Link Configuration", kLinkDescription, kLinkRally);
 NVRAM_INFO(kCarInfo16, Setting::LinkId, "Car Number", "Set the linked-cabinet car number stored in NVRAM.", kCar16);
 NVRAM_INFO(kCarInfo8, Setting::LinkId, "Car Number", "Set the linked-cabinet car number stored in NVRAM.", kCar8);
 NVRAM_INFO(kMachineInfo4, Setting::LinkId, "Machine Number", "Set the linked machine number stored in NVRAM.", kMachine4);
@@ -559,12 +577,15 @@ inline const SettingInfo *GetSettingInfo(const Game *game, Setting setting)
 {
   const Family family = GetFamily(game);
   if (family == Family::None || !game ||
+      SettingExcluded(*game, setting) ||
       (setting == Setting::Country && CountryExcluded(*game)))
     return nullptr;
 
   switch (setting)
   {
   case Setting::Country:
+    if (game->name == "vf3a")
+      return &kCountryInfoJue0;
     switch (family)
     {
     case Family::Bass:
@@ -641,6 +662,8 @@ inline const SettingInfo *GetSettingInfo(const Game *game, Setting setting)
     default:                       return nullptr;
     }
   case Setting::Cabinet:
+    if (game->name == "dayto2pe")
+      return &kCabinetInfoTwinSpecial;
     switch (family)
     {
     case Family::Daytona2:
@@ -810,6 +833,84 @@ inline bool IsValueSupported(const Game *game, Setting setting,
   return false;
 }
 
+// Frontend role/identity presets are independent of board presence and totals.
+inline unsigned AutomaticNetworkCabinets(const Game *game)
+{
+  if (!GetSettingInfo(game, Setting::LinkMode)) return 0;
+  switch (Detail::GetFamily(game))
+  {
+  case Detail::Family::Spikeout: return 2; // Native role only, no cabinet ID.
+  case Detail::Family::Daytona2: return 16;
+  case Detail::Family::Scud: return 8;
+  case Detail::Family::DirtDevils:
+  case Detail::Family::Harley:
+  case Detail::Family::LeMans24:
+  case Detail::Family::SkiChamp:
+  case Detail::Family::SegaRally2:
+  case Detail::Family::VirtualOn2: return 4;
+  default: return 0;
+  }
+}
+
+inline bool AutomaticNetworkRelay(const Game *game)
+{
+  if (!AutomaticNetworkCabinets(game)) return false;
+  const auto family = Detail::GetFamily(game);
+  return family == Detail::Family::Daytona2 ||
+         family == Detail::Family::SegaRally2 ||
+         family == Detail::Family::DirtDevils ||
+         family == Detail::Family::LeMans24 ||
+         family == Detail::Family::VirtualOn2;
+}
+
+inline bool ApplyAutomaticNetwork(const Game *game, const char *preset,
+                                  Selection &selection)
+{
+  static constexpr const char *ids[] = {
+    "1", "2", "3", "4", "5", "6", "7", "8",
+    "9", "10", "11", "12", "13", "14", "15", "16"
+  };
+  static constexpr const char *rally[] = {
+    "master_car_1", "slave_car_2", "slave_car_3", "slave_car_4"
+  };
+  static constexpr const char *seats[] = {"seat_a", "seat_b", "seat_c", "seat_d"};
+  if (!preset || !AutomaticNetworkCabinets(game)) return false;
+  const auto family = Detail::GetFamily(game);
+  const char *mode = nullptr;
+  const char *id = GetDefaultValue(game, Setting::LinkId);
+  if (std::strcmp(preset, "0") == 0)
+    mode = GetDefaultValue(game, Setting::LinkMode);
+  else if (std::strcmp(preset, "r") == 0)
+  {
+    if (!AutomaticNetworkRelay(game)) return false;
+    if (family == Detail::Family::Daytona2) mode = "live";
+    else if (family == Detail::Family::SegaRally2) mode = "relay";
+    else if (family == Detail::Family::LeMans24)
+    {
+      // Le Mans puts Satellite in Cabinet Number, not Communication Mode.
+      mode = "slave";
+      id = "satellite";
+    }
+    else mode = "satellite";
+  }
+  else
+  {
+    unsigned cabinet = 0;
+    for (unsigned i = 0; i < AutomaticNetworkCabinets(game); ++i)
+      if (std::strcmp(preset, ids[i]) == 0) cabinet = i + 1;
+    if (!cabinet) return false;
+    mode = cabinet == 1 ? "master" : "slave";
+    if (family == Detail::Family::SegaRally2) mode = rally[cabinet - 1];
+    else if (family == Detail::Family::VirtualOn2) id = seats[cabinet - 1];
+    else if (GetSettingInfo(game, Setting::LinkId)) id = ids[cabinet - 1];
+  }
+  if (!IsValueSupported(game, Setting::LinkMode, mode) ||
+      (id && !IsValueSupported(game, Setting::LinkId, id))) return false;
+  selection.values[static_cast<unsigned>(Setting::LinkMode)] = mode;
+  if (id) selection.values[static_cast<unsigned>(Setting::LinkId)] = id;
+  return true;
+}
+
 inline unsigned GetCapabilities(const Game *game)
 {
   unsigned capabilities = None;
@@ -898,7 +999,14 @@ inline ApplyResult Apply(const Game &game, uint16_t *words,
     if (SelectedValue(game, Setting::LinkId, selection, value))
       replaceLow(words[15], value), replaceLow(words[44], value);
     if (SelectedValue(game, Setting::Cabinet, selection, value))
-      replaceHigh(words[16], value), replaceHigh(words[45], value);
+    {
+      if (game.name == "dayto2pe")
+      {
+        replaceBackup(8, value); replaceBackup(14, value);
+      }
+      else
+        replaceHigh(words[16], value), replaceHigh(words[45], value);
+    }
     if (SelectedValue(game, Setting::Vocal, selection, value))
       replaceLow(words[19], value), replaceLow(words[48], value);
     break;

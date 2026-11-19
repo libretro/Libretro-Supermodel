@@ -1264,7 +1264,6 @@
       </region>
     </roms>
   </game>
-
   <game name="mgtrkbad" parent="magtruck">
     <!--
       Original bad ROM set. EPROMs 18 and 20 are corrupted, causing attract
@@ -1302,6 +1301,7 @@
       </region>
     </roms>
   </game>
+
 
   <game name="oceanhun">
     <identity>
@@ -1508,10 +1508,6 @@
       </inputs>
     </hardware>
     <roms>
-      <patches>
-        <!-- Secret debug menu -->
-        <patch region="crom" bits="32" offset="0x199DE8" value="0x00050208" />
-      </patches>
       <region name="crom" stride="8" chunk_size="2" byte_swap="true">
         <file offset="0" name="epr-19734.20" crc32="0xBE897336" />
         <file offset="2" name="epr-19733.19" crc32="0x6565E29A" />
@@ -2925,7 +2921,7 @@
         <file offset="0" name="epr-20920.20" crc32="0x428D05FC" />
         <file offset="2" name="epr-20919.19" crc32="0x7A0713D2" />
         <file offset="4" name="epr-20918.18" crc32="0x0E9CDC5B" />
-        <file offset="6" name="epr-20917.17" crc32="0xC3BBB270" />
+        <file offset="6" name="epr-20917.17" crc32="0x969E4BDA" />
       </region>
       <region name="banked_crom" stride="8" chunk_size="2" byte_swap="true">
         <!-- CROM0 -->

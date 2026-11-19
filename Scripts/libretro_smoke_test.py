@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Run isolated RetroArch boot/video smoke tests for Games.xml ROM sets."""
+"""Run isolated RetroArch boot smoke tests for Games.xml ROM sets."""
 
 from __future__ import annotations
 
 import argparse
 import csv
 import json
-import os
+import platform
 import shutil
 import signal
-import socket
 import subprocess
 import sys
 import tempfile
@@ -21,6 +20,7 @@ from pathlib import Path
 
 
 DEFAULT_FPS = 60.0
+CORE_SUFFIX = {"Windows": ".dll", "Darwin": ".dylib"}
 CRASH_MARKERS = (
     "segmentation fault",
     "bus error",
@@ -28,6 +28,8 @@ CRASH_MARKERS = (
     "uncaught exception",
     "assertion failed",
 )
+LOAD_FAILURE_MARKER = "[content] failed to load content"
+FAILED_STATUSES = {"crash", "load_error", "timeout", "no_screenshot"}
 
 
 @dataclass(frozen=True)
@@ -48,14 +50,17 @@ class Result:
     frames: int
     emulated_seconds: float
     real_seconds: float
-    fast_forward_requested: bool
-    fast_forward_activated: bool
-    video: str
-    final_frame: str
+    fast_forward: bool
+    screenshot: str
     save: str
     log: str
     console_log: str
     note: str
+
+
+def default_core(repo_root: Path) -> Path:
+    suffix = CORE_SUFFIX.get(platform.system(), ".so")
+    return repo_root / f"supermodel_libretro{suffix}"
 
 
 def parse_args() -> argparse.Namespace:
@@ -63,25 +68,23 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Launch each Games.xml set in an isolated RetroArch environment, "
-            "stop after a deterministic number of emulated frames, and save a "
-            "ScreenCaptureKit video, its final frame, logs, generated SRAM, "
-            "CSV, and JSON summary."
+            "stop after a deterministic number of emulated frames, and save the "
+            "final frame, logs, generated SRAM, CSV, and JSON summary."
         )
     )
-    parser.add_argument("--retroarch", type=Path, required=True,
-                        help="RetroArch executable")
-    parser.add_argument("--core", type=Path,
-                        default=repo_root / "supermodel_libretro.dylib",
-                        help="Supermodel Libretro core (default: repository macOS build)")
-    parser.add_argument("--ffmpeg", type=Path,
-                        help="FFmpeg executable (default: first ffmpeg in PATH)")
+    parser.add_argument("--retroarch", type=Path,
+                        help="RetroArch executable (default: first retroarch in PATH)")
+    parser.add_argument("--core", type=Path, default=default_core(repo_root),
+                        help="Supermodel Libretro core (default: repository build)")
     parser.add_argument("--rom-dir", type=Path, required=True,
                         help="Directory containing <set>.zip ROMs")
     parser.add_argument("--games-xml", type=Path,
                         default=repo_root / "Config" / "Games.xml",
                         help="Games.xml used to enumerate sets")
     parser.add_argument("--system-assets", type=Path,
-                        help="Directory containing Games.xml and Music.xml; defaults to Games.xml's directory")
+                        help=("Directory whose Games.xml, Music.xml and Supermodel.ini are "
+                              "copied into the isolated system directory; defaults to "
+                              "Games.xml's directory"))
     parser.add_argument("--base-config", type=Path,
                         help="Optional RetroArch config copied before isolated path overrides")
     parser.add_argument("--output", type=Path,
@@ -93,8 +96,8 @@ def parse_args() -> argparse.Namespace:
                         help="Frames per emulated second (default: 60)")
     parser.add_argument("--wall-timeout", type=float, default=180.0,
                         help="Real-time process timeout per game in seconds (default: 180)")
-    parser.add_argument("--fast-forward", action=argparse.BooleanOptionalAction,
-                        default=True, help="Toggle RetroArch fast-forward after startup (default: enabled)")
+    parser.add_argument("--fast-forward", action=argparse.BooleanOptionalAction, default=True,
+                        help="Run without video and audio sync (default: enabled)")
     parser.add_argument("--game", action="append", default=[], metavar="SET",
                         help="Test only this set; repeat for multiple sets")
     parser.add_argument("--from-game", metavar="SET",
@@ -102,7 +105,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--list", action="store_true",
                         help="List selected games and ROM availability without launching RetroArch")
     parser.add_argument("--keep-workdirs", action="store_true",
-                        help="Preserve per-game temporary RetroArch environments for diagnosis")
+                        help="Keep each game's RetroArch environment under <output>/work; "
+                             "its smoke-test-overrides.cfg can be reused to rerun the game")
     return parser.parse_args()
 
 
@@ -133,21 +137,16 @@ def select_games(games: list[Game], requested: list[str], start: str | None) -> 
     return selected
 
 
-def free_udp_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.bind(("127.0.0.1", 0))
-        return int(sock.getsockname()[1])
-
-
 def quote_config(value: Path | str) -> str:
     return str(value).replace("\\", "\\\\").replace('"', '\\"')
 
 
-def prepare_environment(work: Path, assets: Path, base_config: Path | None, port: int) -> list[str]:
+def prepare_environment(work: Path, assets: Path, base_config: Path | None,
+                        fast_forward: bool) -> list[str]:
     for directory in ("system/supermodel", "saves", "states", "logs", "config", "remaps"):
         (work / directory).mkdir(parents=True, exist_ok=True)
     for asset in assets.iterdir():
-        if asset.is_file() and asset.suffix.lower() in {".xml", ".bmp"}:
+        if asset.is_file() and asset.suffix.lower() in {".xml", ".ini", ".bmp"}:
             shutil.copy2(asset, work / "system" / "supermodel" / asset.name)
 
     overrides_path = work / "smoke-test-overrides.cfg"
@@ -160,17 +159,18 @@ def prepare_environment(work: Path, assets: Path, base_config: Path | None, port
         "log_to_file": "true",
         "log_to_file_timestamp": "false",
         "log_verbosity": "true",
+        # RetroArch reads core_options_path only with global core options on;
+        # otherwise it uses <config dir>/Supermodel/Supermodel.opt, the real one.
+        "global_core_options": "true",
         "core_options_path": work / "config" / "core-options.cfg",
         "input_remapping_directory": work / "remaps",
         "content_history_path": work / "config" / "content_history.lpl",
         "content_favorites_path": work / "config" / "content_favorites.lpl",
-        "network_cmd_enable": "true",
-        "network_cmd_port": str(port),
-        "notification_show_fast_forward": "true",
+        "video_vsync": "false" if fast_forward else "true",
+        "audio_sync": "false" if fast_forward else "true",
+        "video_gpu_screenshot": "true",
         "fps_show": "false",
         "framecount_show": "false",
-        "fastforward_ratio": "0.000000",
-        "fastforward_frameskip": "true",
         "video_fullscreen": "false",
         "video_windowed_fullscreen": "false",
         "video_window_custom_size_enable": "true",
@@ -195,25 +195,6 @@ def prepare_environment(work: Path, assets: Path, base_config: Path | None, port
     return ["-c", str(base_copy), f"--appendconfig={overrides_path}"]
 
 
-def activate_fast_forward(port: int, process: subprocess.Popen[bytes], deadline: float) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-        sock.settimeout(0.20)
-        while process.poll() is None and time.monotonic() < deadline:
-            try:
-                sock.sendto(b"GET_STATUS\n", ("127.0.0.1", port))
-                status, _ = sock.recvfrom(4096)
-                if b"PLAYING" not in status.upper():
-                    time.sleep(0.05)
-                    continue
-                sock.sendto(b"FAST_FORWARD\n", ("127.0.0.1", port))
-                return True
-            except TimeoutError:
-                time.sleep(0.05)
-            except OSError:
-                time.sleep(0.05)
-    return False
-
-
 def terminate_process(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is not None:
         return
@@ -233,107 +214,60 @@ def copy_if_present(source: Path, destination: Path) -> str:
     return str(destination)
 
 
-def build_capture_helper(source: Path, destination: Path) -> None:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    command = [
-        "xcrun", "clang", "-fobjc-arc", "-fblocks", "-O2",
-        "-framework", "Foundation", "-framework", "AppKit",
-        "-framework", "CoreGraphics",
-        "-framework", "CoreMedia", "-framework", "ScreenCaptureKit",
-        "-framework", "AVFoundation", str(source), "-o", str(destination),
-    ]
-    completed = subprocess.run(command, capture_output=True, text=True)
-    if completed.returncode != 0:
-        detail = completed.stderr.strip() or completed.stdout.strip()
-        raise RuntimeError(f"could not build ScreenCaptureKit helper: {detail}")
-
-
-def extract_final_frame(ffmpeg: Path, video: Path, destination: Path) -> str:
-    if not video.is_file() or video.stat().st_size == 0:
-        return ""
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    for offset in ("-0.10", "-0.50", "-1.00"):
-        destination.unlink(missing_ok=True)
-        completed = subprocess.run([
-            str(ffmpeg), "-v", "error", "-y", "-sseof", offset,
-            "-i", str(video), "-map", "0:v:0", "-frames:v", "1",
-            "-update", "1", str(destination),
-        ], capture_output=True, text=True)
-        if completed.returncode == 0 and destination.is_file() and destination.stat().st_size:
-            return str(destination)
-    return ""
-
-
 def run_game(args: argparse.Namespace, game: Game, output: Path, frames: int) -> Result:
     rom = args.rom_dir / f"{game.name}.zip"
-    video_out = output / "videos" / f"{game.name}.mov"
     frame_out = output / "frames" / f"{game.name}.png"
     log_out = output / "logs" / f"{game.name}.log"
     console_out = output / "logs" / f"{game.name}.console.log"
-    capture_log_out = output / "logs" / f"{game.name}.capture.log"
     save_out = output / "saves" / f"{game.name}.srm"
     if not rom.is_file():
         return Result(
             game.name, game.title, game.version, "missing_rom", None, "",
-            frames, args.seconds, 0.0, args.fast_forward, False,
-            "", "", "", "", "", f"ROM not found: {rom}",
+            frames, args.seconds, 0.0, args.fast_forward,
+            "", "", "", "", f"ROM not found: {rom}",
         )
 
-    temporary = tempfile.TemporaryDirectory(prefix=f"supermodel-smoke-{game.name}-")
-    work = Path(temporary.name)
-    port = free_udp_port()
-    config_args = prepare_environment(work, args.system_assets, args.base_config, port)
-    video_tmp = work / f"{game.name}.mov"
+    # With --keep-workdirs the environment is built in place, so the absolute
+    # paths written into its overrides stay valid after the run.
+    temporary: tempfile.TemporaryDirectory[str] | None = None
+    if args.keep_workdirs:
+        work = output / "work" / game.name
+        if work.exists():
+            shutil.rmtree(work)
+        work.mkdir(parents=True)
+    else:
+        temporary = tempfile.TemporaryDirectory(prefix=f"supermodel-smoke-{game.name}-")
+        work = Path(temporary.name)
+    config_args = prepare_environment(work, args.system_assets, args.base_config,
+                                      args.fast_forward)
+    frame_tmp = work / f"{game.name}.png"
     core_log_tmp = work / "logs" / f"{game.name}.log"
     command = [
         str(args.retroarch), "-v", *config_args, "-L", str(args.core),
-        f"--log-file={core_log_tmp}", f"--max-frames={frames}", str(rom),
+        f"--log-file={core_log_tmp}", f"--max-frames={frames}",
+        "--max-frames-ss", f"--max-frames-ss-path={frame_tmp}", str(rom),
     ]
     started = time.monotonic()
     timed_out = False
-    ff_activated = False
-    capture_exit_code: int | None = None
     process: subprocess.Popen[bytes] | None = None
-    capture: subprocess.Popen[bytes] | None = None
     with console_out.open("wb") as console:
         try:
-            process = subprocess.Popen(command, stdout=console, stderr=subprocess.STDOUT)
-            with capture_log_out.open("wb") as capture_log:
-                capture = subprocess.Popen([
-                    str(args.capture_helper), "--pid", str(process.pid),
-                    "--output", str(video_tmp),
-                ], stdout=capture_log, stderr=subprocess.STDOUT)
-                if args.fast_forward:
-                    ff_activated = activate_fast_forward(port, process, time.monotonic() + 15.0)
-                exit_code = process.wait(timeout=args.wall_timeout)
-                try:
-                    capture_exit_code = capture.wait(timeout=20.0)
-                except subprocess.TimeoutExpired:
-                    terminate_process(capture)
-                    capture_exit_code = capture.returncode
+            process = subprocess.Popen(command, stdout=console, stderr=subprocess.STDOUT,
+                                       cwd=work)
+            exit_code = process.wait(timeout=args.wall_timeout)
         except subprocess.TimeoutExpired:
             timed_out = True
-            if process:
-                terminate_process(process)
+            terminate_process(process)
             exit_code = process.returncode
-            if capture:
-                try:
-                    capture_exit_code = capture.wait(timeout=20.0)
-                except subprocess.TimeoutExpired:
-                    terminate_process(capture)
-                    capture_exit_code = capture.returncode
         except KeyboardInterrupt:
             if process:
                 terminate_process(process)
-            if capture:
-                terminate_process(capture)
             raise
     elapsed = time.monotonic() - started
 
-    video = copy_if_present(video_tmp, video_out)
-    final_frame = extract_final_frame(args.ffmpeg, video_out, frame_out) if video else ""
+    screenshot = copy_if_present(frame_tmp, frame_out)
     log = copy_if_present(core_log_tmp, log_out)
-    save_candidates = list((work / "saves").glob("**/*.srm"))
+    save_candidates = sorted((work / "saves").glob("**/*.srm"))
     save = copy_if_present(save_candidates[0], save_out) if save_candidates else ""
     signal_name = ""
     if exit_code is not None and exit_code < 0:
@@ -342,36 +276,31 @@ def run_game(args: argparse.Namespace, game: Game, output: Path, frames: int) ->
         except ValueError:
             signal_name = str(-exit_code)
 
-    diagnostic_text = ""
+    diagnostic_lines: list[str] = []
     for candidate in (core_log_tmp, console_out):
         if candidate.is_file():
-            diagnostic_text += candidate.read_text(encoding="utf-8", errors="replace").lower()
+            diagnostic_lines += candidate.read_text(encoding="utf-8",
+                                                    errors="replace").splitlines()
+    diagnostic_text = "\n".join(diagnostic_lines).lower()
     marker = next((item for item in CRASH_MARKERS if item in diagnostic_text), "")
+    core_error = next((line.strip() for line in diagnostic_lines
+                       if "[libretro ERROR]" in line), "")
     if timed_out:
         status, note = "timeout", f"exceeded {args.wall_timeout:g}s real-time limit"
+    elif LOAD_FAILURE_MARKER in diagnostic_text and not marker and not signal_name:
+        status, note = "load_error", core_error or "RetroArch could not load the content"
     elif exit_code != 0 or signal_name or marker:
         status, note = "crash", marker or signal_name or f"exit code {exit_code}"
-    elif capture_exit_code != 0 or not video:
-        status, note = "no_capture", (
-            f"ScreenCaptureKit helper failed with exit code {capture_exit_code}; "
-            f"see {capture_log_out}"
-        )
-    elif not final_frame:
-        status, note = "no_frame", "video was captured but FFmpeg could not extract its final frame"
+    elif not screenshot:
+        status, note = "no_screenshot", "RetroArch exited cleanly but saved no final frame"
     else:
-        status, note = "ok", "inspect final frame or video for service/setup loops"
-    if args.fast_forward and not ff_activated:
-        note += "; fast-forward command was not acknowledged"
+        status, note = "ok", "inspect final frame for service/setup loops"
 
-    if args.keep_workdirs:
-        kept = output / "work" / game.name
-        if kept.exists():
-            shutil.rmtree(kept)
-        shutil.copytree(work, kept)
-    temporary.cleanup()
+    if temporary:
+        temporary.cleanup()
     return Result(game.name, game.title, game.version, status, exit_code, signal_name,
-                  frames, args.seconds, round(elapsed, 3), args.fast_forward, ff_activated,
-                  video, final_frame, save, log, str(console_out), note)
+                  frames, args.seconds, round(elapsed, 3), args.fast_forward,
+                  screenshot, save, log, str(console_out), note)
 
 
 def write_summaries(output: Path, results: list[Result]) -> None:
@@ -385,7 +314,10 @@ def write_summaries(output: Path, results: list[Result]) -> None:
 
 def main() -> int:
     args = parse_args()
-    args.retroarch = args.retroarch.expanduser().resolve()
+    retroarch = args.retroarch.expanduser() if args.retroarch else shutil.which("retroarch")
+    if not retroarch:
+        raise FileNotFoundError("retroarch (install it or pass --retroarch)")
+    args.retroarch = Path(retroarch).resolve()
     args.core = args.core.expanduser().resolve()
     args.rom_dir = args.rom_dir.expanduser().resolve()
     args.games_xml = args.games_xml.expanduser().resolve()
@@ -399,12 +331,7 @@ def main() -> int:
             state = "present" if (args.rom_dir / f"{game.name}.zip").is_file() else "MISSING"
             print(f"{game.name:12} {state:7} {game.title} ({game.version})")
         return 0
-    ffmpeg = args.ffmpeg.expanduser() if args.ffmpeg else shutil.which("ffmpeg")
-    if not ffmpeg:
-        raise FileNotFoundError("ffmpeg (install it or pass --ffmpeg)")
-    args.ffmpeg = Path(ffmpeg).resolve()
-    for required in (args.retroarch, args.core, args.ffmpeg, args.games_xml,
-                     args.system_assets):
+    for required in (args.retroarch, args.core, args.games_xml, args.system_assets):
         if not required.exists():
             raise FileNotFoundError(required)
     if args.base_config and not args.base_config.is_file():
@@ -412,22 +339,16 @@ def main() -> int:
 
     if args.output:
         output = args.output.expanduser().resolve()
-        output.mkdir(parents=True, exist_ok=False)
     else:
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        output = (Path.home() / "Documents" / "RetroArch" /
-                  "supermodel-smoke" / stamp)
-        output.mkdir(parents=True, exist_ok=False)
-    for directory in ("videos", "frames", "logs", "saves", ".tools"):
+        output = Path.home() / "Documents" / "RetroArch" / "supermodel-smoke" / stamp
+    output.mkdir(parents=True, exist_ok=False)
+    for directory in ("frames", "logs", "saves"):
         (output / directory).mkdir(exist_ok=True)
-    helper_source = Path(__file__).with_name("ScreenCaptureWindow.m")
-    if not helper_source.is_file():
-        raise FileNotFoundError(helper_source)
-    args.capture_helper = output / ".tools" / "ScreenCaptureWindow"
-    build_capture_helper(helper_source, args.capture_helper)
     frames = max(1, round(args.seconds * args.fps))
     print(f"Results: {output}")
-    print(f"Selected: {len(games)} sets; capture after {frames} frames ({args.seconds:g}s emulated)")
+    print(f"Selected: {len(games)} sets; capture after {frames} frames "
+          f"({args.seconds:g}s emulated)")
 
     results: list[Result] = []
     try:
@@ -446,10 +367,8 @@ def main() -> int:
         counts[result.status] = counts.get(result.status, 0) + 1
     print("Summary: " + ", ".join(f"{key}={value}" for key, value in sorted(counts.items())))
     print(f"Review final frames in: {output / 'frames'}")
-    print(f"Review full window videos in: {output / 'videos'}")
     print(f"Generated isolated SRAM in: {output / 'saves'}")
-    return 1 if any(result.status in {"crash", "timeout", "no_capture", "no_frame"}
-                    for result in results) else 0
+    return 1 if any(result.status in FAILED_STATUSES for result in results) else 0
 
 
 if __name__ == "__main__":

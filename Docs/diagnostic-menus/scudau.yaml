@@ -1,0 +1,97 @@
+schema_version: 1
+game:
+  set: scudau
+  parent: scud
+  title: Scud Race
+  version: Australia, Twin/DX
+verification:
+  date: "2026-10-18"
+  inventory_status: Photographed Full Value Cycles
+  method: RetroArch Core With Isolated Configuration And Save RAM
+  primary_evidence: outputs/network-two-option-20261017/scudau-campaign/screenshots
+  native_defaults: Fresh EEPROM, Changed And Returned To Native Default, Full Menu Exit And Re-entry
+  supplemental_samples: Verified 17 Native-Committed Samples And Fresh RetroArch Reloads Across Four Managed Fields
+  supplemental_evidence: outputs/scudau-settings-20261018/validation.json
+  initial_nvram_template: Native Campaign And Fresh Frontend Reload Verified
+  scope: No Linked Gameplay Qualification
+  prior_error: The Historical Test Menu Photograph Was The Graphics Debug Menu Enabled By Games.xml
+controls:
+  enter_test_menu: R3 / Test
+  next_item: L3 / Service
+  select_or_change: R3 / Test
+menus:
+  game_assignments:
+    root_position: {initial_item: Exit, service_presses: 8}
+    editable_option_count: 8
+    persistence_sequence: [Game Assignments Exit, Test Menu Exit, Wait For Game]
+    options:
+      - key: link_mode
+        label: Link ID
+        position: 1
+        native_default: Master
+        values: [Master, Slave, Single]
+        photographed_cycle: [Single, Master, Slave, Single]
+        implemented: true
+        nvram: {word: 15, mask: 65280, mirror_word: 44, encodings: [256, 512, 0]}
+      - key: car_number
+        label: Car Number
+        position: 2
+        native_default: 1
+        values: [1, 2, 3, 4, 5, 6, 7, 8]
+        photographed_cycle: [1, 2, 3, 4, 5, 6, 7, 8, 1]
+        dependency: Editable With Linked Role; Gray In Single
+        implemented: true
+        nvram: {word: 15, mask: 255, mirror_word: 44, encodings: [0, 1, 2, 3, 4, 5, 6, 7]}
+      - key: cabinet_type
+        label: Cabinet Type
+        position: 3
+        native_default: Twin
+        values: [Twin, Deluxe]
+        photographed_cycle: [Twin, Deluxe, Twin]
+        implemented: true
+        nvram: {word: 16, mask: 65280, mirror_word: 45, encodings: [256, 0]}
+      - key: difficulty
+        label: Difficulty
+        position: 4
+        native_default: Normal
+        values: [Normal, Hard, Hardest, Easy]
+        photographed_cycle: [Normal, Hard, Hardest, Easy, Normal]
+        implemented: true
+        nvram: {word: 16, mask: 255, mirror_word: 45, encodings: [1, 2, 3, 0]}
+      - key: advertise_sound
+        label: Advertise Sound
+        position: 5
+        native_default: "On"
+        values: ["On", "Off"]
+        photographed_cycle: ["On", "Off", "On"]
+        implemented: false
+      - key: game_mode
+        label: Game Mode
+        position: 6
+        native_default: Normal (Sprint)
+        values: [Normal (Sprint), Grand Prix, Endurance]
+        photographed_cycle: [Normal (Sprint), Grand Prix, Endurance, Normal (Sprint)]
+        implemented: false
+      - key: motor_power
+        label: Motor Power
+        position: 7
+        native_default: 80%
+        values: [80%, 90%, 100%, 50%, 60%, 70%]
+        photographed_cycle: [80%, 90%, 100%, 50%, 60%, 70%, 80%]
+        implemented: false
+      - key: multi_display
+        label: Multi Display
+        position: 8
+        native_default: "Off"
+        values: ["Off", "On"]
+        photographed_cycle: ["Off", "On", "Off"]
+        implemented: false
+    commands:
+      - {label: Exit, position: 9}
+clone_differences:
+  country: No Country Selector; Native Australia Region
+  remaining_rows: Same Eight Operator Fields As The Parent Apart From Country
+nvram_layout:
+  storage: 93C46 EEPROM
+  byte_order: Little Endian Words In The Frontend Container
+  integrity: {word: 3, algorithm: CRC-16/CCITT, polynomial: 4129, initial_value: 0, first_word: 6, last_word: 34}
