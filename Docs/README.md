@@ -404,3 +404,13 @@ It uses the repository's build and `Config/` files by default; `--core`,
 and `--no-fast-forward` (run in real time) change that. Results go to
 `~/Documents/RetroArch/supermodel-smoke/<timestamp>` unless `--output` is
 given.
+
+## License
+
+Supermodel is distributed under the terms of the GNU General Public License,
+version 3 or later. This Libretro core is a fork of
+[trzy/Supermodel](https://github.com/trzy/Supermodel), written by Bart
+Trzynadlowski, Nik Henson and the Supermodel contributors, and is released
+under the same license. The full text is in [LICENSE](../LICENSE) at the root
+of the repository and, together with the original Supermodel license notice,
+in [Docs/LICENSE.txt](LICENSE.txt).
