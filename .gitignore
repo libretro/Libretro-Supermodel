@@ -30,3 +30,4 @@ nul
 
 *.md
 !Docs/**/*.md
+!CONTRIBUTING.md
